@@ -25,6 +25,7 @@ class graph_stats:
                     getattr(self, 'missing_{}'.format(label_level)).append(sample_id)
 
         self.print_stats()
+        self.find_largest_degrees()
 
     def add(self, family, subfamily, genus, specific_epithet):
         if family is not None:
@@ -56,6 +57,24 @@ class graph_stats:
         # print(self.sub_f_counter)
         # print(self.g_counter)
         # print(self.se_counter)
+
+    def find_largest_degrees(self):
+        max_family = max([len(self.dag[family])
+                          for family in self.dag])
+
+        max_subfamily = max([len(self.dag[family][subfamily])
+                             for family in self.dag
+                             for subfamily in self.dag[family]])
+
+        max_genus = max([len(self.dag[family][subfamily][genus])
+                         for family in self.dag
+                         for subfamily in self.dag[family]
+                         for genus in self.dag[family][subfamily]])
+
+        print("Max_family: {}, Max_subfamily: {}, Max_genus: {}".format(max_family, max_subfamily, max_genus))
+        return max_family, max_subfamily, max_genus
+
+
 
     def print_stats(self):
         # n_family = len(self.dag)

@@ -3,6 +3,7 @@ import argparse
 import os.path as osp
 import networkx as nx
 import operator
+import matplotlib.pyplot as plt
 
 
 class graph_stats:
@@ -40,6 +41,10 @@ class graph_stats:
         self.genus_nodes = [node_data for node_data in self.G.nodes.data() if node_data[1]['level'] == 'genus']
         self.specific_epithet_nodes = [node_data for node_data in self.G.nodes.data() if
                                        node_data[1]['level'] == 'specific_epithet']
+
+        nx.draw(self.G)
+        plt.show()
+
         self.in_degree = self.G.in_degree
         self.out_degree = self.G.out_degree
 
@@ -55,7 +60,7 @@ class graph_stats:
         if level not in ['family', 'subfamily', 'genus', 'specific_epithet', None]:
             raise ValueError('Invalid option {}. Use one of {}'
                              .format(level, ['family', 'subfamily', 'genus', 'specific_epithet', None]))
-        
+
         if level is None:
             max_in_degree = max(dict(self.in_degree).items(), key=operator.itemgetter(1))
             max_out_degree = max(dict(self.out_degree).items(), key=operator.itemgetter(1))
@@ -79,7 +84,6 @@ class graph_stats:
         Print stats for the loaded dataset.
         :return: None
         """
-        print(self.G.nodes.data())
         print("Number of edges: {}".format(self.G.size()))
         print("Number of nodes: {}".format(len(self.G)))
 

@@ -10,11 +10,14 @@ import matplotlib.pyplot as plt
 import time
 import os
 import copy
+from tensorboardX import SummaryWriter
+import datetime
+
 print("PyTorch Version: ", torch.__version__)
 print("Torchvision Version: ", torchvision.__version__)
 
 
-def DataLoad(data_dirs, data_transforms, batch_size):
+def dataload(data_dirs, data_transforms, batch_size):
     print("Initializing Datasets and Dataloaders...")
 
     image_datasets = {x: datasets.ImageFolder(data_dirs[x], data_transforms[x]) for x in
@@ -30,12 +33,16 @@ def DataLoad(data_dirs, data_transforms, batch_size):
 
 class Experiment:
 
-    def __init__(self, model, dataloaders, criterion, num_epochs=25):
+    def __init__(self, model, dataloaders, criterion, experiment_name, n_epochs, exp_dir):
+        self.exp_dir = exp_dir
         self.criterion = criterion
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
-        self.n_epochs = num_epochs
+        self.n_epochs = n_epochs
         self.dataloaders = dataloaders
+        self.writer = SummaryWriter(
+            log_dir=os.path.join(self.exp_dir, '{}_{}').format(datetime.datetime.today().strftime('%Y_%m_%d_%H_%M_%S'),
+                                                               experiment_name))
 
     def train_model(self, optimizer):
         self.optimizer = optimizer
@@ -56,7 +63,7 @@ class Experiment:
                 if phase == 'train':
                     self.model.train()  # Set model to training mode
                 else:
-                    self.model.eval()   # Set model to evaluate mode
+                    self.model.eval()  # Set model to evaluate mode
 
                 running_loss = 0.0
                 running_corrects = 0
@@ -89,6 +96,9 @@ class Experiment:
                 epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
                 epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
 
+                self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, epoch)
+                self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, epoch)
+
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
                 # deep copy the model
@@ -106,21 +116,25 @@ class Experiment:
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
+
+        self.writer.close()
         return self.model, val_acc_history
 
 
 class Finetuner(Experiment):
     def __init__(self, data_dir, data_transforms, n_classes, criterion, lr,
                  batch_size,
+                 experiment_name,
+                 experiment_dir='../exp/',
                  n_epochs=10,
                  feature_extracting=True,
                  use_pretrained=True):
 
         model = models.alexnet(pretrained=use_pretrained)
         image_paths = {x: os.path.join(data_dir, x) for x in ['train', 'val']}
-        data_loaders = DataLoad(image_paths, data_transforms, batch_size)
+        data_loaders = dataload(image_paths, data_transforms, batch_size)
 
-        Experiment.__init__(self, model, data_loaders, criterion, n_epochs)
+        Experiment.__init__(self, model, data_loaders, criterion, experiment_name, n_epochs, experiment_dir)
 
         self.lr = lr
 
@@ -153,26 +167,27 @@ class Finetuner(Experiment):
         self.train_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
 
 
-input_size = 224
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.RandomResizedCrop(input_size),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Resize(input_size),
-        transforms.CenterCrop(input_size),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-data_dir = '../database/hymenoptera_data'
+if __name__ == '__main__':
+    input_size = 224
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomResizedCrop(input_size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+        'val': transforms.Compose([
+            transforms.Resize(input_size),
+            transforms.CenterCrop(input_size),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+    }
+    data_dir = '../database/hymenoptera_data'
 
-Finetuner(data_dir=data_dir, data_transforms=data_transforms, n_classes=2,
-          criterion=nn.CrossEntropyLoss(),
-          lr=0.001,
-          batch_size=4,
-          n_epochs=10)
-
+    Finetuner(data_dir=data_dir, data_transforms=data_transforms, n_classes=2,
+              criterion=nn.CrossEntropyLoss(),
+              lr=0.001,
+              batch_size=8,
+              experiment_name='alexnet_ft',
+              n_epochs=10)

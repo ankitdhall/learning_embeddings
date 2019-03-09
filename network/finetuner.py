@@ -34,7 +34,9 @@ def dataload(data_dirs, data_transforms, batch_size):
 
 class Experiment:
 
-    def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, batch_size, exp_dir):
+    def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, eval_interval,
+                 batch_size, exp_dir):
+        self.epoch = 0
         self.exp_dir = exp_dir
         self.classes = classes
         self.criterion = criterion
@@ -42,6 +44,7 @@ class Experiment:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
         self.n_epochs = n_epochs
+        self.eval_interval = eval_interval
         self.dataloaders = dataloaders
         print('Training set has {} samples. Validation set has {} samples.'.format(
             len(self.dataloaders['train'].dataset),
@@ -56,94 +59,87 @@ class Experiment:
             for param in self.model.parameters():
                 param.requires_grad = False
 
-    def train_model(self, optimizer):
+    def pass_samples(self, phase):
+        running_loss = 0.0
+        running_corrects = 0
+
+        predicted_scores = np.zeros((len(self.dataloaders[phase].dataset), self.n_classes))
+        correct_labels = np.zeros((len(self.dataloaders[phase].dataset)))
+
+        # Iterate over data.
+        for index, data_item in enumerate(self.dataloaders[phase]):
+            inputs, labels = data_item
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
+
+            # zero the parameter gradients
+            self.optimizer.zero_grad()
+
+            # forward
+            # track history if only in train
+            with torch.set_grad_enabled(phase == 'train'):
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+
+                _, preds = torch.max(outputs, 1)
+
+                # backward + optimize only if in training phase
+                if phase == 'train':
+                    loss.backward()
+                    self.optimizer.step()
+
+            # statistics
+            running_loss += loss.item() * inputs.size(0)
+            running_corrects += torch.sum(preds == labels.data)
+
+            predicted_scores[self.batch_size * index:min(self.batch_size * (index + 1),
+                                                         len(self.dataloaders[phase].dataset)), :] = outputs.data
+            correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
+                                                       len(self.dataloaders[phase].dataset))] = labels.data
+
+        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
+
+        epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
+        epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
+
+        self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
+        self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
+        self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
+
+        print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+
+        # deep copy the model
+        if phase == 'val' and epoch_acc > self.best_acc:
+            self.best_acc = epoch_acc
+            self.best_model_wts = copy.deepcopy(self.model.state_dict())
+
+    def run_model(self, optimizer):
         self.optimizer = optimizer
+
+        self.best_model_wts = copy.deepcopy(self.model.state_dict())
+        self.best_acc = 0.0
+
+        self.eval = Evaluation(self.log_dir, self.classes)
 
         since = time.time()
 
-        val_acc_history = []
-
-        best_model_wts = copy.deepcopy(self.model.state_dict())
-        best_acc = 0.0
-
-        eval = Evaluation(self.log_dir, self.classes)
-
-        for epoch in range(self.n_epochs):
-            print('Epoch {}/{}'.format(epoch, self.n_epochs - 1))
+        for self.epoch in range(self.n_epochs):
+            print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
             print('-' * 10)
 
-            # Each epoch has a training and validation phase
-            for phase in ['train', 'val']:
-                if phase == 'train':
-                    self.model.train()  # Set model to training mode
-                else:
-                    self.model.eval()  # Set model to evaluate mode
-
-                running_loss = 0.0
-                running_corrects = 0
-
-                predicted_scores = np.zeros((len(self.dataloaders[phase].dataset), self.n_classes))
-                correct_labels = np.zeros((len(self.dataloaders[phase].dataset)))
-
-                # Iterate over data.
-                for index, data_item in enumerate(self.dataloaders[phase]):
-                    inputs, labels = data_item
-                    inputs = inputs.to(self.device)
-                    labels = labels.to(self.device)
-
-                    # zero the parameter gradients
-                    self.optimizer.zero_grad()
-
-                    # forward
-                    # track history if only in train
-                    with torch.set_grad_enabled(phase == 'train'):
-                        outputs = self.model(inputs)
-                        loss = self.criterion(outputs, labels)
-
-                        _, preds = torch.max(outputs, 1)
-
-                        # backward + optimize only if in training phase
-                        if phase == 'train':
-                            loss.backward()
-                            self.optimizer.step()
-
-                    # statistics
-                    running_loss += loss.item() * inputs.size(0)
-                    running_corrects += torch.sum(preds == labels.data)
-
-                    predicted_scores[self.batch_size*index:min(self.batch_size*(index+1),
-                                                               len(self.dataloaders[phase].dataset)), :] = outputs.data
-                    correct_labels[self.batch_size*index:min(self.batch_size*(index+1),
-                                                             len(self.dataloaders[phase].dataset))] = labels.data
-
-                eval.evaluate(predicted_scores, correct_labels, epoch, phase)
-
-                epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
-                epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
-
-                self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, epoch)
-                self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, epoch)
-
-                print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
-
-                # deep copy the model
-                if phase == 'val' and epoch_acc > best_acc:
-                    best_acc = epoch_acc
-                    best_model_wts = copy.deepcopy(self.model.state_dict())
-                if phase == 'val':
-                    val_acc_history.append(epoch_acc)
-
-            print()
+            self.pass_samples(phase='train')
+            if self.epoch % self.eval_interval == 0:
+                self.pass_samples(phase='val')
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-        print('Best val Acc: {:4f}'.format(best_acc))
+        print('Best val Acc: {:4f}'.format(self.best_acc))
 
         # load best model weights
-        self.model.load_state_dict(best_model_wts)
+        self.model.load_state_dict(self.best_model_wts)
 
         self.writer.close()
-        return self.model, val_acc_history
+        return self.model
 
 
 class Finetuner(Experiment):
@@ -152,6 +148,7 @@ class Finetuner(Experiment):
                  experiment_name,
                  experiment_dir='../exp/',
                  n_epochs=10,
+                 eval_interval=2,
                  feature_extracting=True,
                  use_pretrained=True):
 
@@ -159,7 +156,8 @@ class Finetuner(Experiment):
         image_paths = {x: os.path.join(data_dir, x) for x in ['train', 'val']}
         data_loaders = dataload(image_paths, data_transforms, batch_size)
 
-        Experiment.__init__(self, model, data_loaders, criterion, classes, experiment_name, n_epochs, batch_size, experiment_dir)
+        Experiment.__init__(self, model, data_loaders, criterion, classes, experiment_name, n_epochs, eval_interval,
+                            batch_size, experiment_dir)
 
         self.lr = lr
         self.n_classes = len(classes)
@@ -185,7 +183,7 @@ class Finetuner(Experiment):
         self.train()
 
     def train(self):
-        self.train_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
 
 
 class CIFAR10(Experiment):
@@ -223,7 +221,7 @@ class CIFAR10(Experiment):
         self.train()
 
     def train(self):
-        self.train_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
 
 
 def train_cifar10():
@@ -280,7 +278,7 @@ def train_alexnet_binary():
               lr=0.001,
               batch_size=8,
               experiment_name='alexnet_ft',
-              n_epochs=10)
+              n_epochs=4)
 
 
 if __name__ == '__main__':

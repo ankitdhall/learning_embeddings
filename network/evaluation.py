@@ -18,6 +18,8 @@ class Evaluation:
             os.makedirs(dir)
 
     def evaluate(self, predicted_scores, correct_labels, epoch, phase):
+        print('-'*30)
+        print('Running evaluation for {} at epoch {}'.format(phase, epoch))
         assert predicted_scores.shape[0] == correct_labels.shape[0], \
             'Number of predicitions ({}) and labels ({}) do not match'.format(predicted_scores.shape[0],
                                                                               correct_labels.shape[0])
@@ -30,12 +32,21 @@ class Evaluation:
             precision[class_name], recall[class_name], thresholds[class_name] = precision_recall_curve(
                 correct_labels == class_index, predicted_scores[:, class_index])
 
-            self.plot_prec_recall_vs_tresh(precision[class_name], recall[class_name],
-                                           thresholds[class_name], class_name)
-            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, phase, class_name))
-            plt.savefig(os.path.join(self.experiment_directory, phase, class_name,
-                                     'prec_recall_{}_{}.png'.format(epoch, class_name)))
-            plt.clf()
+            average_precision[class_name] = average_precision_score(correct_labels == class_index,
+                                                                    predicted_scores[:, class_index])
+
+            if phase == 'val':
+                self.plot_prec_recall_vs_tresh(precision[class_name], recall[class_name],
+                                               thresholds[class_name], class_name)
+                self.make_dir_if_non_existent(os.path.join(self.experiment_directory, phase, class_name))
+                plt.savefig(os.path.join(self.experiment_directory, phase, class_name,
+                                         'prec_recall_{}_{}.png'.format(epoch, class_name)))
+                plt.clf()
+            print('Average precision for {} is {}'.format(class_name, average_precision[class_name]))
+
+        mAP = sum([average_precision[class_name] for class_name in self.classes])/len(average_precision)
+        print('Mean average precision is {}'.format(mAP))
+        return mAP, precision, recall, average_precision, thresholds
 
     @staticmethod
     def plot_prec_recall_vs_tresh(precisions, recalls, thresholds, class_name):

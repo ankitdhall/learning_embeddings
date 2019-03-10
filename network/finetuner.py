@@ -3,16 +3,12 @@ from __future__ import division
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
-import matplotlib.pyplot as plt
-import time
+
 import os
-import copy
-from tensorboardX import SummaryWriter
-import datetime
-from evaluation import Evaluation
+from experiment import Experiment
+
 
 print("PyTorch Version: ", torch.__version__)
 print("Torchvision Version: ", torchvision.__version__)
@@ -30,116 +26,6 @@ def dataload(data_dirs, data_transforms, batch_size):
                                                        shuffle=True,
                                                        num_workers=4) for x in ['train', 'val']}
     return dataloaders_dict
-
-
-class Experiment:
-
-    def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, eval_interval,
-                 batch_size, exp_dir):
-        self.epoch = 0
-        self.exp_dir = exp_dir
-        self.classes = classes
-        self.criterion = criterion
-        self.batch_size = batch_size
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = model.to(self.device)
-        self.n_epochs = n_epochs
-        self.eval_interval = eval_interval
-        self.dataloaders = dataloaders
-        print('Training set has {} samples. Validation set has {} samples.'.format(
-            len(self.dataloaders['train'].dataset),
-            len(self.dataloaders['val'].dataset)))
-
-        self.log_dir = os.path.join(self.exp_dir, '{}_{}').format(datetime.datetime.today().strftime('%Y_%m_%d_%H_%M_%S'),
-                                                                  experiment_name)
-        self.writer = SummaryWriter(log_dir=os.path.join(self.log_dir, 'tensorboard'))
-
-    def set_parameter_requires_grad(self, feature_extracting):
-        if feature_extracting:
-            for param in self.model.parameters():
-                param.requires_grad = False
-
-    def pass_samples(self, phase):
-        running_loss = 0.0
-        running_corrects = 0
-
-        predicted_scores = np.zeros((len(self.dataloaders[phase].dataset), self.n_classes))
-        correct_labels = np.zeros((len(self.dataloaders[phase].dataset)))
-
-        # Iterate over data.
-        for index, data_item in enumerate(self.dataloaders[phase]):
-            inputs, labels = data_item
-            inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
-
-            # zero the parameter gradients
-            self.optimizer.zero_grad()
-
-            # forward
-            # track history if only in train
-            with torch.set_grad_enabled(phase == 'train'):
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
-
-                _, preds = torch.max(outputs, 1)
-
-                # backward + optimize only if in training phase
-                if phase == 'train':
-                    loss.backward()
-                    self.optimizer.step()
-
-            # statistics
-            running_loss += loss.item() * inputs.size(0)
-            running_corrects += torch.sum(preds == labels.data)
-
-            predicted_scores[self.batch_size * index:min(self.batch_size * (index + 1),
-                                                         len(self.dataloaders[phase].dataset)), :] = outputs.data
-            correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
-                                                       len(self.dataloaders[phase].dataset))] = labels.data
-
-        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
-
-        epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
-        epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
-
-        self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
-        self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
-        self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
-
-        print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
-
-        # deep copy the model
-        if phase == 'val' and epoch_acc > self.best_acc:
-            self.best_acc = epoch_acc
-            self.best_model_wts = copy.deepcopy(self.model.state_dict())
-
-    def run_model(self, optimizer):
-        self.optimizer = optimizer
-
-        self.best_model_wts = copy.deepcopy(self.model.state_dict())
-        self.best_acc = 0.0
-
-        self.eval = Evaluation(self.log_dir, self.classes)
-
-        since = time.time()
-
-        for self.epoch in range(self.n_epochs):
-            print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
-            print('-' * 10)
-
-            self.pass_samples(phase='train')
-            if self.epoch % self.eval_interval == 0:
-                self.pass_samples(phase='val')
-
-        time_elapsed = time.time() - since
-        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-        print('Best val Acc: {:4f}'.format(self.best_acc))
-
-        # load best model weights
-        self.model.load_state_dict(self.best_model_wts)
-
-        self.writer.close()
-        return self.model
 
 
 class Finetuner(Experiment):
@@ -278,7 +164,7 @@ def train_alexnet_binary():
               lr=0.001,
               batch_size=8,
               experiment_name='alexnet_ft',
-              n_epochs=4)
+              n_epochs=10)
 
 
 if __name__ == '__main__':

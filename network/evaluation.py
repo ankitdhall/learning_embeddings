@@ -1,6 +1,5 @@
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import average_precision_score
-from sklearn.metrics import precision_score
 import matplotlib.pyplot as plt
 import os
 

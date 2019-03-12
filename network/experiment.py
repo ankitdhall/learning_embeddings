@@ -17,9 +17,10 @@ import os
 class Experiment:
 
     def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, eval_interval,
-                 batch_size, exp_dir):
+                 batch_size, exp_dir, load_wt):
         self.epoch = 0
         self.exp_dir = exp_dir
+        self.load_wt = load_wt
 
         self.classes = classes
         self.criterion = criterion
@@ -108,7 +109,9 @@ class Experiment:
 
     def run_model(self, optimizer):
         self.optimizer = optimizer
-        self.find_existing_weights()
+
+        if self.load_wt:
+            self.find_existing_weights()
 
         self.best_model_wts = copy.deepcopy(self.model.state_dict())
         self.best_acc = 0.0

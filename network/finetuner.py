@@ -36,14 +36,15 @@ class Finetuner(Experiment):
                  n_epochs=10,
                  eval_interval=2,
                  feature_extracting=True,
-                 use_pretrained=True):
+                 use_pretrained=True,
+                 load_wt=False):
 
         model = models.alexnet(pretrained=use_pretrained)
         image_paths = {x: os.path.join(data_dir, x) for x in ['train', 'val']}
         data_loaders = dataload(image_paths, data_transforms, batch_size)
 
         Experiment.__init__(self, model, data_loaders, criterion, classes, experiment_name, n_epochs, eval_interval,
-                            batch_size, experiment_dir)
+                            batch_size, experiment_dir, load_wt)
 
         self.lr = lr
         self.n_classes = len(classes)
@@ -138,7 +139,7 @@ def train_cifar10():
                             lr=0.001,
                             batch_size=8,
                             experiment_name='alexnet_ft',
-                            n_epochs=10)
+                            n_epochs=2)
 
 
 def train_alexnet_binary():
@@ -164,7 +165,8 @@ def train_alexnet_binary():
               lr=0.001,
               batch_size=8,
               experiment_name='alexnet_ft',
-              n_epochs=10)
+              n_epochs=2,
+              load_wt=False)
 
 
 if __name__ == '__main__':

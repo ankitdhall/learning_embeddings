@@ -35,7 +35,7 @@ class Summarize:
         self.markdown.write(table_str)
 
     def make_text(self, text, bullet=True):
-        self.markdown.write(('- ' if bullet else '') + text + '  \n')
+        self.markdown.write(('- ' if bullet else '') + text + '  \n\n')
 
     def make_image(self, location, alt_text):
         self.markdown.write('![{}]({})\n\n'.format(alt_text, os.path.relpath(location, self.log_dir)))

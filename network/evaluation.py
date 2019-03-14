@@ -49,18 +49,25 @@ class Evaluation:
         recall = dict()
         thresholds = dict()
         average_precision = dict()
+        f1 = dict()
+
+        def get_f1score(p, r):
+            p, r = np.array(p), np.array(r)
+            return (p * r)*2/(p + r + 1e-6)
 
         # calculate metrics for different values of thresholds
         for class_index, class_name in enumerate(self.classes):
             precision[class_name], recall[class_name], thresholds[class_name] = precision_recall_curve(
                 correct_labels == class_index, predicted_scores[:, class_index])
+            f1[class_name] = get_f1score(precision[class_name], recall[class_name])
 
             average_precision[class_name] = average_precision_score(correct_labels == class_index,
                                                                     predicted_scores[:, class_index])
 
             if phase == 'val':
                 self.plot_prec_recall_vs_tresh(precision[class_name], recall[class_name],
-                                               thresholds[class_name], class_name)
+                                               thresholds[class_name], f1[class_name],
+                                               class_name)
                 self.make_dir_if_non_existent(os.path.join(self.experiment_directory, phase, class_name))
                 save_fig_to = os.path.join(self.experiment_directory, phase, class_name,
                                            'prec_recall_{}_{}.png'.format(epoch, class_name))
@@ -93,9 +100,10 @@ class Evaluation:
         return mAP, precision, recall, average_precision, thresholds
 
     @staticmethod
-    def plot_prec_recall_vs_tresh(precisions, recalls, thresholds, class_name):
+    def plot_prec_recall_vs_tresh(precisions, recalls, thresholds, f1_score, class_name):
         plt.plot(thresholds, precisions[:-1], 'b:', label='precision')
         plt.plot(thresholds, recalls[:-1], 'r:', label='recall')
+        plt.plot(thresholds, f1_score[:-1], 'g:', label='f1-score')
         plt.xlabel('Threshold')
         plt.legend(loc='upper left')
         plt.title('Precision and recall vs. threshold for {}'.format(class_name))

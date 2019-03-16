@@ -159,6 +159,7 @@ class CIFAR10(Experiment):
             # statistics
             running_loss += loss.item() * inputs.size(0)
 
+            outputs = outputs.cpu().detach()
             # exact matches
             n_exact_matches, per_level_matches = self.evaluate_hierarchical_matches(outputs, labels)
             running_corrects += n_exact_matches

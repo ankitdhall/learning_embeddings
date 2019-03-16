@@ -16,11 +16,13 @@ import os
 
 class Experiment:
 
-    def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, eval_interval,
-                 batch_size, exp_dir, load_wt):
+    def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, eval_interval, batch_size,
+                 exp_dir, load_wt, evaluator):
         self.epoch = 0
         self.exp_dir = exp_dir
         self.load_wt = load_wt
+
+        self.eval = evaluator
 
         self.classes = classes
         self.criterion = criterion
@@ -61,7 +63,7 @@ class Experiment:
         for index, data_item in enumerate(self.dataloaders[phase]):
             inputs, labels = data_item
             inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
+            labels = labels.float().to(self.device)
 
             # zero the parameter gradients
             self.optimizer.zero_grad()
@@ -116,8 +118,6 @@ class Experiment:
         self.best_model_wts = copy.deepcopy(self.model.state_dict())
         self.best_acc = 0.0
 
-        self.eval = Evaluation(self.log_dir, self.classes)
-
         since = time.time()
 
         for self.epoch in range(self.epoch, self.n_epochs):
@@ -162,5 +162,3 @@ class Experiment:
             print('Could not find weights to load from, will train from scratch.')
         else:
             self.load_model(epoch_to_load=weights[-2].split('.')[0])
-
-

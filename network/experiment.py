@@ -27,7 +27,8 @@ class Experiment:
         self.classes = classes
         self.criterion = criterion
         self.batch_size = batch_size
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print('Using device: {}'.format(self.device))
         self.model = model.to(self.device)
         self.n_epochs = n_epochs
         self.eval_interval = eval_interval

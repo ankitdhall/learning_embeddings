@@ -72,6 +72,7 @@ class Finetuner(Experiment):
         else:
             print("Fine-tuning")
 
+        self.model.to(self.device)
         self.train()
 
     def train(self):
@@ -133,6 +134,7 @@ class CIFAR10(Experiment):
         # Iterate over data.
         for index, data_item in enumerate(self.dataloaders[phase]):
             inputs, labels = data_item
+            print('converting inputs and labels to: {}'.format(self.device))
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)
 
@@ -142,6 +144,7 @@ class CIFAR10(Experiment):
             # forward
             # track history if only in train
             with torch.set_grad_enabled(phase == 'train'):
+                self.model = self.model.to(self.device)
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
 
@@ -190,8 +193,8 @@ class CIFAR10(Experiment):
                 self.save_model(epoch_loss, filename='best_model')
 
     def evaluate_hierarchical_matches(self, preds, labels):
-        predicted_labels = preds.detach().numpy() > np.tile(self.optimal_thresholds, (labels.shape[0], 1))
-        pred_labels_and_map = np.logical_and(np.array(predicted_labels), labels.numpy())
+        predicted_labels = preds.cpu().detach().numpy() > np.tile(self.optimal_thresholds, (labels.shape[0], 1))
+        pred_labels_and_map = np.logical_and(np.array(predicted_labels), labels.cpu().numpy())
         n_exact_matches = np.sum(np.sum(pred_labels_and_map, axis=1) == self.n_levels)
 
         level_matches = []

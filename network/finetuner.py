@@ -106,6 +106,8 @@ class CIFAR10(Experiment):
                             MLEvaluation(os.path.join(experiment_dir, experiment_name),
                                          labelmap, self.optimal_thresholds))
 
+        self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val']}
+
         self.set_parameter_requires_grad(self.feature_extracting)
         num_features = self.model.classifier[6].in_features
         self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
@@ -128,13 +130,12 @@ class CIFAR10(Experiment):
         running_corrects = 0
         epoch_per_level_matches = np.zeros(self.n_levels)
 
-        predicted_scores = np.zeros((len(self.dataloaders[phase].dataset), self.n_classes))
-        correct_labels = np.zeros((len(self.dataloaders[phase].dataset), self.n_classes))
+        predicted_scores = np.zeros((self.dataset_length[phase], self.n_classes))
+        correct_labels = np.zeros((self.dataset_length[phase], self.n_classes))
 
         # Iterate over data.
         for index, data_item in enumerate(self.dataloaders[phase]):
             inputs, labels = data_item
-            print('converting inputs and labels to: {}'.format(self.device))
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)
 
@@ -164,15 +165,15 @@ class CIFAR10(Experiment):
             epoch_per_level_matches += per_level_matches
 
             predicted_scores[self.batch_size * index:min(self.batch_size * (index + 1),
-                                                         len(self.dataloaders[phase].dataset)), :] = outputs.data
+                                                         self.dataset_length[phase]), :] = outputs.data
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
-                                                       len(self.dataloaders[phase].dataset))] = labels.data
+                                                       self.dataset_length[phase])] = labels.data
 
         mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
         self.optimal_thresholds = self.eval.get_optimal_thresholds()
 
-        epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
-        epoch_acc = running_corrects / len(self.dataloaders[phase].dataset)
+        epoch_loss = running_loss / self.dataset_length[phase]
+        epoch_acc = running_corrects / self.dataset_length[phase]
 
         self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
         self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
@@ -180,7 +181,7 @@ class CIFAR10(Experiment):
 
         for l_ix, level_matches in enumerate(epoch_per_level_matches.tolist()):
             self.writer.add_scalar('{}_{}_matches'.format(phase, self.level_names[l_ix]),
-                                   level_matches / len(self.dataloaders[phase].dataset), self.epoch)
+                                   level_matches / self.dataset_length[phase], self.epoch)
 
         print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 

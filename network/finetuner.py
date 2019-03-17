@@ -195,9 +195,11 @@ class CIFAR10(Experiment):
                 self.save_model(epoch_loss, filename='best_model')
 
     def evaluate_hierarchical_matches(self, preds, labels):
-        predicted_labels = preds.cpu().detach().numpy() > np.tile(self.optimal_thresholds, (labels.shape[0], 1))
-        pred_labels_and_map = np.logical_and(np.array(predicted_labels), labels.cpu().numpy())
-        n_exact_matches = np.sum(np.sum(pred_labels_and_map, axis=1) == self.n_levels)
+        preds, labels = preds.cpu().detach().numpy(), labels.cpu().numpy()
+        predicted_labels = preds > np.tile(self.optimal_thresholds, (labels.shape[0], 1))
+        n_exact_matches = sum([1 for sample_ix in range(preds.shape[0])
+                               if np.array_equal(preds[sample_ix, :], labels[sample_ix, :])])
+        pred_labels_and_map = np.logical_and(np.array(predicted_labels), labels)
 
         level_matches = []
         level_start_ix = 0

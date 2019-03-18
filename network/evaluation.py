@@ -21,10 +21,10 @@ class Evaluation:
             os.makedirs(dir)
 
     def evaluate(self, predicted_scores, correct_labels, epoch, phase):
-        if phase == 'val':
-            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', str(epoch)))
-            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', str(epoch)))
-            self.summarizer.make_heading('Classification Summary - Epoch {}'.format(epoch), 1)
+        if phase in ['val', 'test']:
+            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(epoch, phase), 1)
 
         mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
                                                                                  correct_labels, epoch, phase)
@@ -66,7 +66,7 @@ class Evaluation:
             average_precision[class_name] = average_precision_score(correct_labels == class_index,
                                                                     predicted_scores[:, class_index])
 
-            if phase == 'val':
+            if phase in ['val', 'test']:
                 self.plot_prec_recall_vs_thresh(precision[class_name], recall[class_name],
                                                 thresholds[class_name], f1[class_name],
                                                 class_name)
@@ -82,7 +82,7 @@ class Evaluation:
         mAP = sum([average_precision[class_name] for class_name in self.classes])/len(average_precision)
         print('Mean average precision is {}'.format(mAP))
 
-        if phase == 'val':
+        if phase in ['val', 'test']:
             # make table with global metrics
             self.summarizer.make_heading('Global Metrics', 2)
             self.summarizer.make_text('Mean average precision is {}'.format(mAP))
@@ -127,7 +127,7 @@ class MLEvaluation(Evaluation):
             self.optimal_thresholds[class_ix] = best_f1_score[class_name]['best_thresh']
 
     def make_curves(self, predicted_scores, correct_labels, epoch, phase):
-        if phase == 'val':
+        if phase in ['val', 'test']:
             self.summarizer.make_heading('Data Distribution', 2)
             self.summarizer.make_table([[int(np.sum(correct_labels[:, class_ix]))
                                          for class_ix in range(self.labelmap.n_classes)]],
@@ -159,7 +159,7 @@ class MLEvaluation(Evaluation):
             average_precision[class_name] = average_precision_score(correct_labels[:, class_index],
                                                                     predicted_scores[:, class_index])
 
-            if phase == 'val':
+            if phase in ['val', 'test']:
                 best_f1_ix = np.argmax(f1[class_name])
                 best_thresh = thresholds[class_name][best_f1_ix]
                 top_f1_score[class_name] = {'best_thresh': best_thresh, 'f1_score@thresh': f1[class_name][best_f1_ix],
@@ -185,13 +185,14 @@ class MLEvaluation(Evaluation):
             print('Mean average precision for {} is {}'.format(level_name, mAP))
             level_begin_ix += self.labelmap.levels[level_ix]
 
-        if phase == 'val':
+        if phase in ['val', 'test']:
             # make table with global metrics
             self.summarizer.make_heading('Global Metrics', 2)
             self.summarizer.make_text('Mean average precision is {}'.format(mAP))
 
             y_labels = [class_name for class_name in self.classes]
-            x_labels = ['Average Precision (across thresholds)', 'Precision@BF1', 'Recall@BF1', 'Best f1-score', 'Best thresh']
+            x_labels = ['Average Precision (across thresholds)', 'Precision@BF1', 'Recall@BF1', 'Best f1-score',
+                        'Best thresh']
             data = []
             for class_index, class_name in enumerate(self.classes):
                 per_class_metrics = [average_precision[class_name],
@@ -201,7 +202,8 @@ class MLEvaluation(Evaluation):
                                      top_f1_score[class_name]['best_thresh']]
                 data.append(per_class_metrics)
 
-            self.set_optimal_thresholds(top_f1_score)
+            if phase == 'val':
+                self.set_optimal_thresholds(top_f1_score)
 
             self.summarizer.make_table(data, x_labels, y_labels)
 

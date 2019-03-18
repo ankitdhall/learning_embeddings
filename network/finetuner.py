@@ -106,7 +106,7 @@ class CIFAR10(Experiment):
                             MLEvaluation(os.path.join(experiment_dir, experiment_name),
                                          labelmap, self.optimal_thresholds))
 
-        self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val']}
+        self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
         num_features = self.model.classifier[6].in_features
@@ -135,7 +135,7 @@ class CIFAR10(Experiment):
 
         # Iterate over data.
         for index, data_item in enumerate(self.dataloaders[phase]):
-            inputs, labels = data_item
+            inputs, labels = data_item['image'], data_item['labels']
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)
 
@@ -176,20 +176,21 @@ class CIFAR10(Experiment):
         epoch_loss = running_loss / self.dataset_length[phase]
         epoch_acc = running_corrects / self.dataset_length[phase]
 
-        self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
-        self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
-        self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
+        if phase != 'test':
+            self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
+            self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
+            self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
 
-        for l_ix, level_matches in enumerate(epoch_per_level_matches.tolist()):
-            self.writer.add_scalar('{}_{}_matches'.format(phase, self.level_names[l_ix]),
-                                   level_matches / self.dataset_length[phase], self.epoch)
+            for l_ix, level_matches in enumerate(epoch_per_level_matches.tolist()):
+                self.writer.add_scalar('{}_{}_matches'.format(phase, self.level_names[l_ix]),
+                                       level_matches / self.dataset_length[phase], self.epoch)
 
         print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
         # deep copy the model
         if phase == 'val':
             self.save_model(epoch_loss)
-            if epoch_acc > self.best_acc:
+            if epoch_acc >= self.best_acc:
                 self.best_acc = epoch_acc
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
                 self.save_model(epoch_loss, filename='best_model')
@@ -211,6 +212,8 @@ class CIFAR10(Experiment):
 
     def train(self):
         self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        self.load_best_model()
+
 
 class labelmap_CIFAR10:
     def __init__(self):
@@ -246,11 +249,13 @@ class labelmap_CIFAR10:
         retval[indices] = 1
         return retval
 
+
 class labelmap_CIFAR10_single:
     def __init__(self):
         self.classes = ('plane', 'car', 'bird', 'cat', 'deer',
                         'dog', 'frog', 'horse', 'ship', 'truck')
         self.n_classes = 10
+
 
 class Cifar10Hierarchical(torchvision.datasets.CIFAR10):
     def __init__(self, root, labelmap, train=True,
@@ -273,10 +278,10 @@ class Cifar10Hierarchical(torchvision.datasets.CIFAR10):
             target = self.target_transform(target)
 
         multi_class_target = self.labelmap.labels_one_hot(target)
-        return img, multi_class_target
+        return {'image': img, 'labels': multi_class_target, 'leaf_class': target}
 
 
-def train_cifar10():
+def train_cifar10(debug=False):
     input_size = 224
     data_transforms = transforms.Compose(
         [
@@ -289,17 +294,47 @@ def train_cifar10():
     lmap = labelmap_CIFAR10()
     batch_size = 8
 
-    trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
-                                   download=True, transform=data_transforms)
-    trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))), batch_size=batch_size,
-                                              shuffle=True, num_workers=4)
+    if debug:
+        trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
+                                       download=True, transform=data_transforms)
+        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))), batch_size=batch_size,
+                                                  shuffle=True, num_workers=4)
 
-    testset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
-                                  download=True, transform=data_transforms)
-    testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(testset, list(range(100, 200))), batch_size=batch_size,
-                                             shuffle=False, num_workers=4)
+        valloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100, 200))),
+                                                batch_size=batch_size,
+                                                shuffle=True, num_workers=4)
 
-    data_loaders = {'train': trainloader, 'val': testloader}
+        testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(200, 300))),
+                                                 batch_size=batch_size,
+                                                 shuffle=False, num_workers=4)
+
+        data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
+
+    else:
+        trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=True,
+                                       download=True, transform=data_transforms)
+        testset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
+                                      download=True, transform=data_transforms)
+
+        # split the dataset into 80:10:10
+        train_indices_from_train, val_indices_from_train, val_indices_from_test, test_indices_from_test = \
+            cifar10_set_indices(trainset, testset, lmap)
+
+        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, train_indices_from_train),
+                                                  batch_size = batch_size,
+                                                  shuffle = True, num_workers = 4)
+
+        evalset_from_train = torch.utils.data.Subset(trainset, val_indices_from_train)
+        evalset_from_test = torch.utils.data.Subset(testset, val_indices_from_test)
+        valloader = torch.utils.data.DataLoader(torch.utils.data.ConcatDataset([evalset_from_train, evalset_from_test]),
+                                                 batch_size=batch_size,
+                                                 shuffle=True, num_workers=4)
+
+        testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(testset, test_indices_from_test),
+                                                 batch_size=batch_size,
+                                                 shuffle=False, num_workers=4)
+
+        data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=lmap,
                             criterion=nn.MultiLabelSoftMarginLoss(),
@@ -307,11 +342,79 @@ def train_cifar10():
                             batch_size=batch_size,
                             experiment_name='cifar_test_ft_multi',
                             experiment_dir='../exp/',
-                            eval_interval=2,
-                            n_epochs=10,
+                            eval_interval=1,
+                            n_epochs=2,
                             feature_extracting=True,
                             use_pretrained=True,
                             load_wt=False)
+
+
+def cifar10_set_indices(trainset, testset, labelmap=labelmap_CIFAR10()):
+    indices = {d_set_name: {label_ix: [] for label_ix in range(len(labelmap.map))} for d_set_name in ['train', 'val']}
+    for d_set, d_set_name in zip([trainset, testset], ['train', 'val']):
+        for i in range(len(d_set)):
+            indices[d_set_name][d_set[i]['leaf_class']].append(i)
+
+    train_indices_from_train = []
+    for label_ix in range(len(indices['train'])):
+        train_indices_from_train += indices['train'][label_ix][:4800]
+
+    val_indices_from_train = []
+    val_indices_from_test = []
+    for label_ix in range(len(indices['train'])):
+        val_indices_from_train += indices['train'][label_ix][-200:]
+    for label_ix in range(len(indices['val'])):
+        val_indices_from_test += indices['val'][label_ix][:400]
+
+    test_indices_from_test = []
+    for label_ix in range(len(indices['val'])):
+        test_indices_from_test += indices['val'][label_ix][-600:]
+
+    print('Train set has: {}'.format(len(set(train_indices_from_train))))
+    print('Val set has: {} + {}'.format(len(set(val_indices_from_train)), len(set(val_indices_from_test))))
+    print('Test set has: {}'.format(len(set(test_indices_from_test))))
+
+    return train_indices_from_train, val_indices_from_train, val_indices_from_test, test_indices_from_test
+
+
+def cifar10_ind_exp():
+    input_size = 224
+    data_transforms = transforms.Compose(
+        [
+            transforms.RandomResizedCrop(input_size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    lmap = labelmap_CIFAR10()
+    batch_size = 8
+
+    trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=True,
+                                   download=True, transform=data_transforms)
+    testset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
+                                  download=True, transform=data_transforms)
+
+    # split the dataset into 80:10:10
+    train_indices_from_train, val_indices_from_train, val_indices_from_test, test_indices_from_test = \
+        cifar10_set_indices(trainset, testset, lmap)
+
+    torch.utils.data.ConcatDataset(datasets)
+
+    trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, train_indices_from_train),
+                                              batch_size=batch_size,
+                                              shuffle=True, num_workers=4)
+
+    evalset_from_train = torch.utils.data.Subset(trainset, val_indices_from_train)
+    evalset_from_test = torch.utils.data.Subset(testset, val_indices_from_test)
+    evalloader = torch.utils.data.DataLoader(torch.utils.data.ConcatDataset([evalset_from_train, evalset_from_test]),
+                                             batch_size=batch_size,
+                                             shuffle=True, num_workers=4)
+
+    testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(testset, test_indices_from_test),
+                                             batch_size=batch_size,
+                                             shuffle=False, num_workers=4)
+
 
 def train_cifar10_single():
     input_size = 224
@@ -348,6 +451,7 @@ def train_cifar10_single():
                             use_pretrained=True,
                             load_wt=True)
 
+
 def train_alexnet_binary():
     input_size = 224
     data_transforms = {
@@ -377,4 +481,4 @@ def train_alexnet_binary():
 
 if __name__ == '__main__':
     # train_alexnet_binary()
-    train_cifar10()
+    train_cifar10(debug=True)

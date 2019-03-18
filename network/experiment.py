@@ -33,9 +33,10 @@ class Experiment:
         self.n_epochs = n_epochs
         self.eval_interval = eval_interval
         self.dataloaders = dataloaders
-        print('Training set has {} samples. Validation set has {} samples.'.format(
+        print('Training set has {} samples. Validation set has {} samples. Test set has {} samples'.format(
             len(self.dataloaders['train'].dataset),
-            len(self.dataloaders['val'].dataset)))
+            len(self.dataloaders['val'].dataset),
+            len(self.dataloaders['test'].dataset)))
 
         self.log_dir = os.path.join(self.exp_dir, '{}').format(experiment_name)
         self.path_to_save_model = os.path.join(self.log_dir, 'weights')
@@ -163,3 +164,7 @@ class Experiment:
             print('Could not find weights to load from, will train from scratch.')
         else:
             self.load_model(epoch_to_load=weights[-2].split('.')[0])
+
+    def load_best_model(self):
+        self.load_model(epoch_to_load='best_model')
+        self.pass_samples(phase='test')

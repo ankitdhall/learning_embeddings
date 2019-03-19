@@ -1,11 +1,13 @@
 from sklearn.metrics import precision_recall_curve
-from sklearn.metrics import average_precision_score, precision_score, recall_score, f1_score
+from sklearn.metrics import average_precision_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import numpy as np
 from summarize import Summarize
+
 
 class Evaluation:
 
@@ -42,7 +44,7 @@ class Evaluation:
             worst_top_k = sorted_indices[k:]
 
     def make_curves(self, predicted_scores, correct_labels, epoch, phase):
-        print('-'*30)
+        print('-' * 30)
         print('Running evaluation for {} at epoch {}'.format(phase, epoch))
         assert predicted_scores.shape[0] == correct_labels.shape[0], \
             'Number of predicitions ({}) and labels ({}) do not match'.format(predicted_scores.shape[0],
@@ -55,7 +57,7 @@ class Evaluation:
 
         def get_f1score(p, r):
             p, r = np.array(p), np.array(r)
-            return (p * r)*2/(p + r + 1e-6)
+            return (p * r) * 2 / (p + r + 1e-6)
 
         # calculate metrics for different values of thresholds
         for class_index, class_name in enumerate(self.classes):
@@ -79,12 +81,12 @@ class Evaluation:
                 self.summarizer.make_image(save_fig_to, 'Precision Recall {}'.format(class_name))
             print('Average precision for {} is {}'.format(class_name, average_precision[class_name]))
 
-        mAP = sum([average_precision[class_name] for class_name in self.classes])/len(average_precision)
+        mAP = sum([average_precision[class_name] for class_name in self.classes]) / len(average_precision)
         print('Mean average precision is {}'.format(mAP))
 
         if phase in ['val', 'test']:
             # make table with global metrics
-            self.summarizer.make_heading('Global Metrics', 2)
+            self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_text('Mean average precision is {}'.format(mAP))
 
             x_labels = [class_name for class_name in self.classes]
@@ -112,12 +114,87 @@ class Evaluation:
         plt.ylim([0, 1])
 
 
+class Metrics:
+    def __init__(self, predicted_labels, correct_labels):
+        self.predicted_labels = predicted_labels
+        self.correct_labels = correct_labels
+        self.n_labels = correct_labels.shape[1]
+        self.precision = dict()
+        self.recall = dict()
+        self.f1 = dict()
+
+        self.cmat = dict()
+
+        self.thresholds = dict()
+        self.average_precision = dict()
+
+        self.top_f1_score = dict()
+
+        self.macro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
+        self.micro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
+
+    def calculate_basic_metrics(self):
+
+        for label_ix in range(self.n_labels):
+            self.precision[label_ix] = precision_score(self.correct_labels[:, label_ix],
+                                                       self.predicted_labels[:, label_ix])
+            self.recall[label_ix] = recall_score(self.correct_labels[:, label_ix],
+                                                 self.predicted_labels[:, label_ix])
+            self.f1[label_ix] = f1_score(self.correct_labels[:, label_ix],
+                                         self.predicted_labels[:, label_ix])
+            self.cmat[label_ix] = confusion_matrix(self.correct_labels[:, label_ix],
+                                                   self.predicted_labels[:, label_ix])
+
+        for metric in ['precision', 'recall', 'f1']:
+            self.macro_scores[metric] = 1.0 * sum([getattr(self, metric)[label_ix]
+                                                   for label_ix in range(self.n_labels)]) / self.n_labels
+        combined_cmat = np.array([[0, 0], [0, 0]])
+        temp = 0
+        for label_ix in range(self.n_labels):
+            temp += self.cmat[label_ix][0][0]
+            combined_cmat += self.cmat[label_ix]
+
+        self.micro_scores['precision'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[0][1])
+        self.micro_scores['recall'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[1][0])
+        self.micro_scores['f1'] = 2 * self.micro_scores['precision'] * self.micro_scores['recall'] / (
+                    self.micro_scores['precision'] + self.micro_scores['recall'])
+
+        return {'macro': self.macro_scores, 'micro': self.micro_scores, 'precision': self.precision,
+                'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat}
+
+
 class MLEvaluation(Evaluation):
 
     def __init__(self, experiment_directory, labelmap, optimal_thresholds):
         Evaluation.__init__(self, experiment_directory, labelmap.classes)
         self.optimal_thresholds = optimal_thresholds
         self.labelmap = labelmap
+        self.predicted_labels = None
+
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase):
+        if phase in ['val', 'test']:
+            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(epoch, phase), 1)
+
+        mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
+                                                                                 correct_labels, epoch, phase)
+
+        self.predicted_labels = predicted_scores >= np.tile(self.optimal_thresholds, (correct_labels.shape[0], 1))
+        metrics_calculator = Metrics(self.predicted_labels, correct_labels)
+        metrics = metrics_calculator.calculate_basic_metrics()
+
+        if phase in ['val', 'test']:
+            self.summarizer.make_heading('Global Metrics', 2)
+            self.summarizer.make_table(data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in ['macro', 'micro']],
+                                       x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+
+        if phase == 'test':
+            self.summarizer.make_heading('Class-wise Metrics', 2)
+            self.summarizer.make_table(data=[[metrics[score][label_ix] for score in ['precision', 'recall', 'f1']] for label_ix in range(self.labelmap.n_classes)],
+                                       x_labels=['Precision', 'Recall', 'F1'], y_labels=self.labelmap.classes)
+
+        return metrics['macro']['f1'], metrics['micro']['f1']
 
     def get_optimal_thresholds(self):
         return self.optimal_thresholds
@@ -126,6 +203,11 @@ class MLEvaluation(Evaluation):
         for class_ix, class_name in enumerate(self.labelmap.classes):
             self.optimal_thresholds[class_ix] = best_f1_score[class_name]['best_thresh']
 
+    @staticmethod
+    def get_f1score(p, r):
+        p, r = np.array(p), np.array(r)
+        return (p * r) * 2 / (p + r + 1e-6)
+
     def make_curves(self, predicted_scores, correct_labels, epoch, phase):
         if phase in ['val', 'test']:
             self.summarizer.make_heading('Data Distribution', 2)
@@ -133,11 +215,11 @@ class MLEvaluation(Evaluation):
                                          for class_ix in range(self.labelmap.n_classes)]],
                                        x_labels=self.labelmap.classes)
 
-        print('-'*30)
+        print('-' * 30)
         print('Running evaluation for {} at epoch {}'.format(phase, epoch))
         assert predicted_scores.shape[0] == correct_labels.shape[0], \
-            'Number of predicitions ({}) and labels ({}) do not match'.format(predicted_scores.shape[0],
-                                                                              correct_labels.shape[0])
+            'Number of predictions ({}) and labels ({}) do not match'.format(predicted_scores.shape[0],
+                                                                             correct_labels.shape[0])
 
         precision = dict()
         recall = dict()
@@ -146,20 +228,16 @@ class MLEvaluation(Evaluation):
         f1 = dict()
         top_f1_score = dict()
 
-        def get_f1score(p, r):
-            p, r = np.array(p), np.array(r)
-            return (p * r)*2/(p + r + 1e-6)
-
         # calculate metrics for different values of thresholds
         for class_index, class_name in enumerate(self.classes):
             precision[class_name], recall[class_name], thresholds[class_name] = precision_recall_curve(
                 correct_labels[:, class_index], predicted_scores[:, class_index])
-            f1[class_name] = get_f1score(precision[class_name], recall[class_name])
+            f1[class_name] = self.get_f1score(precision[class_name], recall[class_name])
 
             average_precision[class_name] = average_precision_score(correct_labels[:, class_index],
                                                                     predicted_scores[:, class_index])
 
-            if phase in ['val', 'test']:
+            if phase in ['val']:
                 best_f1_ix = np.argmax(f1[class_name])
                 best_thresh = thresholds[class_name][best_f1_ix]
                 top_f1_score[class_name] = {'best_thresh': best_thresh, 'f1_score@thresh': f1[class_name][best_f1_ix],
@@ -175,35 +253,30 @@ class MLEvaluation(Evaluation):
                 plt.clf()
                 self.summarizer.make_heading('Precision Recall `{}` ({})'.format(class_name, phase), 3)
                 self.summarizer.make_image(save_fig_to, 'Precision Recall {}'.format(class_name))
-            print('Average precision for {} is {}'.format(class_name, average_precision[class_name]))
 
         level_begin_ix = 0
         for level_ix, level_name in enumerate(self.labelmap.level_names):
             mAP = sum([average_precision[class_name]
-                       for class_name in self.classes[level_begin_ix:level_begin_ix+self.labelmap.levels[level_ix]]]) \
+                       for class_name in self.classes[level_begin_ix:level_begin_ix + self.labelmap.levels[level_ix]]]) \
                   / self.labelmap.levels[level_ix]
-            print('Mean average precision for {} is {}'.format(level_name, mAP))
             level_begin_ix += self.labelmap.levels[level_ix]
 
-        if phase in ['val', 'test']:
+        if phase in ['val']:
             # make table with global metrics
-            self.summarizer.make_heading('Global Metrics', 2)
+            self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_text('Mean average precision is {}'.format(mAP))
 
             y_labels = [class_name for class_name in self.classes]
-            x_labels = ['Average Precision (across thresholds)', 'Precision@BF1', 'Recall@BF1', 'Best f1-score',
-                        'Best thresh']
+            x_labels = ['Precision@BF1', 'Recall@BF1', 'Best f1-score', 'Best thresh']
             data = []
             for class_index, class_name in enumerate(self.classes):
-                per_class_metrics = [average_precision[class_name],
-                                     precision[class_name][top_f1_score[class_name]['thresh_ix']],
+                per_class_metrics = [precision[class_name][top_f1_score[class_name]['thresh_ix']],
                                      recall[class_name][top_f1_score[class_name]['thresh_ix']],
                                      top_f1_score[class_name]['f1_score@thresh'],
                                      top_f1_score[class_name]['best_thresh']]
                 data.append(per_class_metrics)
 
-            if phase == 'val':
-                self.set_optimal_thresholds(top_f1_score)
+            self.set_optimal_thresholds(top_f1_score)
 
             self.summarizer.make_table(data, x_labels, y_labels)
 

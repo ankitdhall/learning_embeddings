@@ -296,6 +296,7 @@ def train_cifar10(debug=False):
     batch_size = 8
 
     if debug:
+        print("== Running in DEBUG mode!")
         trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
                                        download=True, transform=data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))), batch_size=batch_size,

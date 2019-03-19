@@ -14,6 +14,8 @@ from PIL import Image
 import numpy as np
 
 import copy
+import argparse
+import json
 
 print("PyTorch Version: ", torch.__version__)
 print("Torchvision Version: ", torchvision.__version__)
@@ -282,7 +284,14 @@ class Cifar10Hierarchical(torchvision.datasets.CIFAR10):
         return {'image': img, 'labels': multi_class_target, 'leaf_class': target}
 
 
-def train_cifar10(debug=False):
+def train_cifar10(arguments):
+    if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):
+        os.makedirs(os.path.join(arguments.experiment_dir, arguments.experiment_name))
+    with open(os.path.join(arguments.experiment_dir, arguments.experiment_name, 'config_params.txt'), 'w') as file:
+        file.write(json.dumps(vars(args), indent=4))
+
+    print('Config parameters for this run are:\n{}'.format(json.dumps(vars(args), indent=4)))
+
     input_size = 224
     data_transforms = transforms.Compose(
         [
@@ -293,22 +302,23 @@ def train_cifar10(debug=False):
         ])
 
     lmap = labelmap_CIFAR10()
-    batch_size = 8
+    batch_size = arguments.batch_size
+    n_workers = arguments.n_workers
 
-    if debug:
+    if arguments.debug:
         print("== Running in DEBUG mode!")
         trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
                                        download=True, transform=data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))), batch_size=batch_size,
-                                                  shuffle=True, num_workers=4)
+                                                  shuffle=True, num_workers=n_workers)
 
         valloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100, 200))),
                                                 batch_size=batch_size,
-                                                shuffle=True, num_workers=4)
+                                                shuffle=True, num_workers=n_workers)
 
         testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(200, 300))),
                                                  batch_size=batch_size,
-                                                 shuffle=False, num_workers=4)
+                                                 shuffle=False, num_workers=n_workers)
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
@@ -323,29 +333,29 @@ def train_cifar10(debug=False):
             cifar10_set_indices(trainset, testset, lmap)
 
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, train_indices_from_train),
-                                                  batch_size = batch_size,
-                                                  shuffle = True, num_workers = 4)
+                                                  batch_size=batch_size,
+                                                  shuffle=True, num_workers=n_workers)
 
         evalset_from_train = torch.utils.data.Subset(trainset, val_indices_from_train)
         evalset_from_test = torch.utils.data.Subset(testset, val_indices_from_test)
         valloader = torch.utils.data.DataLoader(torch.utils.data.ConcatDataset([evalset_from_train, evalset_from_test]),
-                                                 batch_size=batch_size,
-                                                 shuffle=True, num_workers=4)
+                                                batch_size=batch_size,
+                                                shuffle=True, num_workers=n_workers)
 
         testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(testset, test_indices_from_test),
                                                  batch_size=batch_size,
-                                                 shuffle=False, num_workers=4)
+                                                 shuffle=False, num_workers=n_workers)
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=lmap,
                             criterion=nn.MultiLabelSoftMarginLoss(),
-                            lr=0.01,
+                            lr=arguments.lr,
                             batch_size=batch_size,
-                            experiment_name='cifar_test_ft_multi',
+                            experiment_name=arguments.experiment_name, # 'cifar_test_ft_multi',
                             experiment_dir='../exp/',
-                            eval_interval=1,
-                            n_epochs=2,
+                            eval_interval=arguments.eval_interval,
+                            n_epochs=arguments.n_epochs,
                             feature_extracting=True,
                             use_pretrained=True,
                             load_wt=False)
@@ -482,5 +492,16 @@ def train_alexnet_binary():
 
 
 if __name__ == '__main__':
-    # train_alexnet_binary()
-    train_cifar10(debug=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
+    parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
+    parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
+    parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
+    parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
+    parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
+    parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
+    parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
+    parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
+    args = parser.parse_args()
+
+    train_cifar10(args)

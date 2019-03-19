@@ -101,13 +101,13 @@ class Experiment:
         self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
         self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
 
-        print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+        print('{} Loss: {:.4f} Score: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
         # deep copy the model
         if phase == 'val':
             self.save_model(epoch_loss)
-            if epoch_acc > self.best_acc:
-                self.best_acc = epoch_acc
+            if epoch_acc > self.best_score:
+                self.best_score = epoch_acc
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
                 self.save_model(epoch_loss, filename='best_model')
 
@@ -118,7 +118,7 @@ class Experiment:
             self.find_existing_weights()
 
         self.best_model_wts = copy.deepcopy(self.model.state_dict())
-        self.best_acc = 0.0
+        self.best_score = 0.0
 
         since = time.time()
 
@@ -133,7 +133,7 @@ class Experiment:
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-        print('Best val Acc: {:4f}'.format(self.best_acc))
+        print('Best val score: {:4f}'.format(self.best_score))
 
         # load best model weights
         self.model.load_state_dict(self.best_model_wts)

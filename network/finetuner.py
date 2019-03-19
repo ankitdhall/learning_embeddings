@@ -170,7 +170,7 @@ class CIFAR10(Experiment):
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
                                                        self.dataset_length[phase])] = labels.data
 
-        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
+        macro_f1, micro_f1 = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
         self.optimal_thresholds = self.eval.get_optimal_thresholds()
 
         epoch_loss = running_loss / self.dataset_length[phase]
@@ -179,19 +179,20 @@ class CIFAR10(Experiment):
         if phase != 'test':
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
             self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
-            self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
+            self.writer.add_scalar('{}_micro_f1'.format(phase), micro_f1, self.epoch)
+            self.writer.add_scalar('{}_macro_f1'.format(phase), macro_f1, self.epoch)
 
             for l_ix, level_matches in enumerate(epoch_per_level_matches.tolist()):
                 self.writer.add_scalar('{}_{}_matches'.format(phase, self.level_names[l_ix]),
                                        level_matches / self.dataset_length[phase], self.epoch)
 
-        print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+        print('{} Loss: {:.4f} Score: {:.4f}'.format(phase, epoch_loss, micro_f1))
 
         # deep copy the model
         if phase == 'val':
             self.save_model(epoch_loss)
-            if epoch_acc >= self.best_acc:
-                self.best_acc = epoch_acc
+            if micro_f1 >= self.best_score:
+                self.best_score = micro_f1
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
                 self.save_model(epoch_loss, filename='best_model')
 

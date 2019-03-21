@@ -14,15 +14,22 @@ class Preprocessor:
     def cropper(image):
         return image[3000:6000, :]
 
+    def find_best_crop(self, grayscale_image, list_of_thresh=[100, 150, 170, 200]):
+        x, y, w, h, area = 0, 0, 0, 0, 0
+        for thresh_val in list_of_thresh:
+            thresh = cv2.threshold(copy.deepcopy(grayscale_image), thresh_val, 255, cv2.THRESH_BINARY_INV)[1]
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            areas = [cv2.contourArea(contour) for contour in contours]
+            contour_of_interest = contours[np.argmax(areas)]
+            x_t, y_t, w_t, h_t = cv2.boundingRect(contour_of_interest)
+            if area < w_t*h_t < 3000*4000*0.5:
+                x, y, w, h, area = x_t, y_t, w_t, h_t, w_t*h_t
+        return x, y, w, h
+
     def fit_rect(self, image):
         grayscale_image = cv2.cvtColor(copy.deepcopy(image), cv2.COLOR_BGR2GRAY)
-        thresh = cv2.threshold(grayscale_image, 150, 255, cv2.THRESH_BINARY_INV)[1]
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        areas = [cv2.contourArea(contour) for contour in contours]
-        contour_of_interst = contours[np.argmax(areas)]
-        x, y, w, h = cv2.boundingRect(contour_of_interst)
-        return image[y-self.pad_y:y+h+self.pad_y, x-self.pad_x:x+w+self.pad_x]
+        x, y, w, h = self.find_best_crop(grayscale_image)
+        return image[max(0, y-self.pad_y):min(4000, y+h+self.pad_y), max(0, x-self.pad_x):min(6000, x+w+self.pad_x)]
 
     @staticmethod
     def make_dir_if_not(dir):
@@ -54,4 +61,5 @@ class Preprocessor:
                 cv2.imwrite(file_to_save, image)
 
 
+# Preprocessor(database_dir='../../database/IMAGO_test', new_database_dir='../../database/IMAGO_build').preprocess()
 Preprocessor(database_dir='/media/ankit/My Passport', new_database_dir='/media/ankit/My Passport/IMAGO_build').preprocess()

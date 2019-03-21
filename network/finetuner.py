@@ -8,7 +8,7 @@ from torchvision import datasets, models, transforms
 
 import os
 from experiment import Experiment
-from evaluation import MLEvaluation, Evaluation
+from evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
 
 from PIL import Image
 import numpy as np
@@ -84,6 +84,7 @@ class Finetuner(Experiment):
 class CIFAR10(Experiment):
     def __init__(self, data_loaders, labelmap, criterion, lr,
                  batch_size,
+                 evaluator,
                  experiment_name,
                  experiment_dir='../exp/',
                  n_epochs=10,
@@ -104,9 +105,7 @@ class CIFAR10(Experiment):
 
         model = models.alexnet(pretrained=use_pretrained)
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs, eval_interval,
-                            batch_size, experiment_dir, load_wt,
-                            MLEvaluation(os.path.join(experiment_dir, experiment_name),
-                                         labelmap, self.optimal_thresholds))
+                            batch_size, experiment_dir, load_wt, evaluator)
 
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
@@ -348,10 +347,14 @@ def train_cifar10(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
+    eval_type = MLEvaluation(os.path.join('../exp/', arguments.experiment_name), lmap)
+    if arguments.evaluator == 'MLST':
+        eval_type = MLEvaluationSingleThresh(os.path.join('../exp/', arguments.experiment_name), lmap)
+
     cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=lmap,
                             criterion=nn.MultiLabelSoftMarginLoss(),
                             lr=arguments.lr,
-                            batch_size=batch_size,
+                            batch_size=batch_size, evaluator=eval_type,
                             experiment_name=arguments.experiment_name, # 'cifar_test_ft_multi',
                             experiment_dir='../exp/',
                             eval_interval=arguments.eval_interval,
@@ -496,6 +499,7 @@ if __name__ == '__main__':
     parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
     parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
+    parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)

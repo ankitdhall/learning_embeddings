@@ -108,6 +108,8 @@ class CIFAR10(Experiment):
             model = models.alexnet(pretrained=use_pretrained)
         elif model_name == 'resnet18':
             model = models.resnet18(pretrained=use_pretrained)
+        elif model_name == 'resnet50':
+            model = models.resnet50(pretrained=use_pretrained)
 
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs, eval_interval,
                             batch_size, experiment_dir, load_wt, evaluator)
@@ -118,7 +120,7 @@ class CIFAR10(Experiment):
         if model_name == 'alexnet':
             num_features = self.model.classifier[6].in_features
             self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
-        elif model_name == 'resnet18':
+        elif 'resnet' in model_name:
             num_features = self.model.fc.in_features
             self.model.fc = nn.Linear(num_features, self.n_classes)
 

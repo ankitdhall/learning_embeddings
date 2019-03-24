@@ -91,7 +91,8 @@ class CIFAR10(Experiment):
                  eval_interval=2,
                  feature_extracting=True,
                  use_pretrained=True,
-                 load_wt=False):
+                 load_wt=False,
+                 model_name=None):
 
         self.classes = labelmap.classes
         self.n_classes = labelmap.n_classes
@@ -103,15 +104,23 @@ class CIFAR10(Experiment):
         self.feature_extracting = feature_extracting
         self.optimal_thresholds = np.zeros(self.n_classes)
 
-        model = models.alexnet(pretrained=use_pretrained)
+        if model_name == 'alexnet':
+            model = models.alexnet(pretrained=use_pretrained)
+        elif model_name == 'resnet18':
+            model = models.resnet18(pretrained=use_pretrained)
+
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs, eval_interval,
                             batch_size, experiment_dir, load_wt, evaluator)
 
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
-        num_features = self.model.classifier[6].in_features
-        self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
+        if model_name == 'alexnet':
+            num_features = self.model.classifier[6].in_features
+            self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
+        elif model_name == 'resnet18':
+            num_features = self.model.fc.in_features
+            self.model.fc = nn.Linear(num_features, self.n_classes)
 
         self.params_to_update = self.model.parameters()
 
@@ -361,7 +370,8 @@ def train_cifar10(arguments):
                             n_epochs=arguments.n_epochs,
                             feature_extracting=True,
                             use_pretrained=True,
-                            load_wt=False)
+                            load_wt=False,
+                            model_name=arguments.model)
 
 
 def cifar10_set_indices(trainset, testset, labelmap=labelmap_CIFAR10()):
@@ -506,6 +516,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
+    parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     args = parser.parse_args()
 
     train_cifar10(args)

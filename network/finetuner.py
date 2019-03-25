@@ -110,6 +110,8 @@ class CIFAR10(Experiment):
             model = models.resnet18(pretrained=use_pretrained)
         elif model_name == 'resnet50':
             model = models.resnet50(pretrained=use_pretrained)
+        elif model_name == 'vgg':
+            model = models.vgg11_bn(pretrained=use_pretrained)
 
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs, eval_interval,
                             batch_size, experiment_dir, load_wt, evaluator)
@@ -117,7 +119,7 @@ class CIFAR10(Experiment):
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
-        if model_name == 'alexnet':
+        if model_name in ['alexnet', 'vgg']:
             num_features = self.model.classifier[6].in_features
             self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
         elif 'resnet' in model_name:

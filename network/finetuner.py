@@ -360,16 +360,16 @@ def train_cifar10(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
-    eval_type = MLEvaluation(os.path.join('../exp/', arguments.experiment_name), lmap)
+    eval_type = MLEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
     if arguments.evaluator == 'MLST':
-        eval_type = MLEvaluationSingleThresh(os.path.join('../exp/', arguments.experiment_name), lmap)
+        eval_type = MLEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
 
     cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=lmap,
                             criterion=nn.MultiLabelSoftMarginLoss(),
                             lr=arguments.lr,
                             batch_size=batch_size, evaluator=eval_type,
                             experiment_name=arguments.experiment_name, # 'cifar_test_ft_multi',
-                            experiment_dir='../exp/',
+                            experiment_dir=arguments.experiment_dir,
                             eval_interval=arguments.eval_interval,
                             n_epochs=arguments.n_epochs,
                             feature_extracting=True,

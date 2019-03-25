@@ -372,7 +372,7 @@ def train_cifar10(arguments):
                             experiment_dir=arguments.experiment_dir,
                             eval_interval=arguments.eval_interval,
                             n_epochs=arguments.n_epochs,
-                            feature_extracting=True,
+                            feature_extracting=arguments.freeze_weights,
                             use_pretrained=True,
                             load_wt=False,
                             model_name=arguments.model)
@@ -521,6 +521,7 @@ if __name__ == '__main__':
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
+    parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     args = parser.parse_args()
 
     train_cifar10(args)

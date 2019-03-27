@@ -75,7 +75,6 @@ class Finetuner(Experiment):
             print("Fine-tuning")
 
         self.model.to(self.device)
-        self.train()
 
     def train(self):
         self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
@@ -126,6 +125,7 @@ class CIFAR10(Experiment):
             num_features = self.model.fc.in_features
             self.model.fc = nn.Linear(num_features, self.n_classes)
 
+    def prepare_model(self):
         self.params_to_update = self.model.parameters()
 
         if self.feature_extracting:
@@ -136,8 +136,6 @@ class CIFAR10(Experiment):
                     print("Will update: {}".format(name))
         else:
             print("Fine-tuning")
-
-        self.train()
 
     def pass_samples(self, phase):
         running_loss = 0.0
@@ -376,6 +374,8 @@ def train_cifar10(arguments):
                             use_pretrained=True,
                             load_wt=False,
                             model_name=arguments.model)
+    cifar_trainer.prepare_model()
+    cifar_trainer.train()
 
 
 def cifar10_set_indices(trainset, testset, labelmap=labelmap_CIFAR10()):
@@ -505,7 +505,7 @@ def train_alexnet_binary():
               batch_size=8,
               experiment_name='alexnet_ft',
               n_epochs=2,
-              load_wt=False)
+              load_wt=False).train()
 
 
 if __name__ == '__main__':

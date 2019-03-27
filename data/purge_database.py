@@ -59,4 +59,4 @@ if __name__ == '__main__':
         exit()
 
     # purge_image_data(data, args.images_dir, args.clean_dir)
-    purge_json_data(data, args.json_path)
+    # purge_json_data(data, args.json_path)

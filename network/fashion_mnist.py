@@ -36,12 +36,21 @@ class FMNIST(CIFAR10):
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained,
                          load_wt, model_name)
 
-        o_channels = self.model.features[0].out_channels
-        k_size = self.model.features[0].kernel_size
-        stride = self.model.features[0].stride
-        pad = self.model.features[0].padding
-        dil = self.model.features[0].dilation
-        self.model.features[0] = nn.Conv2d(1, o_channels, kernel_size=k_size, stride=stride, padding=pad, dilation=dil)
+        if model_name in ['alexnet', 'vgg']:
+            o_channels = self.model.features[0].out_channels
+            k_size = self.model.features[0].kernel_size
+            stride = self.model.features[0].stride
+            pad = self.model.features[0].padding
+            dil = self.model.features[0].dilation
+            self.model.features[0] = nn.Conv2d(1, o_channels, kernel_size=k_size, stride=stride, padding=pad,
+                                               dilation=dil)
+        elif 'resnet' in model_name:
+            o_channels = self.model.conv1.out_channels
+            k_size = self.model.conv1.kernel_size
+            stride = self.model.conv1.stride
+            pad = self.model.conv1.padding
+            dil = self.model.conv1.dilation
+            self.model.conv1 = nn.Conv2d(1, o_channels, kernel_size=k_size, stride=stride, padding=pad, dilation=dil)
 
 
 def train_FMNIST(arguments):
@@ -132,7 +141,7 @@ def train_FMNIST(arguments):
 
 class labelmap_FMNIST:
     def __init__(self):
-        self.classes = ('T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot',
+        self.classes = ('T-shirt_top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot',
                         'tops', 'bottoms', 'accessories', 'footwear')
 
         self.family = {'tops': 10, 'bottoms': 11, 'accessories': 12, 'footwear': 13}
@@ -140,7 +149,7 @@ class labelmap_FMNIST:
         self.levels = [10, 4]
         self.level_names = ['classes', 'family']
         self.map = {
-            'T-shirt/top': ['tops'],
+            'T-shirt_top': ['tops'],
             'Trouser': ['bottoms'],
             'Pullover': ['tops'],
             'Dress': ['tops'],

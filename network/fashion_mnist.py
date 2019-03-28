@@ -136,7 +136,10 @@ def train_FMNIST(arguments):
                             load_wt=False,
                             model_name=arguments.model)
     FMNIST_trainer.prepare_model()
-    FMNIST_trainer.train()
+    if arguments.set_mode == 'train':
+        FMNIST_trainer.train()
+    elif arguments.set_mode == 'test':
+        FMNIST_trainer.test()
 
 
 class labelmap_FMNIST:
@@ -236,6 +239,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str)
     args = parser.parse_args()
 
     train_FMNIST(args)

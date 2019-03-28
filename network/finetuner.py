@@ -207,7 +207,8 @@ class CIFAR10(Experiment):
 
         # deep copy the model
         if phase == 'val':
-            self.save_model(epoch_loss)
+            if self.epoch % 10 == 0:
+                self.save_model(epoch_loss)
             if micro_f1 >= self.best_score:
                 self.best_score = micro_f1
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
@@ -233,6 +234,7 @@ class CIFAR10(Experiment):
         self.load_best_model()
 
     def test(self):
+        self.optimizer = optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9)
         self.load_best_model()
 
 
@@ -382,10 +384,10 @@ def train_cifar10(arguments):
                             use_pretrained=True,
                             load_wt=False,
                             model_name=arguments.model)
-    if arguments.mode == 'train':
-        cifar_trainer.prepare_model()
+    cifar_trainer.prepare_model()
+    if arguments.set_mode == 'train':
         cifar_trainer.train()
-    elif arguments.mode == 'test':
+    elif arguments.set_mode == 'test':
         cifar_trainer.test()
 
 
@@ -533,7 +535,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
-    parser.add_argument("--mode", help='If use training or testing mode (loads best model).', type=str)
+    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str)
     args = parser.parse_args()
 
     train_cifar10(args)

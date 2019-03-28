@@ -239,7 +239,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
-    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str)
+    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str, required=True)
     args = parser.parse_args()
 
     train_FMNIST(args)

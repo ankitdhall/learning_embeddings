@@ -138,6 +138,11 @@ class CIFAR10(Experiment):
             print("Fine-tuning")
 
     def pass_samples(self, phase):
+        if phase == 'train':
+            self.model.train()
+        else:
+            self.model.eval()
+
         running_loss = 0.0
         running_corrects = 0
         epoch_per_level_matches = np.zeros(self.n_levels)
@@ -225,6 +230,9 @@ class CIFAR10(Experiment):
 
     def train(self):
         self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        self.load_best_model()
+
+    def test(self):
         self.load_best_model()
 
 
@@ -374,8 +382,11 @@ def train_cifar10(arguments):
                             use_pretrained=True,
                             load_wt=False,
                             model_name=arguments.model)
-    cifar_trainer.prepare_model()
-    cifar_trainer.train()
+    if arguments.mode == 'train':
+        cifar_trainer.prepare_model()
+        cifar_trainer.train()
+    elif arguments.mode == 'test':
+        cifar_trainer.test()
 
 
 def cifar10_set_indices(trainset, testset, labelmap=labelmap_CIFAR10()):
@@ -522,6 +533,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+    parser.add_argument("--mode", help='If use training or testing mode (loads best model).', type=str)
     args = parser.parse_args()
 
     train_cifar10(args)

@@ -5,6 +5,9 @@ from tqdm import tqdm
 import cv2
 import torch
 import torch.utils.data
+from torchvision import transforms, datasets
+
+from skimage import io, transform
 import numpy as np
 
 
@@ -1603,6 +1606,9 @@ class ETHECLabelMap:
         retval[self.specific_epithet[specific_epithet] + self.levels[2]] = 1
         return retval
 
+    def get_label_id(self, level_name, label_name):
+        return getattr(self, level_name)[label_name]
+
 
 class ETHEC:
     def __init__(self, path_to_json):
@@ -1622,19 +1628,28 @@ class ETHEC:
 
 
 class ETHECDB(torch.utils.data.Dataset):
-    def __init__(self, path_to_json, path_to_images, labelmap):
+    def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
         self.path_to_json = path_to_json
         self.path_to_images = path_to_images
         self.labelmap = labelmap
         self.ETHEC = ETHEC(self.path_to_json)
+        self.transform = transform
 
     def __getitem__(self, item):
         sample = self.ETHEC.__getitem__(item)
-        image_folder = sample['image_name'][11:21] + "R"
-        path_to_image = os.path.join(self.path_to_images, image_folder, sample['image_name'])
+        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][11:21] + "R"
+        path_to_image = os.path.join(self.path_to_images, image_folder, sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
         img = cv2.imread(path_to_image)
-        return {'image': img, 'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'],
-                                                                  sample['genus'], sample['specific_epithet'])}
+        if img is None:
+            print('This image is None: {} {}'.format(path_to_image, sample['token']))
+        ret_sample = {'image': np.array(img, dtype=np.float32),
+                      'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
+                                                          sample['specific_epithet']),
+                      'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet'])}
+
+        if self.transform:
+            ret_sample = self.transform(ret_sample)
+        return ret_sample
 
     def __len__(self):
         return len(self.ETHEC)
@@ -1670,13 +1685,170 @@ def generate_labelmap(path_to_json):
     print(json.dumps(genus_specific_epithet, indent=4))
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--images_dir", help='Parent directory with images.', type=str, required=True)
-    parser.add_argument("--json_path", help='Path to json with relevant data.', type=str, required=True)
-    args = parser.parse_args()
+class SplitDataset:
+    def __init__(self, path_to_json, path_to_images, path_to_save_splits, labelmap, train_ratio=0.8, val_ratio=0.1,
+                 test_ratio=0.1):
+        if train_ratio + val_ratio + test_ratio != 1:
+            print('Warning: Ratio does not add up to 1.')
+        self.path_to_save_splits = path_to_save_splits
+        self.path_to_json = path_to_json
+        self.database = ETHEC(self.path_to_json)
+        self.train_ratio, self.val_ratio, self.test_ratio = train_ratio, val_ratio, test_ratio
+        self.labelmap = labelmap
+        self.train, self.val, self.test = {}, {}, {}
+        self.stats = {}
+        self.minimum_samples = 3
+        self.minimum_samples_to_use_split = 10
+        print('Database has {} sample.'.format(len(self.database)))
 
-    # generate_labelmap(args.json_path)
-    db = ETHECDB(args.json_path, args.images_dir, ETHECLabelMap())
-    print(db[0])
+    def collect_stats(self):
+        for data_id in range(len(self.database)):
+            sample = self.database[data_id]
+
+            label_id = self.labelmap.get_label_id('specific_epithet', sample['specific_epithet'])
+            if label_id not in self.stats:
+                self.stats[label_id] = [sample['token']]
+            else:
+                self.stats[label_id].append(sample['token'])
+        # print({label_id: len(self.stats[label_id]) for label_id in self.stats})
+
+    def split(self):
+        for label_id in self.stats:
+            samples_for_label_id = self.stats[label_id]
+            n_samples = len(samples_for_label_id)
+            if n_samples < self.minimum_samples:
+                continue
+
+            # if the number of samples are less than self.minimum_samples_to_use_split then split them equally
+            if n_samples < self.minimum_samples_to_use_split:
+                n_train_samples, n_val_samples, n_test_samples = n_samples//3, n_samples//3, n_samples//3
+            else:
+                n_train_samples = int(self.train_ratio * n_samples)
+                n_val_samples = int(self.val_ratio * n_samples)
+                n_test_samples = int(self.test_ratio * n_samples)
+
+            remaining_samples = n_samples - (n_train_samples + n_val_samples + n_test_samples)
+            n_val_samples += remaining_samples % 2 + remaining_samples//2
+            n_test_samples += remaining_samples//2
+
+            train_samples_id_list = samples_for_label_id[:n_train_samples]
+            val_samples_id_list = samples_for_label_id[n_train_samples:n_train_samples+n_val_samples]
+            test_samples_id_list = samples_for_label_id[-n_test_samples:]
+
+            for sample_id in train_samples_id_list:
+                self.train[sample_id] = self.database.get_sample(sample_id)
+            for sample_id in val_samples_id_list:
+                self.val[sample_id] = self.database.get_sample(sample_id)
+            for sample_id in test_samples_id_list:
+                self.test[sample_id] = self.database.get_sample(sample_id)
+
+    def write_to_disk(self):
+        with open(os.path.join(self.path_to_save_splits, 'train.json'), 'w') as fp:
+            json.dump(self.train, fp, indent=4)
+        with open(os.path.join(self.path_to_save_splits, 'val.json'), 'w') as fp:
+            json.dump(self.val, fp, indent=4)
+        with open(os.path.join(self.path_to_save_splits, 'test.json'), 'w') as fp:
+            json.dump(self.test, fp, indent=4)
+
+    def make_split_to_disk(self):
+        self.collect_stats()
+        self.split()
+        self.write_to_disk()
+
+
+class Rescale(object):
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        self.output_size = output_size
+
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        h, w = image.shape[:2]
+        if isinstance(self.output_size, int):
+            if h > w:
+                new_h, new_w = self.output_size * h / w, self.output_size
+            else:
+                new_h, new_w = self.output_size, self.output_size * w / h
+        else:
+            new_h, new_w = self.output_size
+
+        new_h, new_w = int(new_h), int(new_w)
+
+        img = transform.resize(image, (new_h, new_w))
+
+        return {'image': img, 'labels': label, 'leaf_label': leaf_label}
+
+
+class ToTensor(object):
+    """Convert ndarrays in sample to Tensors."""
+
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+
+        # swap color axis because
+        # numpy image: H x W x C
+        # torch image: C X H X W
+        image = image.transpose((2, 0, 1))
+        return {'image': torch.from_numpy(image),
+                'labels': torch.from_numpy(label),
+                'leaf_label': leaf_label}
+
+def generate_normalization_values(dataset):
+    skipped = 0
+
+    loader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=64,
+        num_workers=4,
+        shuffle=False
+    )
+
+    mean = 0.
+    std = 0.
+    nb_samples = 0.
+    for data in tqdm(loader):
+        batch_samples = data['image'].size(0)
+        data = data['image'].view(batch_samples, data['image'].size(1), -1)
+        mean += data.mean(2).sum(0)
+        std += data.std(2).sum(0)
+        nb_samples += batch_samples
+
+    mean /= (nb_samples-skipped)
+    std /= (nb_samples-skipped)
+
+    print(mean, std)
+
+
+if __name__ == '__main__':
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--images_dir", help='Parent directory with images.', type=str, required=True)
+    # parser.add_argument("--json_path", help='Path to json with relevant data.', type=str, required=True)
+    # parser.add_argument("--path_to_save_splits", help='Path to json with relevant data.', type=str, required=True)
+    # args = parser.parse_args()
+
+    # debug/check database loading
+    # db = ETHECDB(args.json_path, args.images_dir, ETHECLabelMap())
+    # print(db[0])
     # print(ETHECLabelMap().get_one_hot('Hesperiidae', 'Heteropterinae', 'Carterocephalus', 'palaemon'))
+
+    # create files with train, val and test splits
+    # data_splitter = SplitDataset(args.json_path, args.images_dir, args.path_to_save_splits, ETHECLabelMap())
+    # data_splitter.make_split_to_disk()
+
+    labelmap = ETHECLabelMap()
+    tform = transforms.Compose([Rescale((224, 224)),
+                                ToTensor()])
+    train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
+                        path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                        labelmap=labelmap, transform=tform)
+    val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
+                      path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                      labelmap=labelmap, transform=tform)
+    test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
+                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                       labelmap=labelmap, transform=tform)
+    print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
+                                                                              len(test_set)))
+    generate_normalization_values(test_set)
+
+

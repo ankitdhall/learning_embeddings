@@ -11,8 +11,9 @@ def purge_image_data(data, images_dir, clean_dir):
         if sample['family'] not in ['Papilionidae', 'Pieridae', 'Nymphalidae', 'Lycaenidae', 'Hesperiidae', 'Riodinidae']:
             continue
         if sample['image_path'] == "" or '.JPG' in sample['image_path']:
-            correct_folder_name = sample['image_name'][11:21] + "R"
-            path_to_image = os.path.join(images_dir, correct_folder_name, sample['image_name'])
+            correct_folder_name = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][11:21] + "R"
+            path_to_image = os.path.join(images_dir, correct_folder_name,
+                                         sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
             path_to_clean_dir = os.path.join(clean_dir, correct_folder_name)
         else:
             path_to_image = os.path.join(images_dir, sample['image_path'], sample['image_name'])
@@ -20,10 +21,10 @@ def purge_image_data(data, images_dir, clean_dir):
         if not os.path.exists(path_to_clean_dir):
             os.makedirs(path_to_clean_dir)
 
-        if os.path.exists(os.path.join(path_to_clean_dir, sample['image_name'])):
+        if os.path.exists(os.path.join(path_to_clean_dir, sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])):
             continue
         img = cv2.imread(path_to_image)
-        cv2.imwrite(os.path.join(path_to_clean_dir, sample['image_name']), img)
+        cv2.imwrite(os.path.join(path_to_clean_dir, sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name']), img)
 
 
 def purge_json_data(data, json_path):
@@ -58,5 +59,5 @@ if __name__ == '__main__':
         print("File does not exist!")
         exit()
 
-    # purge_image_data(data, args.images_dir, args.clean_dir)
-    # purge_json_data(data, args.json_path)
+    purge_image_data(data, args.images_dir, args.clean_dir)
+    purge_json_data(data, args.json_path)

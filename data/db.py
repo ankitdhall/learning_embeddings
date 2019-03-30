@@ -13,6 +13,9 @@ import numpy as np
 
 
 class ETHECLabelMap:
+    """
+    Implements map from labels to hot vectors for ETHEC database.
+    """
     def __init__(self):
         self.family = {
             "Hesperiidae": 0,
@@ -1612,24 +1615,55 @@ class ETHECLabelMap:
 
 
 class ETHEC:
+    """
+    ETHEC iterator.
+    """
     def __init__(self, path_to_json):
+        """
+        Constructor.
+        :param path_to_json: <str> .json path used for loading database entries.
+        """
         self.path_to_json = path_to_json
         with open(path_to_json) as json_file:
             self.data_dict = json.load(json_file)
         self.data_tokens = [token for token in self.data_dict]
 
     def __getitem__(self, item):
+        """
+        Fetch an entry based on index.
+        :param item: <int> index for the entry in database
+        :return: see schema.md
+        """
         return self.data_dict[self.data_tokens[item]]
 
     def __len__(self):
+        """
+        Returns the number of entries in the database.
+        :return: <int> Length of database
+        """
         return len(self.data_tokens)
 
     def get_sample(self, token):
+        """
+        Fetch an entry based on its token.
+        :param token: <str> token (uuid)
+        :return: see schema.md
+        """
         return self.data_dict[token]
 
 
 class ETHECDB(torch.utils.data.Dataset):
+    """
+    Creates a PyTorch dataset.
+    """
     def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
+        """
+        Constructor.
+        :param path_to_json: <str> Path to .json from which to read database entries.
+        :param path_to_images: <str> Path to parent directory where images are stored.
+        :param labelmap: <ETHECLabelMap> Labelmap.
+        :param transform: <torchvision.transforms> Set of transforms to be applied to the entries in the database.
+        """
         self.path_to_json = path_to_json
         self.path_to_images = path_to_images
         self.labelmap = labelmap
@@ -1637,9 +1671,16 @@ class ETHECDB(torch.utils.data.Dataset):
         self.transform = transform
 
     def __getitem__(self, item):
+        """
+        Fetch an entry based on index.
+        :param item: <int> Index to fetch.
+        :return: <dict> Consumable object (see schema.md)
+                {'image': <np.array> image, 'labels': <np.array(n_classes)> hot vector, 'leaf_label': <int>}
+        """
         sample = self.ETHEC.__getitem__(item)
         image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][11:21] + "R"
-        path_to_image = os.path.join(self.path_to_images, image_folder, sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
+        path_to_image = os.path.join(self.path_to_images, image_folder,
+                                     sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
         img = cv2.imread(path_to_image)
         if img is None:
             print('This image is None: {} {}'.format(path_to_image, sample['token']))
@@ -1653,13 +1694,27 @@ class ETHECDB(torch.utils.data.Dataset):
         return ret_sample
 
     def __len__(self):
+        """
+        Return number of entries in the database.
+        :return: <int> length of database
+        """
         return len(self.ETHEC)
 
     def get_sample(self, token):
+        """
+        Fetch database entry based on its token.
+        :param token: <str> Token used to fetch corresponding entry. (uuid)
+        :return: see schema.md
+        """
         return self.ETHEC.get_sample(token)
 
 
 def generate_labelmap(path_to_json):
+    """
+    Generates entries for labelmap.
+    :param path_to_json: <str> Path to .json to read database from.
+    :return: -
+    """
     ethec = ETHEC(path_to_json)
     family, subfamily, genus, specific_epithet, genus_specific_epithet = {}, {}, {}, {}, {}
     f_c, s_c, g_c, se_c, gse_c = 0, 0, 0, 0, 0
@@ -1687,8 +1742,21 @@ def generate_labelmap(path_to_json):
 
 
 class SplitDataset:
+    """
+    Splits a given dataset to train, val and test.
+    """
     def __init__(self, path_to_json, path_to_images, path_to_save_splits, labelmap, train_ratio=0.8, val_ratio=0.1,
                  test_ratio=0.1):
+        """
+        Constructor.
+        :param path_to_json: <str> Path to .json to read database from.
+        :param path_to_images: <str> Path to parent directory that contains the images.
+        :param path_to_save_splits: <str> Path to directory where the .json splits are saved.
+        :param labelmap: <ETHECLabelMap> Labelmap
+        :param train_ratio: <float> Proportion of the dataset used for train.
+        :param val_ratio: <float> Proportion of the dataset used for val.
+        :param test_ratio: <float> Proportion of the dataset used for test.
+        """
         if train_ratio + val_ratio + test_ratio != 1:
             print('Warning: Ratio does not add up to 1.')
         self.path_to_save_splits = path_to_save_splits
@@ -1703,6 +1771,10 @@ class SplitDataset:
         print('Database has {} sample.'.format(len(self.database)))
 
     def collect_stats(self):
+        """
+        Generate counts for each class
+        :return: -
+        """
         for data_id in range(len(self.database)):
             sample = self.database[data_id]
 
@@ -1714,6 +1786,10 @@ class SplitDataset:
         # print({label_id: len(self.stats[label_id]) for label_id in self.stats})
 
     def split(self):
+        """
+        Split data.
+        :return: -
+        """
         for label_id in self.stats:
             samples_for_label_id = self.stats[label_id]
             n_samples = len(samples_for_label_id)
@@ -1744,6 +1820,10 @@ class SplitDataset:
                 self.test[sample_id] = self.database.get_sample(sample_id)
 
     def write_to_disk(self):
+        """
+        Write the train, val, test .json splits to disk.
+        :return: -
+        """
         with open(os.path.join(self.path_to_save_splits, 'train.json'), 'w') as fp:
             json.dump(self.train, fp, indent=4)
         with open(os.path.join(self.path_to_save_splits, 'val.json'), 'w') as fp:
@@ -1752,17 +1832,33 @@ class SplitDataset:
             json.dump(self.test, fp, indent=4)
 
     def make_split_to_disk(self):
+        """
+        Collectively call functions to make splits and save to disk.
+        :return: -
+        """
         self.collect_stats()
         self.split()
         self.write_to_disk()
 
 
 class Rescale(object):
+    """
+    Resize images.
+    """
     def __init__(self, output_size):
+        """
+        Constructor.
+        :param output_size: <(int, int)> Tuple specifying the spatial dimensions of the resized image.
+        """
         assert isinstance(output_size, (int, tuple))
         self.output_size = output_size
 
     def __call__(self, sample):
+        """
+        Returns sample with resized image.
+        :param sample: see ETHECDB
+        :return: see ETHECDB
+        """
         image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
         h, w = image.shape[:2]
         if isinstance(self.output_size, int):
@@ -1822,6 +1918,11 @@ class Normalize(torchvision.transforms.Normalize):
 
 
 def generate_normalization_values(dataset):
+    """
+    Calculate mean and std values for a dataset.
+    :param dataset: <PyTorch dataset> dataset to calculate mean, std over
+    :return: -
+    """
 
     loader = torch.utils.data.DataLoader(
         dataset,

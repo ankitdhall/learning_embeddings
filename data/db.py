@@ -6,6 +6,7 @@ import cv2
 import torch
 import torch.utils.data
 from torchvision import transforms, datasets
+import torchvision
 
 from skimage import io, transform
 import numpy as np
@@ -1789,12 +1790,38 @@ class ToTensor(object):
         # numpy image: H x W x C
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
-        return {'image': torch.from_numpy(image),
-                'labels': torch.from_numpy(label),
+        return {'image': torch.from_numpy(image).float(),
+                'labels': torch.from_numpy(label).float(),
                 'leaf_label': leaf_label}
 
+
+class Normalize(torchvision.transforms.Normalize):
+    """Normalize a tensor image with mean and standard deviation.
+    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
+    will normalize each channel of the input ``torch.*Tensor`` i.e.
+    ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
+    .. note::
+        This transform acts out of place, i.e., it does not mutates the input tensor.
+    Args:
+        mean (sequence): Sequence of means for each channel.
+        std (sequence): Sequence of standard deviations for each channel.
+    """
+
+    def __init__(self, mean, std, inplace=False):
+        torchvision.transforms.Normalize.__init__(self, mean, std, inplace)
+
+    def __call__(self, input):
+        """
+        Args:
+            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
+        Returns:
+            Tensor: Normalized Tensor image.
+        """
+        input['image'] = super(Normalize, self).__call__(input['image'])
+        return input
+
+
 def generate_normalization_values(dataset):
-    skipped = 0
 
     loader = torch.utils.data.DataLoader(
         dataset,
@@ -1813,42 +1840,49 @@ def generate_normalization_values(dataset):
         std += data.std(2).sum(0)
         nb_samples += batch_samples
 
-    mean /= (nb_samples-skipped)
-    std /= (nb_samples-skipped)
+    mean /= nb_samples
+    std /= nb_samples
 
-    print(mean, std)
+    print('Mean: {}, Std: {}'.format(mean, std))
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--images_dir", help='Parent directory with images.', type=str, required=True)
-    # parser.add_argument("--json_path", help='Path to json with relevant data.', type=str, required=True)
-    # parser.add_argument("--path_to_save_splits", help='Path to json with relevant data.', type=str, required=True)
-    # args = parser.parse_args()
-
-    # debug/check database loading
-    # db = ETHECDB(args.json_path, args.images_dir, ETHECLabelMap())
-    # print(db[0])
-    # print(ETHECLabelMap().get_one_hot('Hesperiidae', 'Heteropterinae', 'Carterocephalus', 'palaemon'))
-
-    # create files with train, val and test splits
-    # data_splitter = SplitDataset(args.json_path, args.images_dir, args.path_to_save_splits, ETHECLabelMap())
-    # data_splitter.make_split_to_disk()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--images_dir", help='Parent directory with images.', type=str)
+    parser.add_argument("--json_path", help='Path to json with relevant data.', type=str)
+    parser.add_argument("--path_to_save_splits", help='Path to json with relevant data.', type=str)
+    parser.add_argument("--mode", help='Path to json with relevant data.', type=str)
+    args = parser.parse_args()
 
     labelmap = ETHECLabelMap()
-    tform = transforms.Compose([Rescale((224, 224)),
-                                ToTensor()])
-    train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
-                        path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                        labelmap=labelmap, transform=tform)
-    val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
-                      path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                      labelmap=labelmap, transform=tform)
-    test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
-                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                       labelmap=labelmap, transform=tform)
-    print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
-                                                                              len(test_set)))
-    generate_normalization_values(test_set)
+    # mean: tensor([143.2341, 162.8151, 177.2185], dtype=torch.float64)
+    # std: tensor([66.7762, 59.2524, 51.5077], dtype=torch.float64)
 
+    if args.mode == 'split':
+        # create files with train, val and test splits
+        data_splitter = SplitDataset(args.json_path, args.images_dir, args.path_to_save_splits, ETHECLabelMap())
+        data_splitter.make_split_to_disk()
+
+    elif args.mode == 'calc_mean_std':
+        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
+                            path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                            labelmap=labelmap, transform=tform)
+        generate_normalization_values(train_set)
+
+    else:
+        tform = transforms.Compose([Rescale((224, 224)),
+                                    ToTensor(),
+                                    Normalize(mean=(143.2341, 162.8151, 177.2185), std=(66.7762, 59.2524, 51.5077))])
+        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
+                            path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                            labelmap=labelmap, transform=tform)
+        val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
+                          path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                          labelmap=labelmap, transform=tform)
+        test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
+                           path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                           labelmap=labelmap, transform=tform)
+        print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
+                                                                                  len(test_set)))
+        print(train_set[0]['image'])
 

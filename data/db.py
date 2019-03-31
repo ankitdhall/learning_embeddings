@@ -1601,6 +1601,8 @@ class ETHECLabelMap:
         }
         self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.specific_epithet)]
         self.n_classes = sum(self.levels)
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.specific_epithet] for key in class_list]
+        self.level_names = ['family', 'subfamily', 'genus', 'specific_epithet']
 
     def get_one_hot(self, family, subfamily, genus, specific_epithet):
         retval = np.zeros(self.n_classes)
@@ -1871,7 +1873,7 @@ class Rescale(object):
 
         new_h, new_w = int(new_h), int(new_w)
 
-        img = transform.resize(image, (new_h, new_w))
+        img = transform.resize(image, (new_h, new_w), mode='constant', anti_aliasing=True, anti_aliasing_sigma=None)
 
         return {'image': img, 'labels': label, 'leaf_label': leaf_label}
 
@@ -1965,6 +1967,8 @@ if __name__ == '__main__':
         data_splitter.make_split_to_disk()
 
     elif args.mode == 'calc_mean_std':
+        tform = transforms.Compose([Rescale((224, 224)),
+                                    ToTensor()])
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                             path_to_images='/media/ankit/DataPartition/IMAGO_build/',
                             labelmap=labelmap, transform=tform)

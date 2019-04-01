@@ -201,7 +201,7 @@ class MLEvaluation(Evaluation):
                       range(self.labelmap.n_classes)],
                 x_labels=['Precision', 'Recall', 'F1'], y_labels=self.labelmap.classes)
 
-        return metrics['macro']['f1'], metrics['micro']['f1']
+        return metrics
 
     def get_optimal_thresholds(self):
         return self.optimal_thresholds

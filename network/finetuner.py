@@ -112,7 +112,8 @@ class CIFAR10(Experiment):
         elif model_name == 'vgg':
             model = models.vgg11_bn(pretrained=use_pretrained)
 
-        Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs, eval_interval,
+        Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs,
+                            eval_interval,
                             batch_size, experiment_dir, load_wt, evaluator)
 
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
@@ -187,7 +188,12 @@ class CIFAR10(Experiment):
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
                                                        self.dataset_length[phase])] = labels.data
 
-        macro_f1, micro_f1 = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
+        metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
+        macro_f1, micro_f1, macro_p, micro_p, macro_r, micro_r = metrics['macro']['f1'], metrics['micro']['f1'], \
+                                                                 metrics['macro']['precision'], \
+                                                                 metrics['micro']['precision'], \
+                                                                 metrics['macro']['recall'], \
+                                                                 metrics['micro']['recall']
         self.optimal_thresholds = self.eval.get_optimal_thresholds()
 
         epoch_loss = running_loss / self.dataset_length[phase]
@@ -198,6 +204,10 @@ class CIFAR10(Experiment):
             self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
             self.writer.add_scalar('{}_micro_f1'.format(phase), micro_f1, self.epoch)
             self.writer.add_scalar('{}_macro_f1'.format(phase), macro_f1, self.epoch)
+            self.writer.add_scalar('{}_micro_precision'.format(phase), micro_p, self.epoch)
+            self.writer.add_scalar('{}_macro_precision'.format(phase), macro_p, self.epoch)
+            self.writer.add_scalar('{}_micro_recall'.format(phase), micro_r, self.epoch)
+            self.writer.add_scalar('{}_macro_recall'.format(phase), macro_r, self.epoch)
 
             for l_ix, level_matches in enumerate(epoch_per_level_matches.tolist()):
                 self.writer.add_scalar('{}_{}_matches'.format(phase, self.level_names[l_ix]),
@@ -224,7 +234,7 @@ class CIFAR10(Experiment):
         level_matches = []
         level_start_ix = 0
         for level in self.levels:
-            level_matches.append(np.sum(np.sum(pred_labels_and_map[:, level_start_ix:level_start_ix+level], axis=1)))
+            level_matches.append(np.sum(np.sum(pred_labels_and_map[:, level_start_ix:level_start_ix + level], axis=1)))
             level_start_ix += level
 
         return n_exact_matches, np.array(level_matches)
@@ -329,7 +339,8 @@ def train_cifar10(arguments):
         print("== Running in DEBUG mode!")
         trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
                                        download=True, transform=data_transforms)
-        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))), batch_size=batch_size,
+        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))),
+                                                  batch_size=batch_size,
                                                   shuffle=True, num_workers=n_workers)
 
         valloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100, 200))),
@@ -376,7 +387,7 @@ def train_cifar10(arguments):
                             criterion=nn.MultiLabelSoftMarginLoss(),
                             lr=arguments.lr,
                             batch_size=batch_size, evaluator=eval_type,
-                            experiment_name=arguments.experiment_name, # 'cifar_test_ft_multi',
+                            experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
                             experiment_dir=arguments.experiment_dir,
                             eval_interval=arguments.eval_interval,
                             n_epochs=arguments.n_epochs,
@@ -472,11 +483,13 @@ def train_cifar10_single():
     batch_size = 8
 
     trainset = torchvision.datasets.CIFAR10(root='../database', train=False, download=True, transform=data_transforms)
-    trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(1000))), batch_size=batch_size,
+    trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(1000))),
+                                              batch_size=batch_size,
                                               shuffle=True, num_workers=4)
 
     testset = torchvision.datasets.CIFAR10(root='../database', train=False, download=True, transform=data_transforms)
-    testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(testset, list(range(1000, 2000))), batch_size=batch_size,
+    testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(testset, list(range(1000, 2000))),
+                                             batch_size=batch_size,
                                              shuffle=False, num_workers=4)
 
     data_loaders = {'train': trainloader, 'val': testloader}
@@ -535,7 +548,8 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
-    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str, required=True)
+    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
+                        required=True)
     args = parser.parse_args()
 
     train_cifar10(args)

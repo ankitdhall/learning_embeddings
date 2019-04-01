@@ -9,7 +9,9 @@ from torchvision import transforms, datasets
 import torchvision
 
 from skimage import io, transform
+from PIL import Image
 import numpy as np
+import random
 
 
 class ETHECLabelMap:
@@ -1686,7 +1688,7 @@ class ETHECDB(torch.utils.data.Dataset):
         img = cv2.imread(path_to_image)
         if img is None:
             print('This image is None: {} {}'.format(path_to_image, sample['token']))
-        ret_sample = {'image': np.array(img, dtype=np.float32),
+        ret_sample = {'image': np.array(img),
                       'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
                                                           sample['specific_epithet']),
                       'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet'])}
@@ -1843,80 +1845,96 @@ class SplitDataset:
         self.write_to_disk()
 
 
-class Rescale(object):
-    """
-    Resize images.
-    """
-    def __init__(self, output_size):
-        """
-        Constructor.
-        :param output_size: <(int, int)> Tuple specifying the spatial dimensions of the resized image.
-        """
-        assert isinstance(output_size, (int, tuple))
-        self.output_size = output_size
-
-    def __call__(self, sample):
-        """
-        Returns sample with resized image.
-        :param sample: see ETHECDB
-        :return: see ETHECDB
-        """
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
-        h, w = image.shape[:2]
-        if isinstance(self.output_size, int):
-            if h > w:
-                new_h, new_w = self.output_size * h / w, self.output_size
-            else:
-                new_h, new_w = self.output_size, self.output_size * w / h
-        else:
-            new_h, new_w = self.output_size
-
-        new_h, new_w = int(new_h), int(new_w)
-
-        img = transform.resize(image, (new_h, new_w), mode='constant', anti_aliasing=True, anti_aliasing_sigma=None)
-
-        return {'image': img, 'labels': label, 'leaf_label': leaf_label}
-
-
-class ToTensor(object):
-    """Convert ndarrays in sample to Tensors."""
+class Rescale(torchvision.transforms.Resize):
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        torchvision.transforms.Resize.__init__(self, size, interpolation)
 
     def __call__(self, sample):
         image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        return {'image': torchvision.transforms.functional.resize(image, self.size, self.interpolation),
+                'labels': label,
+                'leaf_label': leaf_label}
 
+
+class ToTensor(torchvision.transforms.ToTensor):
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image = torchvision.transforms.functional.to_tensor(image)
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
-        image = image.transpose((2, 0, 1))
-        return {'image': torch.from_numpy(image).float(),
+        return {'image': image.float(),
                 'labels': torch.from_numpy(label).float(),
                 'leaf_label': leaf_label}
 
 
 class Normalize(torchvision.transforms.Normalize):
-    """Normalize a tensor image with mean and standard deviation.
-    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
-    will normalize each channel of the input ``torch.*Tensor`` i.e.
-    ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
-    .. note::
-        This transform acts out of place, i.e., it does not mutates the input tensor.
-    Args:
-        mean (sequence): Sequence of means for each channel.
-        std (sequence): Sequence of standard deviations for each channel.
-    """
-
     def __init__(self, mean, std, inplace=False):
         torchvision.transforms.Normalize.__init__(self, mean, std, inplace)
 
     def __call__(self, input):
-        """
-        Args:
-            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
-        Returns:
-            Tensor: Normalized Tensor image.
-        """
         input['image'] = super(Normalize, self).__call__(input['image'])
         return input
+
+
+class ColorJitter(torchvision.transforms.ColorJitter):
+    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+        torchvision.transforms.ColorJitter.__init__(self, brightness, contrast, saturation, hue)
+
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        transform = self.get_params(self.brightness, self.contrast,
+                                    self.saturation, self.hue)
+        return {'image': transform(image),
+                'labels': label,
+                'leaf_label': leaf_label}
+
+
+class ToPILImage(torchvision.transforms.ToPILImage):
+    def __init__(self, mode=None):
+        torchvision.transforms.ToPILImage.__init__(self, mode)
+
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        return {'image': torchvision.transforms.functional.to_pil_image(image, self.mode),
+                'labels': label,
+                'leaf_label': leaf_label}
+
+
+class RandomHorizontalFlip(torchvision.transforms.RandomHorizontalFlip):
+    def __init__(self, p=0.5):
+        torchvision.transforms.RandomHorizontalFlip.__init__(self, p)
+
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        if random.random() < self.p:
+            image = torchvision.transforms.functional.hflip(image)
+        return {'image': image,
+                'labels': label,
+                'leaf_label': leaf_label}
+
+
+class RandomCrop(torchvision.transforms.RandomCrop):
+    def __init__(self, size, padding=None, pad_if_needed=False, fill=0, padding_mode='constant'):
+        torchvision.transforms.RandomCrop.__init__(self, size, padding, pad_if_needed, fill, padding_mode)
+
+    def __call__(self, sample):
+        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        if self.padding is not None:
+            image = torchvision.transforms.functional.pad(image, self.padding, self.fill, self.padding_mode)
+
+        # pad the width if needed
+        if self.pad_if_needed and image.size[0] < self.size[1]:
+            image = torchvision.transforms.functional.pad(image, (self.size[1] - image.size[0], 0), self.fill, self.padding_mode)
+        # pad the height if needed
+        if self.pad_if_needed and image.size[1] < self.size[0]:
+            image = torchvision.transforms.functional.pad(image, (0, self.size[0] - image.size[1]), self.fill, self.padding_mode)
+
+        i, j, h, w = self.get_params(image, self.size)
+
+        return {'image': torchvision.transforms.functional.crop(image, i, j, h, w),
+                'labels': label,
+                'leaf_label': leaf_label}
 
 
 def generate_normalization_values(dataset):

@@ -11,7 +11,7 @@ from experiment import Experiment
 from evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
 from finetuner import CIFAR10
 
-from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ETHECDB
+from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
 
 from PIL import Image
 import numpy as np
@@ -46,22 +46,32 @@ def ETHEC_train_model(arguments):
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(args), indent=4)))
 
+    initial_crop = 324
     input_size = 224
     labelmap = ETHECLabelMap()
-    data_transforms = transforms.Compose([Rescale((input_size, input_size)),
-                                          ToTensor(),
-                                          Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                    std=(66.7762, 59.2524, 51.5077))])
+    train_data_transforms = transforms.Compose([ToPILImage(),
+                                                Rescale((initial_crop, initial_crop)),
+                                                RandomCrop((input_size, input_size)),
+                                                RandomHorizontalFlip(),
+                                                ColorJitter(brightness=0.2, contrast=0.2),
+                                                ToTensor(),
+                                                Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                          std=(66.7762, 59.2524, 51.5077))])
+    val_test_data_transforms = transforms.Compose([ToPILImage(),
+                                                   Rescale((input_size, input_size)),
+                                                   ToTensor(),
+                                                   Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                             std=(66.7762, 59.2524, 51.5077))])
 
     train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                         path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                        labelmap=labelmap, transform=data_transforms)
+                        labelmap=labelmap, transform=train_data_transforms)
     val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                      labelmap=labelmap, transform=data_transforms)
+                      labelmap=labelmap, transform=val_test_data_transforms)
     test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
                        path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                       labelmap=labelmap, transform=data_transforms)
+                       labelmap=labelmap, transform=val_test_data_transforms)
     print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
                                                                               len(test_set)))
 
@@ -72,13 +82,13 @@ def ETHEC_train_model(arguments):
         print("== Running in DEBUG mode!")
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                             path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                            labelmap=labelmap, transform=data_transforms)
+                            labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
                           path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                          labelmap=labelmap, transform=data_transforms)
+                          labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
                            path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                           labelmap=labelmap, transform=data_transforms)
+                           labelmap=labelmap, transform=val_test_data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100))),
                                                   batch_size=batch_size,
                                                   shuffle=True, num_workers=n_workers)
@@ -96,13 +106,13 @@ def ETHEC_train_model(arguments):
     else:
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                             path_to_images=args.image_dir,
-                            labelmap=labelmap, transform=data_transforms)
+                            labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
                           path_to_images=args.image_dir,
-                          labelmap=labelmap, transform=data_transforms)
+                          labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
                            path_to_images=args.image_dir,
-                           labelmap=labelmap, transform=data_transforms)
+                           labelmap=labelmap, transform=val_test_data_transforms)
 
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=batch_size,

@@ -13,6 +13,7 @@ from evaluation import Evaluation
 import time
 import numpy as np
 import os
+import collections
 
 class Experiment:
 
@@ -168,3 +169,26 @@ class Experiment:
     def load_best_model(self):
         self.load_model(epoch_to_load='best_model')
         self.pass_samples(phase='test')
+
+
+class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):
+    def __init__(self, dataset, start=None, stop=None):
+        dset_len = len(dataset)
+        if start is None and stop is None:
+            label_ids = [dataset[ind]['leaf_label'] for ind in range(len(dataset))]
+        elif start is not None and stop is not None:
+            label_ids = [dataset[ind]['leaf_label'] for ind in range(start, stop)]
+            dset_len = stop-start
+
+        label_counts = collections.Counter(label_ids)
+        dense_label_counts = np.zeros(dataset.labelmap.levels[-1], dtype=np.float32)
+        dense_label_counts[list(label_counts.keys())] = list(label_counts.values())
+
+        if np.any(dense_label_counts == 0):
+            print("[warning] Found labels with zero samples")
+
+        label_weights = 1.0 / dense_label_counts
+        label_weights[dense_label_counts == 0] = 0.0
+
+        weights = label_weights[label_ids]
+        torch.utils.data.sampler.WeightedRandomSampler.__init__(self, weights, dset_len, replacement=True)

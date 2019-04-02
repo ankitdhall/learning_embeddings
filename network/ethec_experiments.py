@@ -7,7 +7,7 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 import os
-from experiment import Experiment
+from experiment import Experiment, WeightedResampler
 from evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
 from finetuner import CIFAR10
 
@@ -64,13 +64,13 @@ def ETHEC_train_model(arguments):
                                                              std=(66.7762, 59.2524, 51.5077))])
 
     train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
-                        path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                        path_to_images=args.image_dir,
                         labelmap=labelmap, transform=train_data_transforms)
     val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
-                      path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                      path_to_images=args.image_dir,
                       labelmap=labelmap, transform=val_test_data_transforms)
     test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
-                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                       path_to_images=args.image_dir,
                        labelmap=labelmap, transform=val_test_data_transforms)
     print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
                                                                               len(test_set)))
@@ -80,22 +80,14 @@ def ETHEC_train_model(arguments):
 
     if arguments.debug:
         print("== Running in DEBUG mode!")
-        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
-                            path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                            labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
-                          path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                          labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
-                           path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                           labelmap=labelmap, transform=val_test_data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100))),
                                                   batch_size=batch_size,
-                                                  shuffle=True, num_workers=n_workers)
+                                                  num_workers=n_workers,
+                                                  sampler=WeightedResampler(train_set, start=0, stop=100))
 
         valloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100, 200))),
                                                 batch_size=batch_size,
-                                                shuffle=True, num_workers=n_workers)
+                                                shuffle=False, num_workers=n_workers)
 
         testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(200, 300))),
                                                  batch_size=batch_size,
@@ -104,22 +96,13 @@ def ETHEC_train_model(arguments):
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     else:
-        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
-                            path_to_images=args.image_dir,
-                            labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
-                          path_to_images=args.image_dir,
-                          labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
-                           path_to_images=args.image_dir,
-                           labelmap=labelmap, transform=val_test_data_transforms)
-
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=batch_size,
-                                                  shuffle=True, num_workers=n_workers)
+                                                  num_workers=n_workers,
+                                                  sampler=WeightedResampler(train_set))
         valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=batch_size,
-                                                shuffle=True, num_workers=n_workers)
+                                                shuffle=False, num_workers=n_workers)
         testloader = torch.utils.data.DataLoader(test_set,
                                                  batch_size=batch_size,
                                                  shuffle=False, num_workers=n_workers)

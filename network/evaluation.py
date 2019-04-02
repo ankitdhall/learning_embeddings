@@ -197,9 +197,10 @@ class MLEvaluation(Evaluation):
         if phase == 'test':
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
-                data=[[metrics[score][label_ix] for score in ['precision', 'recall', 'f1']] for label_ix in
+                data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],
+                       metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
                       range(self.labelmap.n_classes)],
-                x_labels=['Precision', 'Recall', 'F1'], y_labels=self.labelmap.classes)
+                x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
 
         return metrics
 
@@ -275,25 +276,26 @@ class MLEvaluation(Evaluation):
             level_begin_ix += self.labelmap.levels[level_ix]
 
         if phase in ['val']:
-            self.make_table_with_metrics(mAP, precision, recall, top_f1_score, self.classes)
+            self.make_table_with_metrics(mAP, precision, recall, top_f1_score, self.classes, correct_labels)
             self.set_optimal_thresholds(top_f1_score)
 
         return mAP, precision, recall, average_precision, thresholds
 
-    def make_table_with_metrics(self, mAP, precision, recall, top_f1_score, class_names):
+    def make_table_with_metrics(self, mAP, precision, recall, top_f1_score, class_names, correct_labels):
         # make table with global metrics
         self.summarizer.make_heading('Class-wise Metrics', 2)
         if mAP is not None:
             self.summarizer.make_text('Mean average precision is {}'.format(mAP))
 
         y_labels = [class_name for class_name in class_names]
-        x_labels = ['Precision@BF1', 'Recall@BF1', 'Best f1-score', 'Best thresh']
+        x_labels = ['Precision@BF1', 'Recall@BF1', 'Best f1-score', 'Best thresh', 'freq']
         data = []
         for class_index, class_name in enumerate(class_names):
             per_class_metrics = [precision[class_name][top_f1_score[class_name]['thresh_ix']],
                                  recall[class_name][top_f1_score[class_name]['thresh_ix']],
                                  top_f1_score[class_name]['f1_score@thresh'],
-                                 top_f1_score[class_name]['best_thresh']]
+                                 top_f1_score[class_name]['best_thresh'],
+                                 0 if correct_labels is None else int(np.sum(correct_labels[:, class_index]))]
             data.append(per_class_metrics)
 
         self.summarizer.make_table(data, x_labels, y_labels)
@@ -333,7 +335,7 @@ class MLEvaluationSingleThresh(MLEvaluation):
         mAP_c = average_precision_c['all_classes']
 
         if phase in ['val']:
-            self.make_table_with_metrics(mAP_c, precision_c, recall_c, top_f1_score_c, ['all_classes'])
+            self.make_table_with_metrics(mAP_c, precision_c, recall_c, top_f1_score_c, ['all_classes'], None)
             self.set_optimal_thresholds(top_f1_score_c)
 
         return mAP_c, precision_c, recall_c, average_precision_c, thresholds_c

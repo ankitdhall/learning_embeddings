@@ -53,7 +53,7 @@ def ETHEC_train_model(arguments):
                                                 Rescale((initial_crop, initial_crop)),
                                                 RandomCrop((input_size, input_size)),
                                                 RandomHorizontalFlip(),
-                                                ColorJitter(brightness=0.2, contrast=0.2),
+                                                # ColorJitter(brightness=0.2, contrast=0.2),
                                                 ToTensor(),
                                                 Normalize(mean=(143.2341, 162.8151, 177.2185),
                                                           std=(66.7762, 59.2524, 51.5077))])

@@ -1993,18 +1993,30 @@ if __name__ == '__main__':
         generate_normalization_values(train_set)
 
     else:
-        tform = transforms.Compose([Rescale((224, 224)),
-                                    ToTensor(),
-                                    Normalize(mean=(143.2341, 162.8151, 177.2185), std=(66.7762, 59.2524, 51.5077))])
+        initial_crop = 324
+        input_size = 224
+        train_data_transforms = transforms.Compose([ToPILImage(),
+                                                    Rescale((initial_crop, initial_crop)),
+                                                    RandomCrop((input_size, input_size)),
+                                                    RandomHorizontalFlip(),
+                                                    # ColorJitter(brightness=0.2, contrast=0.2),
+                                                    ToTensor(),
+                                                    Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                              std=(66.7762, 59.2524, 51.5077))])
+        val_test_data_transforms = transforms.Compose([ToPILImage(),
+                                                       Rescale((input_size, input_size)),
+                                                       ToTensor(),
+                                                       Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                 std=(66.7762, 59.2524, 51.5077))])
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                             path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                            labelmap=labelmap, transform=tform)
+                            labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
                           path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                          labelmap=labelmap, transform=tform)
+                          labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
                            path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                           labelmap=labelmap, transform=tform)
+                           labelmap=labelmap, transform=val_test_data_transforms)
         print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
                                                                                   len(test_set)))
         print(train_set[0]['image'])

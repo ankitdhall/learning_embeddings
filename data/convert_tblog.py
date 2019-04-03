@@ -57,7 +57,9 @@ if __name__ == '__main__':
     parser.add_argument("--path_to_save", help='Parent directory to store plots.', type=str,
                         default='../')
     parser.add_argument("--experiment_list", help='Experiments to parse logs for.', nargs='*', default=None)
-    parser.add_argument("--metric_list", help='Metrics to plot.', nargs='*', default=['macro_f1', 'micro_f1', 'loss'])
+    parser.add_argument("--metric_list", help='Metrics to plot.', nargs='*', default=['macro_f1', 'micro_f1', 'loss',
+                                                                                      'micro_precision', 'micro_recall',
+                                                                                      'macro_precision', 'macro_recall'])
     args = parser.parse_args()
 
     exp_list = ['ethec_full_resnet50_lr_0.01', 'ethec_single_thresh_full_resnet50_lr_0.01']

@@ -8,6 +8,8 @@ import os
 import numpy as np
 from summarize import Summarize
 
+import torch
+
 
 class Evaluation:
 
@@ -343,3 +345,51 @@ class MLEvaluationSingleThresh(MLEvaluation):
     def set_optimal_thresholds(self, best_f1_score):
         for class_ix, class_name in enumerate(self.labelmap.classes):
             self.optimal_thresholds[class_ix] = best_f1_score['all_classes']['best_thresh']
+
+
+class MultiLevelEvaluation(MLEvaluation):
+    def __init__(self, experiment_directory, labelmap):
+        MLEvaluation.__init__(self, experiment_directory, labelmap, None)
+        self.labelmap = labelmap
+        # self.optimal_thresholds = np.zeros(labelmap.n_classes)
+        self.predicted_labels = None
+
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase):
+        if phase in ['val', 'test']:
+            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(epoch, phase), 1)
+
+        predicted_scores = torch.from_numpy(predicted_scores)
+        self.predicted_labels = np.zeros_like(predicted_scores)
+        for level_id, level_name in enumerate(self.labelmap.level_names):
+            start = sum([self.labelmap.levels[l_id] for l_id in range(level_id)])
+            predicted_scores_part = predicted_scores[:, start:start+self.labelmap.levels[level_id]]
+            # correct_labels_part = correct_labels[:, level_id]
+            _, winning_indices = torch.max(predicted_scores_part, 1)
+            self.predicted_labels[[row_ind for row_ind in range(winning_indices.shape[0])], winning_indices+start] = 1
+
+        # mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
+        #                                                                          correct_labels, epoch, phase)
+
+        metrics_calculator = Metrics(self.predicted_labels, correct_labels)
+        metrics = metrics_calculator.calculate_basic_metrics()
+
+        if phase in ['val', 'test']:
+            self.summarizer.make_heading('Global Metrics', 2)
+            self.summarizer.make_table(
+                data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
+                      ['macro', 'micro']],
+                x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+            
+            self.summarizer.make_heading('Class-wise Metrics', 2)
+            self.summarizer.make_table(
+                data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],
+                       metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
+                      range(self.labelmap.n_classes)],
+                x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
+
+        return metrics
+
+    def set_optimal_thresholds(self, best_f1_score):
+        pass

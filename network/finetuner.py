@@ -7,8 +7,12 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 import os
-from experiment import Experiment
-from evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
+from network.experiment import Experiment
+from network.evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh, MultiLevelEvaluation
+
+from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
+
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss
 
 from PIL import Image
 import numpy as np
@@ -284,7 +288,7 @@ class labelmap_CIFAR10:
 
     def get_level_labels(self, class_index):
         level_labels = self.get_labels(class_index)
-        return [level_labels[0], level_labels[1]-self.levels[0], level_labels[2]-self.levels[1]]
+        return np.array([level_labels[0], level_labels[1]-self.levels[0], level_labels[2]-(self.levels[0]+self.levels[1])])
 
 
 class labelmap_CIFAR10_single:
@@ -310,15 +314,14 @@ class Cifar10Hierarchical(torchvision.datasets.CIFAR10):
 
         if self.transform is not None:
             img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        #
+        # if self.target_transform is not None:
+        #     target = self.target_transform(target)
 
         multi_class_target = self.labelmap.labels_one_hot(target)
-        return {
-                'image': img, 'labels': multi_class_target, 'leaf_class': target,
-                'level_labels': self.labelmap.get_level_labels(target)
-        }
+
+        return {'image': img, 'labels': torch.from_numpy(multi_class_target).float(), 'leaf_label': target,
+                'level_labels': torch.from_numpy(self.labelmap.get_level_labels(target)).long()}
 
 
 def train_cifar10(arguments):
@@ -338,13 +341,13 @@ def train_cifar10(arguments):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
-    lmap = labelmap_CIFAR10()
+    labelmap = labelmap_CIFAR10()
     batch_size = arguments.batch_size
     n_workers = arguments.n_workers
 
     if arguments.debug:
         print("== Running in DEBUG mode!")
-        trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
+        trainset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=False,
                                        download=True, transform=data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))),
                                                   batch_size=batch_size,
@@ -361,14 +364,14 @@ def train_cifar10(arguments):
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     else:
-        trainset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=True,
+        trainset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=True,
                                        download=True, transform=data_transforms)
-        testset = Cifar10Hierarchical(root='../database', labelmap=lmap, train=False,
+        testset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=False,
                                       download=True, transform=data_transforms)
 
         # split the dataset into 80:10:10
         train_indices_from_train, val_indices_from_train, val_indices_from_test, test_indices_from_test = \
-            cifar10_set_indices(trainset, testset, lmap)
+            cifar10_set_indices(trainset, testset, labelmap)
 
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, train_indices_from_train),
                                                   batch_size=batch_size,
@@ -386,12 +389,19 @@ def train_cifar10(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
-    eval_type = MLEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+    eval_type = MLEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     if arguments.evaluator == 'MLST':
-        eval_type = MLEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+        eval_type = MLEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
-    cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=lmap,
-                            criterion=nn.MultiLabelSoftMarginLoss(),
+    use_criterion = None
+    if arguments.loss == 'multi_label':
+        use_criterion = MultiLabelSMLoss()
+    elif arguments.loss == 'multi_level':
+        use_criterion = MultiLevelCELoss(labelmap=labelmap)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+
+    cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=labelmap,
+                            criterion=use_criterion,
                             lr=arguments.lr,
                             batch_size=batch_size, evaluator=eval_type,
                             experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
@@ -413,7 +423,7 @@ def cifar10_set_indices(trainset, testset, labelmap=labelmap_CIFAR10()):
     indices = {d_set_name: {label_ix: [] for label_ix in range(len(labelmap.map))} for d_set_name in ['train', 'val']}
     for d_set, d_set_name in zip([trainset, testset], ['train', 'val']):
         for i in range(len(d_set)):
-            indices[d_set_name][d_set[i]['leaf_class']].append(i)
+            indices[d_set_name][d_set[i]['leaf_label']].append(i)
 
     train_indices_from_train = []
     for label_ix in range(len(indices['train'])):
@@ -546,7 +556,7 @@ if __name__ == '__main__':
     parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
     parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
-    parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
+    parser.add_argument("--evaluator", help='Evaluator type. If using `multi_level` option for --loss then is overidden.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
@@ -554,6 +564,7 @@ if __name__ == '__main__':
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
+    parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)

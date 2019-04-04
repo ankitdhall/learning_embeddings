@@ -153,7 +153,7 @@ class CIFAR10(Experiment):
 
         # Iterate over data.
         for index, data_item in enumerate(self.dataloaders[phase]):
-            inputs, labels = data_item['image'], data_item['labels']
+            inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)
 
@@ -165,7 +165,7 @@ class CIFAR10(Experiment):
             with torch.set_grad_enabled(phase == 'train'):
                 self.model = self.model.to(self.device)
                 outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
+                loss = self.criterion(outputs, labels, level_labels)
 
                 _, preds = torch.max(outputs, 1)
 
@@ -282,6 +282,10 @@ class labelmap_CIFAR10:
         retval[indices] = 1
         return retval
 
+    def get_level_labels(self, class_index):
+        level_labels = self.get_labels(class_index)
+        return [level_labels[0], level_labels[1]-self.levels[0], level_labels[2]-self.levels[1]]
+
 
 class labelmap_CIFAR10_single:
     def __init__(self):
@@ -311,7 +315,10 @@ class Cifar10Hierarchical(torchvision.datasets.CIFAR10):
             target = self.target_transform(target)
 
         multi_class_target = self.labelmap.labels_one_hot(target)
-        return {'image': img, 'labels': multi_class_target, 'leaf_class': target}
+        return {
+                'image': img, 'labels': multi_class_target, 'leaf_class': target,
+                'level_labels': self.labelmap.get_level_labels(target)
+        }
 
 
 def train_cifar10(arguments):

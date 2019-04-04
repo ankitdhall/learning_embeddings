@@ -1617,6 +1617,14 @@ class ETHECLabelMap:
     def get_label_id(self, level_name, label_name):
         return getattr(self, level_name)[label_name]
 
+    def get_level_labels(self, family, subfamily, genus, specific_epithet):
+        return np.array([
+                self.get_label_id('family', family),
+                self.get_label_id('subfamily', subfamily),
+                self.get_label_id('genus', genus),
+                self.get_label_id('specific_epithet', specific_epithet)
+        ])
+
 
 class ETHEC:
     """
@@ -1691,7 +1699,10 @@ class ETHECDB(torch.utils.data.Dataset):
         ret_sample = {'image': np.array(img),
                       'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
                                                           sample['specific_epithet']),
-                      'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet'])}
+                      'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet']),
+                      'level_labels': self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
+                                                                     sample['genus'], sample['specific_epithet'])
+                      }
 
         if self.transform:
             ret_sample = self.transform(ret_sample)
@@ -1850,22 +1861,26 @@ class Rescale(torchvision.transforms.Resize):
         torchvision.transforms.Resize.__init__(self, size, interpolation)
 
     def __call__(self, sample):
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'],\
+                                                 sample['level_labels']
         return {'image': torchvision.transforms.functional.resize(image, self.size, self.interpolation),
                 'labels': label,
-                'leaf_label': leaf_label}
+                'leaf_label': leaf_label,
+                'level_labels': level_labels}
 
 
 class ToTensor(torchvision.transforms.ToTensor):
     def __call__(self, sample):
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'], \
+                                                 sample['level_labels']
         image = torchvision.transforms.functional.to_tensor(image)
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
         return {'image': image.float(),
                 'labels': torch.from_numpy(label).float(),
-                'leaf_label': leaf_label}
+                'leaf_label': leaf_label,
+                'level_labels': torch.from_numpy(level_labels).long()}
 
 
 class Normalize(torchvision.transforms.Normalize):
@@ -1882,12 +1897,14 @@ class ColorJitter(torchvision.transforms.ColorJitter):
         torchvision.transforms.ColorJitter.__init__(self, brightness, contrast, saturation, hue)
 
     def __call__(self, sample):
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'], \
+                                                 sample['level_labels']
         transform = self.get_params(self.brightness, self.contrast,
                                     self.saturation, self.hue)
         return {'image': transform(image),
                 'labels': label,
-                'leaf_label': leaf_label}
+                'leaf_label': leaf_label,
+                'level_labels': level_labels}
 
 
 class ToPILImage(torchvision.transforms.ToPILImage):
@@ -1895,10 +1912,12 @@ class ToPILImage(torchvision.transforms.ToPILImage):
         torchvision.transforms.ToPILImage.__init__(self, mode)
 
     def __call__(self, sample):
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'], \
+                                                 sample['level_labels']
         return {'image': torchvision.transforms.functional.to_pil_image(image, self.mode),
                 'labels': label,
-                'leaf_label': leaf_label}
+                'leaf_label': leaf_label,
+                'level_labels': level_labels}
 
 
 class RandomHorizontalFlip(torchvision.transforms.RandomHorizontalFlip):
@@ -1906,12 +1925,14 @@ class RandomHorizontalFlip(torchvision.transforms.RandomHorizontalFlip):
         torchvision.transforms.RandomHorizontalFlip.__init__(self, p)
 
     def __call__(self, sample):
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'], \
+                                                 sample['level_labels']
         if random.random() < self.p:
             image = torchvision.transforms.functional.hflip(image)
         return {'image': image,
                 'labels': label,
-                'leaf_label': leaf_label}
+                'leaf_label': leaf_label,
+                'level_labels': level_labels}
 
 
 class RandomCrop(torchvision.transforms.RandomCrop):
@@ -1919,7 +1940,8 @@ class RandomCrop(torchvision.transforms.RandomCrop):
         torchvision.transforms.RandomCrop.__init__(self, size, padding, pad_if_needed, fill, padding_mode)
 
     def __call__(self, sample):
-        image, label, leaf_label = sample['image'], sample['labels'], sample['leaf_label']
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'], \
+                                                 sample['level_labels']
         if self.padding is not None:
             image = torchvision.transforms.functional.pad(image, self.padding, self.fill, self.padding_mode)
 
@@ -1934,7 +1956,8 @@ class RandomCrop(torchvision.transforms.RandomCrop):
 
         return {'image': torchvision.transforms.functional.crop(image, i, j, h, w),
                 'labels': label,
-                'leaf_label': leaf_label}
+                'leaf_label': leaf_label,
+                'level_labels': level_labels}
 
 
 def generate_normalization_values(dataset):

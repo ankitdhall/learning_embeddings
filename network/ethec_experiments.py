@@ -7,11 +7,12 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 import os
-from experiment import Experiment, WeightedResampler
-from evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
-from finetuner import CIFAR10
+from network.experiment import Experiment, WeightedResampler
+from network.evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
+from network.finetuner import CIFAR10
 
 from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss
 
 from PIL import Image
 import numpy as np
@@ -114,8 +115,14 @@ def ETHEC_train_model(arguments):
         eval_type = MLEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name),
                                              labelmap)
 
+    use_criterion = None
+    if arguments.loss == 'multi_label':
+        use_criterion = MultiLabelSMLoss()
+    elif arguments.loss == 'multi_level':
+        use_criterion = MultiLevelCELoss(labelmap=labelmap)
+
     ETHEC_trainer = ETHECExperiment(data_loaders=data_loaders, labelmap=labelmap,
-                                    criterion=nn.MultiLabelSoftMarginLoss(),
+                                    criterion=use_criterion,
                                     lr=arguments.lr,
                                     batch_size=batch_size, evaluator=eval_type,
                                     experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
@@ -146,7 +153,9 @@ if __name__ == '__main__':
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
-    parser.add_argument("--model", help='NN model to use.', type=str, required=True)
+    parser.add_argument("--model", help='NN model to use. Use one of [`multi_label`, `multi_level`]',
+                        type=str, required=True)
+    parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)

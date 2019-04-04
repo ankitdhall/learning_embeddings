@@ -8,7 +8,7 @@ from torchvision import datasets, models, transforms
 
 import os
 from network.experiment import Experiment, WeightedResampler
-from network.evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
+from network.evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh, MultiLevelEvaluation
 from network.finetuner import CIFAR10
 
 from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
@@ -84,7 +84,8 @@ def ETHEC_train_model(arguments):
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100))),
                                                   batch_size=batch_size,
                                                   num_workers=n_workers,
-                                                  sampler=WeightedResampler(train_set, start=0, stop=100))
+                                                  sampler=WeightedResampler(train_set, start=0, stop=100)
+                                                  )
 
         valloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100, 200))),
                                                 batch_size=batch_size,
@@ -119,7 +120,8 @@ def ETHEC_train_model(arguments):
     if arguments.loss == 'multi_label':
         use_criterion = MultiLabelSMLoss()
     elif arguments.loss == 'multi_level':
-        use_criterion = MultiLevelCELoss(labelmap=labelmap)
+        use_criterion = MultiLevelCELoss(labelmap=labelmap, weights=[1.0, 1.0, 1.0, 1.0])
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     ETHEC_trainer = ETHECExperiment(data_loaders=data_loaders, labelmap=labelmap,
                                     criterion=use_criterion,

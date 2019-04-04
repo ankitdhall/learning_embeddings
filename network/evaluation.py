@@ -381,7 +381,7 @@ class MultiLevelEvaluation(MLEvaluation):
                 data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
                       ['macro', 'micro']],
                 x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
-            
+
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
                 data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],

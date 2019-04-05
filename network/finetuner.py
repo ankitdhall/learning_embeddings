@@ -160,6 +160,7 @@ class CIFAR10(Experiment):
             inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)
+            level_labels = level_labels.to(self.device)
 
             # zero the parameter gradients
             self.optimizer.zero_grad()

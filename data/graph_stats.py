@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 class graph_stats:
-    def __init__(self, data):
+    def __init__(self, data, merged):
         """
         Create a graph from a given .json and compute statistics on that.
         :param data: <dict> Loaded database as a dictionary of samples.
@@ -18,21 +18,30 @@ class graph_stats:
         self.missing_subfamily = []
         self.missing_genus = []
         self.missing_specific_epithet = []
+        self.missing_genus_specific_epithet = []
+
+        label_levels = ['family', 'subfamily', 'genus', 'specific_epithet']
+        if merged:
+            label_levels = ['family', 'subfamily', 'genus_specific_epithet']
 
         for sample_id in data:
             sample = data[sample_id]
             if "" not in [sample['family'], sample['subfamily'], sample['genus'], sample['specific_epithet']]:
                 self.G.add_edge(sample['family'], sample['subfamily'])
-                self.G.add_edge(sample['subfamily'], sample['genus'])
-                self.G.add_edge(sample['genus'], sample['specific_epithet'])
+                if not merged:
+                    self.G.add_edge(sample['subfamily'], sample['genus'])
+                    self.G.add_edge(sample['genus'], sample['specific_epithet'])
+                else:
+                    self.G.add_edge(sample['subfamily'], '{}_{}'.format(sample['genus'], sample['specific_epithet']))
+                    data[sample_id]['genus_specific_epithet'] = '{}_{}'.format(sample['genus'], sample['specific_epithet'])
 
-                for label_level in ['family', 'subfamily', 'genus', 'specific_epithet']:
+                for label_level in label_levels:
                     if 'count' not in self.G.nodes[sample[label_level]]:
                         self.G.nodes[sample[label_level]]['count'] = 0
                         self.G.nodes[sample[label_level]]['level'] = label_level
                     self.G.nodes[sample[label_level]]['count'] += 1
 
-            for label_level in ['family', 'subfamily', 'genus', 'specific_epithet']:
+            for label_level in label_levels:
                 if sample[label_level] == "":
                     getattr(self, 'missing_{}'.format(label_level)).append(sample_id)
 
@@ -41,9 +50,37 @@ class graph_stats:
         self.genus_nodes = [node_data for node_data in self.G.nodes.data() if node_data[1]['level'] == 'genus']
         self.specific_epithet_nodes = [node_data for node_data in self.G.nodes.data() if
                                        node_data[1]['level'] == 'specific_epithet']
+        self.genus_specific_epithet_nodes = [node_data for node_data in self.G.nodes.data()
+                                             if node_data[1]['level'] == 'genus_specific_epithet']
 
-        nx.draw(self.G)
+        family_names = [node[0] for node in self.family_nodes]
+        subfamily_names = [node[0] for node in self.subfamily_nodes]
+        genus_names = [node[0] for node in self.genus_nodes]
+        species_names = [node[0] for node in self.specific_epithet_nodes]
+        genus_species_names = [node[0] for node in self.genus_specific_epithet_nodes]
+
+        colors = []
+        for node in self.G.nodes():
+            if node in family_names:
+                colors.append('b')
+            elif node in subfamily_names:
+                colors.append('r')
+            elif node in genus_names:
+                colors.append('y')
+            else:
+                colors.append('m')
+
+        nx.draw_networkx(self.G, arrows=True, node_size=100, node_color=colors)
         plt.show()
+
+        # for i, node in enumerate(self.G.nodes()):
+        #     print(self.G.node[node])
+        nodes = [{'name': str(node), 'count': self.G.node[node]['count'], 'level': self.G.node[node]['level'],
+                  'color': colors[i]} for i, node in enumerate(self.G.nodes())]
+        links = [{'source': u[0], 'target': u[1]}
+                 for u in self.G.edges()]
+        with open('visualize_graph/graph_for_d3_{}.json'.format('merged' if merged else ''), 'w') as f:
+            json.dump({'nodes': nodes, 'links': links}, f, indent=4)
 
         self.in_degree = self.G.in_degree
         self.out_degree = self.G.out_degree
@@ -110,9 +147,10 @@ class graph_stats:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--mini", help='Use the mini database for testing/debugging.', action='store_true')
+    parser.add_argument("--merged", help='Use the merged database for testing/debugging.', action='store_true')
     args = parser.parse_args()
 
-    infile = 'database'
+    infile = 'sub_database'
     if args.mini:
         infile = 'mini_database'
 
@@ -123,4 +161,4 @@ if __name__ == '__main__':
         print("File does not exist!")
         exit()
 
-    gs = graph_stats(data)
+    gs = graph_stats(data, args.merged)

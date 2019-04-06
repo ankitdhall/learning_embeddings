@@ -92,13 +92,13 @@ def ETHEC_train_model(arguments):
                                  labelmap=labelmap, transform=val_test_data_transforms)
     else:
         train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
-                                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                       path_to_images=args.image_dir,
                                        labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
-                                     path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                     path_to_images=args.image_dir,
                                      labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
-                                      path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                      path_to_images=args.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
 
     print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),

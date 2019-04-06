@@ -138,6 +138,7 @@ class Metrics:
     def calculate_basic_metrics(self):
 
         for label_ix in range(self.n_labels):
+
             self.precision[label_ix] = precision_score(self.correct_labels[:, label_ix],
                                                        self.predicted_labels[:, label_ix])
             self.recall[label_ix] = recall_score(self.correct_labels[:, label_ix],
@@ -347,6 +348,70 @@ class MLEvaluationSingleThresh(MLEvaluation):
             self.optimal_thresholds[class_ix] = best_f1_score['all_classes']['best_thresh']
 
 
+class MetricsML:
+    def __init__(self, predicted_labels, correct_labels):
+        self.predicted_labels = predicted_labels
+        self.correct_labels = correct_labels
+        self.n_labels = correct_labels.shape[1]
+        self.precision = dict()
+        self.recall = dict()
+        self.f1 = dict()
+
+        self.cmat = dict()
+
+        self.thresholds = dict()
+        self.average_precision = dict()
+
+        self.top_f1_score = dict()
+
+        self.macro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
+        self.micro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
+
+    def calculate_basic_metrics(self):
+
+        for label_ix in range(self.n_labels):
+
+            self.cmat[label_ix] = confusion_matrix(self.correct_labels[:, label_ix],
+                                                   self.predicted_labels[:, label_ix])
+            if self.cmat[label_ix].ravel().shape == (1, ):
+                if np.all(np.array(self.predicted_labels[:, label_ix])):
+                    self.cmat[label_ix] = np.array([[0, 0], [0, self.cmat[label_ix][0][0]]])
+                else:
+                    self.cmat[label_ix] = np.array([[self.cmat[label_ix][0][0], 0], [0, 0]])
+
+            tn, fp, fn, tp = self.cmat[label_ix].ravel()
+            if tp == 0 and fp == 0 and fn == 0:
+                self.precision[label_ix] = 1.0
+                self.recall[label_ix] = 1.0
+                self.f1[label_ix] = 1.0
+            elif tp == 0 and (fp > 0 or fn > 0):
+                self.precision[label_ix] = 0.0
+                self.recall[label_ix] = 0.0
+                self.f1[label_ix] = 0.0
+            else:
+                self.precision[label_ix] = 1.0 * tp/(tp + fp)
+                self.recall[label_ix] = 1.0 * tp/(tp + fn)
+                self.f1[label_ix] = 2 * self.precision[label_ix] * self.recall[label_ix] /\
+                                    (self.precision[label_ix] + self.recall[label_ix])
+
+        for metric in ['precision', 'recall', 'f1']:
+            self.macro_scores[metric] = 1.0 * sum([getattr(self, metric)[label_ix]
+                                                   for label_ix in range(self.n_labels)]) / self.n_labels
+        combined_cmat = np.array([[0, 0], [0, 0]])
+        temp = 0
+        for label_ix in range(self.n_labels):
+            temp += self.cmat[label_ix][0][0]
+            combined_cmat += self.cmat[label_ix]
+
+        self.micro_scores['precision'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[0][1])
+        self.micro_scores['recall'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[1][0])
+        self.micro_scores['f1'] = 2 * self.micro_scores['precision'] * self.micro_scores['recall'] / (
+                self.micro_scores['precision'] + self.micro_scores['recall'])
+
+        return {'macro': self.macro_scores, 'micro': self.micro_scores, 'precision': self.precision,
+                'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat}
+
+
 class MultiLevelEvaluation(MLEvaluation):
     def __init__(self, experiment_directory, labelmap):
         MLEvaluation.__init__(self, experiment_directory, labelmap, None)
@@ -367,12 +432,13 @@ class MultiLevelEvaluation(MLEvaluation):
             predicted_scores_part = predicted_scores[:, start:start+self.labelmap.levels[level_id]]
             # correct_labels_part = correct_labels[:, level_id]
             _, winning_indices = torch.max(predicted_scores_part, 1)
+            
             self.predicted_labels[[row_ind for row_ind in range(winning_indices.shape[0])], winning_indices+start] = 1
 
         # mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
         #                                                                          correct_labels, epoch, phase)
 
-        metrics_calculator = Metrics(self.predicted_labels, correct_labels)
+        metrics_calculator = MetricsML(self.predicted_labels, correct_labels)
         metrics = metrics_calculator.calculate_basic_metrics()
 
         if phase in ['val', 'test']:

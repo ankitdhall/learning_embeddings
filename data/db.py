@@ -1720,15 +1720,20 @@ class ETHECLabelMapMergedSmall(ETHECLabelMapMerged):
         self.family = {
             # "dummy1": 0,
             "Hesperiidae": 0,
-            # "dummy2": 2
+            "Riodinidae": 1
         }
         self.subfamily = {
             "Hesperiinae": 0,
-            "Pyrginae": 1
+            "Pyrginae": 1,
+            "Nemeobiinae": 2
         }
         self.genus_specific_epithet = {
             "Ochlodes_venata": 0,
-            "Pyrgus_alveus": 1
+            "Hesperia_comma": 1,
+            "Pyrgus_alveus": 2,
+            "Spialia_sertorius": 3,
+            "Hamearis_lucina": 4,
+            "Polycaena_tamerlana": 5
         }
         self.levels = [len(self.family), len(self.subfamily), len(self.genus_specific_epithet)]
         self.n_classes = sum(self.levels)

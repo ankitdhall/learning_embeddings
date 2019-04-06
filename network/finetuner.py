@@ -177,6 +177,7 @@ class CIFAR10(Experiment):
                 # backward + optimize only if in training phase
                 if phase == 'train':
                     loss.backward()
+                    self.plot_grad_flow()
                     self.optimizer.step()
 
             # statistics

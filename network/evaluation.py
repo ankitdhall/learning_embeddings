@@ -432,7 +432,7 @@ class MultiLevelEvaluation(MLEvaluation):
             predicted_scores_part = predicted_scores[:, start:start+self.labelmap.levels[level_id]]
             # correct_labels_part = correct_labels[:, level_id]
             _, winning_indices = torch.max(predicted_scores_part, 1)
-            
+
             self.predicted_labels[[row_ind for row_ind in range(winning_indices.shape[0])], winning_indices+start] = 1
 
         # mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,

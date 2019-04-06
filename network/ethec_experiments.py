@@ -11,7 +11,8 @@ from network.experiment import Experiment, WeightedResampler
 from network.evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh, MultiLevelEvaluation
 from network.finetuner import CIFAR10
 
-from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
+from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, \
+    ToPILImage, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
 from network.loss import MultiLevelCELoss, MultiLabelSMLoss
 
 from PIL import Image
@@ -50,6 +51,11 @@ def ETHEC_train_model(arguments):
     initial_crop = 324
     input_size = 224
     labelmap = ETHECLabelMap()
+    if arguments.merged:
+        labelmap = ETHECLabelMapMerged()
+    if arguments.debug:
+        labelmap = ETHECLabelMapMergedSmall()
+
     train_data_transforms = transforms.Compose([ToPILImage(),
                                                 Rescale((initial_crop, initial_crop)),
                                                 RandomCrop((input_size, input_size)),
@@ -64,15 +70,37 @@ def ETHEC_train_model(arguments):
                                                    Normalize(mean=(143.2341, 162.8151, 177.2185),
                                                              std=(66.7762, 59.2524, 51.5077))])
 
-    train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
-                        path_to_images=args.image_dir,
-                        labelmap=labelmap, transform=train_data_transforms)
-    val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
-                      path_to_images=args.image_dir,
-                      labelmap=labelmap, transform=val_test_data_transforms)
-    test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
-                       path_to_images=args.image_dir,
-                       labelmap=labelmap, transform=val_test_data_transforms)
+    if not arguments.merged:
+        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
+                            path_to_images=args.image_dir,
+                            labelmap=labelmap, transform=train_data_transforms)
+        val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
+                          path_to_images=args.image_dir,
+                          labelmap=labelmap, transform=val_test_data_transforms)
+        test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
+                           path_to_images=args.image_dir,
+                           labelmap=labelmap, transform=val_test_data_transforms)
+    elif not arguments.debug:
+        train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
+                                  path_to_images=args.image_dir,
+                                  labelmap=labelmap, transform=train_data_transforms)
+        val_set = ETHECDBMerged(path_to_json='../database/ETHEC/val.json',
+                                path_to_images=args.image_dir,
+                                labelmap=labelmap, transform=val_test_data_transforms)
+        test_set = ETHECDBMerged(path_to_json='../database/ETHEC/test.json',
+                                 path_to_images=args.image_dir,
+                                 labelmap=labelmap, transform=val_test_data_transforms)
+    else:
+        train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
+                                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                       labelmap=labelmap, transform=train_data_transforms)
+        val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
+                                     path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                     labelmap=labelmap, transform=val_test_data_transforms)
+        test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
+                                      path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                      labelmap=labelmap, transform=val_test_data_transforms)
+
     print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
                                                                               len(test_set)))
 
@@ -81,17 +109,16 @@ def ETHEC_train_model(arguments):
 
     if arguments.debug:
         print("== Running in DEBUG mode!")
-        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100))),
+        trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=batch_size,
                                                   num_workers=n_workers,
-                                                  sampler=WeightedResampler(train_set, start=0, stop=100)
-                                                  )
+                                                  sampler=WeightedResampler(train_set))
 
-        valloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(100, 200))),
+        valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=batch_size,
                                                 shuffle=False, num_workers=n_workers)
 
-        testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, list(range(200, 300))),
+        testloader = torch.utils.data.DataLoader(test_set,
                                                  batch_size=batch_size,
                                                  shuffle=False, num_workers=n_workers)
 
@@ -120,7 +147,7 @@ def ETHEC_train_model(arguments):
     if arguments.loss == 'multi_label':
         use_criterion = MultiLabelSMLoss()
     elif arguments.loss == 'multi_level':
-        use_criterion = MultiLevelCELoss(labelmap=labelmap, weights=[1.0, 1.0, 1.0, 1.0])
+        use_criterion = MultiLevelCELoss(labelmap=labelmap)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     ETHEC_trainer = ETHECExperiment(data_loaders=data_loaders, labelmap=labelmap,
@@ -155,6 +182,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
+    parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
     parser.add_argument("--model", help='NN model to use. Use one of [`multi_label`, `multi_level`]',
                         type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)

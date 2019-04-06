@@ -18,6 +18,7 @@ class ETHECLabelMap:
     """
     Implements map from labels to hot vectors for ETHEC database.
     """
+
     def __init__(self):
         self.family = {
             "Hesperiidae": 0,
@@ -1603,15 +1604,16 @@ class ETHECLabelMap:
         }
         self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.specific_epithet)]
         self.n_classes = sum(self.levels)
-        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.specific_epithet] for key in class_list]
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.specific_epithet] for key
+                        in class_list]
         self.level_names = ['family', 'subfamily', 'genus', 'specific_epithet']
 
     def get_one_hot(self, family, subfamily, genus, specific_epithet):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1
         retval[self.subfamily[subfamily] + self.levels[0]] = 1
-        retval[self.genus[genus] + self.levels[1]] = 1
-        retval[self.specific_epithet[specific_epithet] + self.levels[2]] = 1
+        retval[self.genus[genus] + self.levels[0] + self.levels[1]] = 1
+        retval[self.specific_epithet[specific_epithet] + self.levels[0] + self.levels[1] + self.levels[2]] = 1
         return retval
 
     def get_label_id(self, level_name, label_name):
@@ -1619,10 +1621,10 @@ class ETHECLabelMap:
 
     def get_level_labels(self, family, subfamily, genus, specific_epithet):
         return np.array([
-                self.get_label_id('family', family),
-                self.get_label_id('subfamily', subfamily),
-                self.get_label_id('genus', genus),
-                self.get_label_id('specific_epithet', specific_epithet)
+            self.get_label_id('family', family),
+            self.get_label_id('subfamily', subfamily),
+            self.get_label_id('genus', genus),
+            self.get_label_id('specific_epithet', specific_epithet)
         ])
 
 
@@ -1639,7 +1641,7 @@ class ETHECLabelMapMerged(ETHECLabelMap):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1
         retval[self.subfamily[subfamily] + self.levels[0]] = 1
-        retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[1]] = 1
+        retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1]] = 1
         return retval
 
     def get_label_id(self, level_name, label_name):
@@ -1647,9 +1649,9 @@ class ETHECLabelMapMerged(ETHECLabelMap):
 
     def get_level_labels(self, family, subfamily, genus_specific_epithet):
         return np.array([
-                self.get_label_id('family', family),
-                self.get_label_id('subfamily', subfamily),
-                self.get_label_id('genus_specific_epithet', genus_specific_epithet)
+            self.get_label_id('family', family),
+            self.get_label_id('subfamily', subfamily),
+            self.get_label_id('genus_specific_epithet', genus_specific_epithet)
         ])
 
 
@@ -1657,6 +1659,7 @@ class ETHEC:
     """
     ETHEC iterator.
     """
+
     def __init__(self, path_to_json):
         """
         Constructor.
@@ -1691,10 +1694,71 @@ class ETHEC:
         return self.data_dict[token]
 
 
+class ETHECSmall(ETHEC):
+    """
+    ETHEC iterator.
+    """
+
+    def __init__(self, path_to_json):
+        """
+        Constructor.
+        :param path_to_json: <str> .json path used for loading database entries.
+        """
+        lmap = ETHECLabelMapMergedSmall()
+        self.path_to_json = path_to_json
+        with open(path_to_json) as json_file:
+            self.data_dict = json.load(json_file)
+        # print([token for token in self.data_dict])
+        self.data_tokens = [token for token in self.data_dict
+                            if '{}_{}'.format(self.data_dict[token]['genus'], self.data_dict[token]['specific_epithet'])
+                            in lmap.genus_specific_epithet]
+
+
+class ETHECLabelMapMergedSmall(ETHECLabelMapMerged):
+    def __init__(self):
+        ETHECLabelMapMerged.__init__(self)
+        self.family = {
+            # "dummy1": 0,
+            "Hesperiidae": 0,
+            # "dummy2": 2
+        }
+        self.subfamily = {
+            "Hesperiinae": 0,
+            "Pyrginae": 1
+        }
+        self.genus_specific_epithet = {
+            "Ochlodes_venata": 0,
+            "Pyrgus_alveus": 1
+        }
+        self.levels = [len(self.family), len(self.subfamily), len(self.genus_specific_epithet)]
+        self.n_classes = sum(self.levels)
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus_specific_epithet] for key
+                        in class_list]
+        self.level_names = ['family', 'subfamily', 'genus_specific_epithet']
+
+    def get_one_hot(self, family, subfamily, genus_specific_epithet):
+        retval = np.zeros(self.n_classes)
+        retval[self.family[family]] = 1
+        retval[self.subfamily[subfamily] + self.levels[0]] = 1
+        retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1]] = 1
+        return retval
+
+    def get_label_id(self, level_name, label_name):
+        return getattr(self, level_name)[label_name]
+
+    def get_level_labels(self, family, subfamily, genus_specific_epithet):
+        return np.array([
+            self.get_label_id('family', family),
+            self.get_label_id('subfamily', subfamily),
+            self.get_label_id('genus_specific_epithet', genus_specific_epithet)
+        ])
+
+
 class ETHECDB(torch.utils.data.Dataset):
     """
     Creates a PyTorch dataset.
     """
+
     def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
         """
         Constructor.
@@ -1717,7 +1781,8 @@ class ETHECDB(torch.utils.data.Dataset):
                 {'image': <np.array> image, 'labels': <np.array(n_classes)> hot vector, 'leaf_label': <int>}
         """
         sample = self.ETHEC.__getitem__(item)
-        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][11:21] + "R"
+        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][
+                                                                                                11:21] + "R"
         path_to_image = os.path.join(self.path_to_images, image_folder,
                                      sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
         img = cv2.imread(path_to_image)
@@ -1755,6 +1820,7 @@ class ETHECDBMerged(ETHECDB):
     """
     Creates a PyTorch dataset.
     """
+
     def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
         """
         Constructor.
@@ -1763,7 +1829,7 @@ class ETHECDBMerged(ETHECDB):
         :param labelmap: <ETHECLabelMap> Labelmap.
         :param transform: <torchvision.transforms> Set of transforms to be applied to the entries in the database.
         """
-        ETHECDB.__init__(self, path_to_json, path_to_images, labelmap, transform=None)
+        ETHECDB.__init__(self, path_to_json, path_to_images, labelmap, transform)
 
     def __getitem__(self, item):
         """
@@ -1772,20 +1838,25 @@ class ETHECDBMerged(ETHECDB):
         :return: <dict> Consumable object (see schema.md)
                 {'image': <np.array> image, 'labels': <np.array(n_classes)> hot vector, 'leaf_label': <int>}
         """
+
         sample = self.ETHEC.__getitem__(item)
-        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][11:21] + "R"
+        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][
+                                                                                                11:21] + "R"
         path_to_image = os.path.join(self.path_to_images, image_folder,
                                      sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
         img = cv2.imread(path_to_image)
         if img is None:
             print('This image is None: {} {}'.format(path_to_image, sample['token']))
         ret_sample = {'image': np.array(img),
-                      'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'], '{}_{}'.format(sample['genus'],
-                                                          sample['specific_epithet'])),
+                      'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'],
+                                                          '{}_{}'.format(sample['genus'],
+                                                                         sample['specific_epithet'])),
                       'leaf_label': self.labelmap.get_label_id('genus_specific_epithet',
-                                                               '{}_{}'.format(sample['genus'], sample['specific_epithet'])),
+                                                               '{}_{}'.format(sample['genus'],
+                                                                              sample['specific_epithet'])),
                       'level_labels': self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
-                                                                     '{}_{}'.format(sample['genus'], sample['specific_epithet']))
+                                                                     '{}_{}'.format(sample['genus'],
+                                                                                    sample['specific_epithet']))
                       }
 
         if self.transform:
@@ -1793,6 +1864,21 @@ class ETHECDBMerged(ETHECDB):
         return ret_sample
 
 
+class ETHECDBMergedSmall(ETHECDBMerged):
+    """
+    Creates a PyTorch dataset.
+    """
+
+    def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
+        """
+        Constructor.
+        :param path_to_json: <str> Path to .json from which to read database entries.
+        :param path_to_images: <str> Path to parent directory where images are stored.
+        :param labelmap: <ETHECLabelMap> Labelmap.
+        :param transform: <torchvision.transforms> Set of transforms to be applied to the entries in the database.
+        """
+        ETHECDBMerged.__init__(self, path_to_json, path_to_images, labelmap, transform)
+        self.ETHEC = ETHECSmall(self.path_to_json)
 
 
 def generate_labelmap(path_to_json):
@@ -1831,6 +1917,7 @@ class SplitDataset:
     """
     Splits a given dataset to train, val and test.
     """
+
     def __init__(self, path_to_json, path_to_images, path_to_save_splits, labelmap, train_ratio=0.8, val_ratio=0.1,
                  test_ratio=0.1):
         """
@@ -1884,18 +1971,18 @@ class SplitDataset:
 
             # if the number of samples are less than self.minimum_samples_to_use_split then split them equally
             if n_samples < self.minimum_samples_to_use_split:
-                n_train_samples, n_val_samples, n_test_samples = n_samples//3, n_samples//3, n_samples//3
+                n_train_samples, n_val_samples, n_test_samples = n_samples // 3, n_samples // 3, n_samples // 3
             else:
                 n_train_samples = int(self.train_ratio * n_samples)
                 n_val_samples = int(self.val_ratio * n_samples)
                 n_test_samples = int(self.test_ratio * n_samples)
 
             remaining_samples = n_samples - (n_train_samples + n_val_samples + n_test_samples)
-            n_val_samples += remaining_samples % 2 + remaining_samples//2
-            n_test_samples += remaining_samples//2
+            n_val_samples += remaining_samples % 2 + remaining_samples // 2
+            n_test_samples += remaining_samples // 2
 
             train_samples_id_list = samples_for_label_id[:n_train_samples]
-            val_samples_id_list = samples_for_label_id[n_train_samples:n_train_samples+n_val_samples]
+            val_samples_id_list = samples_for_label_id[n_train_samples:n_train_samples + n_val_samples]
             test_samples_id_list = samples_for_label_id[-n_test_samples:]
 
             for sample_id in train_samples_id_list:
@@ -1932,7 +2019,7 @@ class Rescale(torchvision.transforms.Resize):
         torchvision.transforms.Resize.__init__(self, size, interpolation)
 
     def __call__(self, sample):
-        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'],\
+        image, label, leaf_label, level_labels = sample['image'], sample['labels'], sample['leaf_label'], \
                                                  sample['level_labels']
         return {'image': torchvision.transforms.functional.resize(image, self.size, self.interpolation),
                 'labels': label,
@@ -2018,10 +2105,12 @@ class RandomCrop(torchvision.transforms.RandomCrop):
 
         # pad the width if needed
         if self.pad_if_needed and image.size[0] < self.size[1]:
-            image = torchvision.transforms.functional.pad(image, (self.size[1] - image.size[0], 0), self.fill, self.padding_mode)
+            image = torchvision.transforms.functional.pad(image, (self.size[1] - image.size[0], 0), self.fill,
+                                                          self.padding_mode)
         # pad the height if needed
         if self.pad_if_needed and image.size[1] < self.size[0]:
-            image = torchvision.transforms.functional.pad(image, (0, self.size[0] - image.size[1]), self.fill, self.padding_mode)
+            image = torchvision.transforms.functional.pad(image, (0, self.size[0] - image.size[1]), self.fill,
+                                                          self.padding_mode)
 
         i, j, h, w = self.get_params(image, self.size)
 
@@ -2066,7 +2155,7 @@ if __name__ == '__main__':
     parser.add_argument("--images_dir", help='Parent directory with images.', type=str)
     parser.add_argument("--json_path", help='Path to json with relevant data.', type=str)
     parser.add_argument("--path_to_save_splits", help='Path to json with relevant data.', type=str)
-    parser.add_argument("--mode", help='Path to json with relevant data.', type=str)
+    parser.add_argument("--mode", help='Path to json with relevant data. [split, calc_mean_std, small]', type=str)
     args = parser.parse_args()
 
     labelmap = ETHECLabelMap()
@@ -2085,7 +2174,35 @@ if __name__ == '__main__':
                             path_to_images='/media/ankit/DataPartition/IMAGO_build/',
                             labelmap=labelmap, transform=tform)
         generate_normalization_values(train_set)
-
+    elif args.mode == 'small':
+        labelmap = ETHECLabelMapMergedSmall()
+        initial_crop = 324
+        input_size = 224
+        train_data_transforms = transforms.Compose([ToPILImage(),
+                                                    Rescale((initial_crop, initial_crop)),
+                                                    RandomCrop((input_size, input_size)),
+                                                    RandomHorizontalFlip(),
+                                                    # ColorJitter(brightness=0.2, contrast=0.2),
+                                                    ToTensor(),
+                                                    Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                              std=(66.7762, 59.2524, 51.5077))])
+        val_test_data_transforms = transforms.Compose([ToPILImage(),
+                                                       Rescale((input_size, input_size)),
+                                                       ToTensor(),
+                                                       Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                 std=(66.7762, 59.2524, 51.5077))])
+        train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
+                                       path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                       labelmap=labelmap, transform=train_data_transforms)
+        val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
+                                     path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                     labelmap=labelmap, transform=val_test_data_transforms)
+        test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
+                                      path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                      labelmap=labelmap, transform=val_test_data_transforms)
+        print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
+                                                                                  len(test_set)))
+        print(train_set[0])
     else:
         labelmap = ETHECLabelMapMerged()
         initial_crop = 324
@@ -2104,15 +2221,14 @@ if __name__ == '__main__':
                                                        Normalize(mean=(143.2341, 162.8151, 177.2185),
                                                                  std=(66.7762, 59.2524, 51.5077))])
         train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
-                            path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                            labelmap=labelmap, transform=train_data_transforms)
+                                  path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                  labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDBMerged(path_to_json='../database/ETHEC/val.json',
-                          path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                          labelmap=labelmap, transform=val_test_data_transforms)
+                                path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDBMerged(path_to_json='../database/ETHEC/test.json',
-                           path_to_images='/media/ankit/DataPartition/IMAGO_build/',
-                           labelmap=labelmap, transform=val_test_data_transforms)
+                                 path_to_images='/media/ankit/DataPartition/IMAGO_build/',
+                                 labelmap=labelmap, transform=val_test_data_transforms)
         print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
                                                                                   len(test_set)))
         print(train_set[0])
-

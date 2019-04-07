@@ -48,7 +48,7 @@ def ETHEC_train_model(arguments):
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(args), indent=4)))
 
-    initial_crop = 324
+    # initial_crop = 324
     input_size = 224
     labelmap = ETHECLabelMap()
     if arguments.merged:
@@ -56,19 +56,19 @@ def ETHEC_train_model(arguments):
     if arguments.debug:
         labelmap = ETHECLabelMapMergedSmall()
 
-    train_data_transforms = transforms.Compose([ToPILImage(),
-                                                Rescale((initial_crop, initial_crop)),
-                                                RandomCrop((input_size, input_size)),
-                                                RandomHorizontalFlip(),
+    train_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                transforms.Resize((input_size, input_size)),
+                                                # RandomCrop((input_size, input_size)),
+                                                transforms.RandomHorizontalFlip(),
                                                 # ColorJitter(brightness=0.2, contrast=0.2),
-                                                ToTensor(),
-                                                Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                          std=(66.7762, 59.2524, 51.5077))])
-    val_test_data_transforms = transforms.Compose([ToPILImage(),
-                                                   Rescale((input_size, input_size)),
-                                                   ToTensor(),
-                                                   Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                             std=(66.7762, 59.2524, 51.5077))])
+                                                transforms.ToTensor(),
+                                                transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                     std=(66.7762, 59.2524, 51.5077))])
+    val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                   transforms.Resize((input_size, input_size)),
+                                                   transforms.ToTensor(),
+                                                   transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                        std=(66.7762, 59.2524, 51.5077))])
 
     if not arguments.merged:
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
@@ -112,7 +112,8 @@ def ETHEC_train_model(arguments):
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=batch_size,
                                                   num_workers=n_workers,
-                                                  sampler=WeightedResampler(train_set))
+                                                  shuffle=True)
+                                                  # sampler=WeightedResampler(train_set))
 
         valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=batch_size,

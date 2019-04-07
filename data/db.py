@@ -1793,16 +1793,19 @@ class ETHECDB(torch.utils.data.Dataset):
         img = cv2.imread(path_to_image)
         if img is None:
             print('This image is None: {} {}'.format(path_to_image, sample['token']))
-        ret_sample = {'image': np.array(img),
-                      'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
-                                                          sample['specific_epithet']),
-                      'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet']),
-                      'level_labels': self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
-                                                                     sample['genus'], sample['specific_epithet'])
-                      }
 
+        img = np.array(img)
         if self.transform:
-            ret_sample = self.transform(ret_sample)
+            img = self.transform(img)
+
+        ret_sample = {
+            'image': img,
+            'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
+                                                          sample['specific_epithet'])).float(),
+            'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet']),
+            'level_labels': torch.from_numpy(self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
+                                                                     sample['genus'], sample['specific_epithet'])).long()
+        }
         return ret_sample
 
     def __len__(self):
@@ -1852,20 +1855,22 @@ class ETHECDBMerged(ETHECDB):
         img = cv2.imread(path_to_image)
         if img is None:
             print('This image is None: {} {}'.format(path_to_image, sample['token']))
-        ret_sample = {'image': np.array(img),
-                      'labels': self.labelmap.get_one_hot(sample['family'], sample['subfamily'],
-                                                          '{}_{}'.format(sample['genus'],
-                                                                         sample['specific_epithet'])),
-                      'leaf_label': self.labelmap.get_label_id('genus_specific_epithet',
-                                                               '{}_{}'.format(sample['genus'],
-                                                                              sample['specific_epithet'])),
-                      'level_labels': self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
-                                                                     '{}_{}'.format(sample['genus'],
-                                                                                    sample['specific_epithet']))
-                      }
 
+        img = np.array(img)
         if self.transform:
-            ret_sample = self.transform(ret_sample)
+            img = self.transform(img)
+
+        ret_sample = {
+            'image': img,
+            'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'],
+                                                                 '{}_{}'.format(sample['genus'],
+                                                                                sample['specific_epithet']))).float(),
+            'leaf_label': self.labelmap.get_label_id('genus_specific_epithet',
+                                                     '{}_{}'.format(sample['genus'], sample['specific_epithet'])),
+            'level_labels': torch.from_numpy(self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
+                                                                            '{}_{}'.format(sample['genus'], sample[
+                                                                                'specific_epithet']))).long()
+        }
         return ret_sample
 
 

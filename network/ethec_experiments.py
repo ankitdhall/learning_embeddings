@@ -62,13 +62,15 @@ def ETHEC_train_model(arguments):
                                                 transforms.RandomHorizontalFlip(),
                                                 # ColorJitter(brightness=0.2, contrast=0.2),
                                                 transforms.ToTensor(),
-                                                transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                                     std=(66.7762, 59.2524, 51.5077))])
+                                                # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                #                      std=(66.7762, 59.2524, 51.5077))
+                                                ])
     val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
                                                    transforms.Resize((input_size, input_size)),
                                                    transforms.ToTensor(),
-                                                   transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                                        std=(66.7762, 59.2524, 51.5077))])
+                                                   # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                   #                      std=(66.7762, 59.2524, 51.5077))
+                                                  ])
 
     if not arguments.merged:
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
@@ -91,7 +93,7 @@ def ETHEC_train_model(arguments):
                                  path_to_images=args.image_dir,
                                  labelmap=labelmap, transform=val_test_data_transforms)
     else:
-        labelmap = ETHECLabelMapMergedSmall(single_level=True)
+        labelmap = ETHECLabelMapMergedSmall(single_level=False)
         train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
                                        path_to_images=args.image_dir,
                                        labelmap=labelmap, transform=train_data_transforms)

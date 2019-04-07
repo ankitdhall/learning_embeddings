@@ -87,7 +87,6 @@ class Experiment:
         plt.legend([matplotlib.lines.Line2D([0], [0], color="c", lw=4),
                     matplotlib.lines.Line2D([0], [0], color="b", lw=4),
                     matplotlib.lines.Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
-        print('Saving the gradient plots to:{}'.format(os.path.join(self.log_dir, 'gradient_flow.png')))
         plt.savefig(os.path.join(self.log_dir, 'gradient_flow.png'))
 
     def pass_samples(self, phase):

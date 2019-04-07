@@ -1699,64 +1699,85 @@ class ETHECSmall(ETHEC):
     ETHEC iterator.
     """
 
-    def __init__(self, path_to_json):
+    def __init__(self, path_to_json, single_level=False):
         """
         Constructor.
         :param path_to_json: <str> .json path used for loading database entries.
         """
-        lmap = ETHECLabelMapMergedSmall()
+        lmap = ETHECLabelMapMergedSmall(single_level)
         self.path_to_json = path_to_json
         with open(path_to_json) as json_file:
             self.data_dict = json.load(json_file)
         # print([token for token in self.data_dict])
-        self.data_tokens = [token for token in self.data_dict
-                            if '{}_{}'.format(self.data_dict[token]['genus'], self.data_dict[token]['specific_epithet'])
-                            in lmap.genus_specific_epithet]
+        if single_level:
+            self.data_tokens = [token for token in self.data_dict
+                                if self.data_dict[token]['family'] in lmap.family]
+        else:
+            self.data_tokens = [token for token in self.data_dict
+                                if '{}_{}'.format(self.data_dict[token]['genus'],
+                                                  self.data_dict[token]['specific_epithet'])
+                                in lmap.genus_specific_epithet]
 
 
 class ETHECLabelMapMergedSmall(ETHECLabelMapMerged):
-    def __init__(self):
+    def __init__(self, single_level=False):
+        self.single_level = single_level
         ETHECLabelMapMerged.__init__(self)
+
         self.family = {
             # "dummy1": 0,
             "Hesperiidae": 0,
             "Riodinidae": 1
         }
-        self.subfamily = {
-            "Hesperiinae": 0,
-            "Pyrginae": 1,
-            "Nemeobiinae": 2
-        }
-        self.genus_specific_epithet = {
-            "Ochlodes_venata": 0,
-            "Hesperia_comma": 1,
-            "Pyrgus_alveus": 2,
-            "Spialia_sertorius": 3,
-            "Hamearis_lucina": 4,
-            "Polycaena_tamerlana": 5
-        }
-        self.levels = [len(self.family), len(self.subfamily), len(self.genus_specific_epithet)]
-        self.n_classes = sum(self.levels)
-        self.classes = [key for class_list in [self.family, self.subfamily, self.genus_specific_epithet] for key
-                        in class_list]
-        self.level_names = ['family', 'subfamily', 'genus_specific_epithet']
+        if self.single_level:
+            print('== Using single_level data')
+            self.levels = [len(self.family)]
+            self.n_classes = sum(self.levels)
+            self.classes = [key for class_list in [self.family] for key
+                            in class_list]
+            self.level_names = ['family']
+        else:
+            self.subfamily = {
+                "Hesperiinae": 0,
+                "Pyrginae": 1,
+                "Nemeobiinae": 2
+            }
+            self.genus_specific_epithet = {
+                "Ochlodes_venata": 0,
+                "Hesperia_comma": 1,
+                "Pyrgus_alveus": 2,
+                "Spialia_sertorius": 3,
+                "Hamearis_lucina": 4,
+                "Polycaena_tamerlana": 5
+            }
+            self.levels = [len(self.family), len(self.subfamily), len(self.genus_specific_epithet)]
+            self.n_classes = sum(self.levels)
+            self.classes = [key for class_list in [self.family, self.subfamily, self.genus_specific_epithet] for key
+                            in class_list]
+            self.level_names = ['family', 'subfamily', 'genus_specific_epithet']
 
     def get_one_hot(self, family, subfamily, genus_specific_epithet):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1
-        retval[self.subfamily[subfamily] + self.levels[0]] = 1
-        retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1]] = 1
+        if not self.single_level:
+            retval[self.subfamily[subfamily] + self.levels[0]] = 1
+            retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1]] = 1
         return retval
 
     def get_label_id(self, level_name, label_name):
         return getattr(self, level_name)[label_name]
 
-    def get_level_labels(self, family, subfamily, genus_specific_epithet):
-        return np.array([
-            self.get_label_id('family', family),
-            self.get_label_id('subfamily', subfamily),
-            self.get_label_id('genus_specific_epithet', genus_specific_epithet)
-        ])
+    def get_level_labels(self, family, subfamily=None, genus_specific_epithet=None):
+        if not self.single_level:
+            return np.array([
+                self.get_label_id('family', family),
+                self.get_label_id('subfamily', subfamily),
+                self.get_label_id('genus_specific_epithet', genus_specific_epithet)
+            ])
+        else:
+            return np.array([
+                self.get_label_id('family', family)
+            ])
 
 
 class ETHECDB(torch.utils.data.Dataset):
@@ -1888,7 +1909,10 @@ class ETHECDBMergedSmall(ETHECDBMerged):
         :param transform: <torchvision.transforms> Set of transforms to be applied to the entries in the database.
         """
         ETHECDBMerged.__init__(self, path_to_json, path_to_images, labelmap, transform)
-        self.ETHEC = ETHECSmall(self.path_to_json)
+        if hasattr(labelmap, 'single_level'):
+            self.ETHEC = ETHECSmall(self.path_to_json, labelmap.single_level)
+        else:
+            self.ETHEC = ETHECSmall(self.path_to_json)
 
 
 def generate_labelmap(path_to_json):
@@ -2178,29 +2202,29 @@ if __name__ == '__main__':
         data_splitter.make_split_to_disk()
 
     elif args.mode == 'calc_mean_std':
-        tform = transforms.Compose([Rescale((224, 224)),
-                                    ToTensor()])
+        tform = transforms.Compose([transforms.Resize((224, 224)),
+                                    transforms.ToTensor()])
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                             path_to_images='/media/ankit/DataPartition/IMAGO_build/',
                             labelmap=labelmap, transform=tform)
         generate_normalization_values(train_set)
     elif args.mode == 'small':
-        labelmap = ETHECLabelMapMergedSmall()
+        labelmap = ETHECLabelMapMergedSmall(single_level=True)
         initial_crop = 324
         input_size = 224
-        train_data_transforms = transforms.Compose([ToPILImage(),
-                                                    Rescale((initial_crop, initial_crop)),
-                                                    RandomCrop((input_size, input_size)),
-                                                    RandomHorizontalFlip(),
+        train_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                    transforms.Resize((initial_crop, initial_crop)),
+                                                    transforms.RandomCrop((input_size, input_size)),
+                                                    transforms.RandomHorizontalFlip(),
                                                     # ColorJitter(brightness=0.2, contrast=0.2),
-                                                    ToTensor(),
-                                                    Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                              std=(66.7762, 59.2524, 51.5077))])
-        val_test_data_transforms = transforms.Compose([ToPILImage(),
-                                                       Rescale((input_size, input_size)),
-                                                       ToTensor(),
-                                                       Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                                 std=(66.7762, 59.2524, 51.5077))])
+                                                    transforms.ToTensor(),
+                                                    transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                         std=(66.7762, 59.2524, 51.5077))])
+        val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                       transforms.Resize((input_size, input_size)),
+                                                       transforms.ToTensor(),
+                                                       transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                            std=(66.7762, 59.2524, 51.5077))])
         train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
                                        path_to_images='/media/ankit/DataPartition/IMAGO_build/',
                                        labelmap=labelmap, transform=train_data_transforms)
@@ -2217,19 +2241,19 @@ if __name__ == '__main__':
         labelmap = ETHECLabelMapMerged()
         initial_crop = 324
         input_size = 224
-        train_data_transforms = transforms.Compose([ToPILImage(),
-                                                    Rescale((initial_crop, initial_crop)),
-                                                    RandomCrop((input_size, input_size)),
-                                                    RandomHorizontalFlip(),
+        train_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                    transforms.Resize((initial_crop, initial_crop)),
+                                                    transforms.RandomCrop((input_size, input_size)),
+                                                    transforms.RandomHorizontalFlip(),
                                                     # ColorJitter(brightness=0.2, contrast=0.2),
-                                                    ToTensor(),
-                                                    Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                              std=(66.7762, 59.2524, 51.5077))])
-        val_test_data_transforms = transforms.Compose([ToPILImage(),
-                                                       Rescale((input_size, input_size)),
-                                                       ToTensor(),
-                                                       Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                                 std=(66.7762, 59.2524, 51.5077))])
+                                                    transforms.ToTensor(),
+                                                    transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                         std=(66.7762, 59.2524, 51.5077))])
+        val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                       transforms.Resize((input_size, input_size)),
+                                                       transforms.ToTensor(),
+                                                       transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                                            std=(66.7762, 59.2524, 51.5077))])
         train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
                                   path_to_images='/media/ankit/DataPartition/IMAGO_build/',
                                   labelmap=labelmap, transform=train_data_transforms)

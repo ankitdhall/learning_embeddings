@@ -91,6 +91,7 @@ def ETHEC_train_model(arguments):
                                  path_to_images=args.image_dir,
                                  labelmap=labelmap, transform=val_test_data_transforms)
     else:
+        labelmap = ETHECLabelMapMergedSmall(single_level=True)
         train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
                                        path_to_images=args.image_dir,
                                        labelmap=labelmap, transform=train_data_transforms)

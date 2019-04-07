@@ -17,6 +17,7 @@ import numpy as np
 import copy
 import argparse
 import json
+import git
 
 
 class FMNIST(CIFAR10):
@@ -56,8 +57,12 @@ class FMNIST(CIFAR10):
 def train_FMNIST(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):
         os.makedirs(os.path.join(arguments.experiment_dir, arguments.experiment_name))
+    args_dict = vars(args)
+    repo = git.Repo(search_parent_directories=True)
+    args_dict['commit_hash'] = repo.head.object.hexsha
+    args_dict['branch'] = repo.active_branch.name
     with open(os.path.join(arguments.experiment_dir, arguments.experiment_name, 'config_params.txt'), 'w') as file:
-        file.write(json.dumps(vars(args), indent=4))
+        file.write(json.dumps(args_dict, indent=4))
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(args), indent=4)))
 

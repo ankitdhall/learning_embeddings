@@ -367,9 +367,9 @@ class MetricsML:
         self.macro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
         self.micro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
 
-    def calculate_basic_metrics(self):
+    def calculate_basic_metrics(self, list_of_indices):
 
-        for label_ix in range(self.n_labels):
+        for label_ix in list_of_indices:
 
             self.cmat[label_ix] = confusion_matrix(self.correct_labels[:, label_ix],
                                                    self.predicted_labels[:, label_ix])
@@ -396,10 +396,10 @@ class MetricsML:
 
         for metric in ['precision', 'recall', 'f1']:
             self.macro_scores[metric] = 1.0 * sum([getattr(self, metric)[label_ix]
-                                                   for label_ix in range(self.n_labels)]) / self.n_labels
+                                                   for label_ix in list_of_indices]) / len(list_of_indices)
         combined_cmat = np.array([[0, 0], [0, 0]])
         temp = 0
-        for label_ix in range(self.n_labels):
+        for label_ix in list_of_indices:
             temp += self.cmat[label_ix][0][0]
             combined_cmat += self.cmat[label_ix]
 
@@ -438,24 +438,58 @@ class MultiLevelEvaluation(MLEvaluation):
         # mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
         #                                                                          correct_labels, epoch, phase)
 
+        level_stop, level_start = [], []
+        for level_id, level_len in enumerate(self.labelmap.levels):
+            if level_id == 0:
+                level_start.append(0)
+                level_stop.append(level_len)
+            else:
+                level_start.append(level_stop[level_id-1])
+                level_stop.append(level_stop[level_id-1] + level_len)
+
+        level_wise_metrics = {}
+
         metrics_calculator = MetricsML(self.predicted_labels, correct_labels)
-        metrics = metrics_calculator.calculate_basic_metrics()
+        global_metrics = metrics_calculator.calculate_basic_metrics(list(range(0, self.labelmap.n_classes)))
+
+        for level_id in range(len(level_start)):
+            metrics_calculator = MetricsML(self.predicted_labels, correct_labels)
+            level_wise_metrics[self.labelmap.level_names[level_id]] = metrics_calculator.calculate_basic_metrics(
+                list(range(level_start[level_id], level_stop[level_id]))
+            )
 
         if phase in ['val', 'test']:
+            # global metrics
             self.summarizer.make_heading('Global Metrics', 2)
             self.summarizer.make_table(
-                data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
+                data=[[global_metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
                       ['macro', 'micro']],
                 x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
 
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
-                data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],
-                       metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
+                data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
+                       global_metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
                       range(self.labelmap.n_classes)],
                 x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
 
-        return metrics
+            # level wise metrics
+            for level_id, metrics_key in enumerate(level_wise_metrics):
+                metrics = level_wise_metrics[metrics_key]
+                self.summarizer.make_heading('{} Metrics'.format(metrics_key), 2)
+                self.summarizer.make_table(
+                    data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
+                          ['macro', 'micro']],
+                    x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+
+                self.summarizer.make_heading('Class-wise Metrics', 2)
+                self.summarizer.make_table(
+                    data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],
+                           metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
+                          range(level_start[level_id], level_stop[level_id])],
+                    x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
+
+        return global_metrics
 
     def set_optimal_thresholds(self, best_f1_score):
         pass

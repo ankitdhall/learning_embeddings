@@ -143,7 +143,7 @@ class CIFAR10(Experiment):
         else:
             print("Fine-tuning")
 
-    def pass_samples(self, phase):
+    def pass_samples(self, phase, save_to_tensorboard=True):
         if phase == 'train':
             self.model.train()
         else:
@@ -201,12 +201,13 @@ class CIFAR10(Experiment):
                                                                  metrics['micro']['precision'], \
                                                                  metrics['macro']['recall'], \
                                                                  metrics['micro']['recall']
-        self.optimal_thresholds = self.eval.get_optimal_thresholds()
+        if phase == 'eval':
+            self.optimal_thresholds = self.eval.get_optimal_thresholds()
 
         epoch_loss = running_loss / self.dataset_length[phase]
         epoch_acc = running_corrects / self.dataset_length[phase]
 
-        if phase != 'test':
+        if save_to_tensorboard:
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
             self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
             self.writer.add_scalar('{}_micro_f1'.format(phase), micro_f1, self.epoch)

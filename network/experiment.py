@@ -89,7 +89,7 @@ class Experiment:
                     matplotlib.lines.Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
         plt.savefig(os.path.join(self.log_dir, 'gradient_flow.png'))
 
-    def pass_samples(self, phase):
+    def pass_samples(self, phase, save_to_tensorboard=True):
         running_loss = 0.0
         running_corrects = 0
 
@@ -166,6 +166,7 @@ class Experiment:
             self.pass_samples(phase='train')
             if self.epoch % self.eval_interval == 0:
                 self.pass_samples(phase='val')
+                self.pass_samples(phase='test')
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -203,7 +204,7 @@ class Experiment:
 
     def load_best_model(self):
         self.load_model(epoch_to_load='best_model')
-        self.pass_samples(phase='test')
+        self.pass_samples(phase='test', save_to_tensorboard=False)
 
 
 class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):

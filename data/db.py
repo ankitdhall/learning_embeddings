@@ -1631,26 +1631,28 @@ class ETHECLabelMap:
 class ETHECLabelMapMerged(ETHECLabelMap):
     def __init__(self):
         ETHECLabelMap.__init__(self)
-        self.levels = [len(self.family), len(self.subfamily), len(self.genus_specific_epithet)]
+        self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.genus_specific_epithet)]
         self.n_classes = sum(self.levels)
-        self.classes = [key for class_list in [self.family, self.subfamily, self.genus_specific_epithet] for key
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet] for key
                         in class_list]
-        self.level_names = ['family', 'subfamily', 'genus_specific_epithet']
+        self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
 
-    def get_one_hot(self, family, subfamily, genus_specific_epithet):
+    def get_one_hot(self, family, subfamily, genus, genus_specific_epithet):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1
         retval[self.subfamily[subfamily] + self.levels[0]] = 1
-        retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1]] = 1
+        retval[self.genus[genus] + self.levels[0] + self.levels[1]] = 1
+        retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1] + self.levels[2]] = 1
         return retval
 
     def get_label_id(self, level_name, label_name):
         return getattr(self, level_name)[label_name]
 
-    def get_level_labels(self, family, subfamily, genus_specific_epithet):
+    def get_level_labels(self, family, subfamily, genus, genus_specific_epithet):
         return np.array([
             self.get_label_id('family', family),
             self.get_label_id('subfamily', subfamily),
+            self.get_label_id('genus', genus),
             self.get_label_id('genus_specific_epithet', genus_specific_epithet)
         ])
 
@@ -1742,6 +1744,14 @@ class ETHECLabelMapMergedSmall(ETHECLabelMapMerged):
                 "Pyrginae": 1,
                 "Nemeobiinae": 2
             }
+            self.genus = {
+                "Ochlodes": 0,
+                "Hesperia": 1,
+                "Pyrgus": 2,
+                "Spialia": 3,
+                "Hamearis": 4,
+                "Polycaena": 5
+            }
             self.genus_specific_epithet = {
                 "Ochlodes_venata": 0,
                 "Hesperia_comma": 1,
@@ -1750,28 +1760,30 @@ class ETHECLabelMapMergedSmall(ETHECLabelMapMerged):
                 "Hamearis_lucina": 4,
                 "Polycaena_tamerlana": 5
             }
-            self.levels = [len(self.family), len(self.subfamily), len(self.genus_specific_epithet)]
+            self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.genus_specific_epithet)]
             self.n_classes = sum(self.levels)
-            self.classes = [key for class_list in [self.family, self.subfamily, self.genus_specific_epithet] for key
-                            in class_list]
-            self.level_names = ['family', 'subfamily', 'genus_specific_epithet']
+            self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet]
+                            for key in class_list]
+            self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
 
-    def get_one_hot(self, family, subfamily, genus_specific_epithet):
+    def get_one_hot(self, family, subfamily, genus, genus_specific_epithet):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1
         if not self.single_level:
             retval[self.subfamily[subfamily] + self.levels[0]] = 1
-            retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1]] = 1
+            retval[self.genus[genus] + self.levels[0] + self.levels[1]] = 1
+            retval[self.genus_specific_epithet[genus_specific_epithet] + self.levels[0] + self.levels[1] + self.levels[2]] = 1
         return retval
 
     def get_label_id(self, level_name, label_name):
         return getattr(self, level_name)[label_name]
 
-    def get_level_labels(self, family, subfamily=None, genus_specific_epithet=None):
+    def get_level_labels(self, family, subfamily=None, genus=None, genus_specific_epithet=None):
         if not self.single_level:
             return np.array([
                 self.get_label_id('family', family),
                 self.get_label_id('subfamily', subfamily),
+                self.get_label_id('genus', genus),
                 self.get_label_id('genus_specific_epithet', genus_specific_epithet)
             ])
         else:
@@ -1883,12 +1895,13 @@ class ETHECDBMerged(ETHECDB):
 
         ret_sample = {
             'image': img,
-            'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'],
+            'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
                                                                  '{}_{}'.format(sample['genus'],
                                                                                 sample['specific_epithet']))).float(),
             'leaf_label': self.labelmap.get_label_id('genus_specific_epithet',
                                                      '{}_{}'.format(sample['genus'], sample['specific_epithet'])),
             'level_labels': torch.from_numpy(self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
+                                                                            sample['genus'],
                                                                             '{}_{}'.format(sample['genus'], sample[
                                                                                 'specific_epithet']))).long()
         }

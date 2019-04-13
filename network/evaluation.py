@@ -24,7 +24,7 @@ class Evaluation:
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard):
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard, samples_split):
         if phase in ['val', 'test']:
             self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats',
                                                        ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
@@ -179,7 +179,7 @@ class MultiLabelEvaluation(Evaluation):
         else:
             self.optimal_thresholds = optimal_thresholds
 
-    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard):
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard, samples_split):
         if phase in ['val', 'test']:
             self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats',
                                                        ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
@@ -223,9 +223,10 @@ class MultiLabelEvaluation(Evaluation):
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
                 data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                       global_metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
-                      range(self.labelmap.n_classes)],
-                x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
+                       global_metrics['f1'][label_ix], samples_split['train'][label_ix], samples_split['val'][label_ix],
+                       samples_split['test'][label_ix]] for label_ix in range(self.labelmap.n_classes)],
+                x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                y_labels=self.labelmap.classes)
 
             # level wise metrics
             for level_id, metrics_key in enumerate(level_wise_metrics):
@@ -238,10 +239,12 @@ class MultiLabelEvaluation(Evaluation):
 
                 self.summarizer.make_heading('Class-wise Metrics', 2)
                 self.summarizer.make_table(
-                    data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],
-                           metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
-                          range(level_start[level_id], level_stop[level_id])],
-                    x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
+                    data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
+                           global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]),
+                           int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
+                          for label_ix in range(level_start[level_id], level_stop[level_id])],
+                    x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                    y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
         return global_metrics
 
@@ -457,7 +460,7 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
         # self.optimal_thresholds = np.zeros(labelmap.n_classes)
         self.predicted_labels = None
 
-    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard):
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard, samples_split):
         if phase in ['val', 'test']:
             self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats',
                                                        ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
@@ -509,9 +512,11 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
                 data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                       global_metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
-                      range(self.labelmap.n_classes)],
-                x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
+                       global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]),
+                       int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
+                      for label_ix in range(self.labelmap.n_classes)],
+                x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                y_labels=self.labelmap.classes)
 
             # level wise metrics
             for level_id, metrics_key in enumerate(level_wise_metrics):
@@ -524,10 +529,12 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
 
                 self.summarizer.make_heading('Class-wise Metrics', 2)
                 self.summarizer.make_table(
-                    data=[[metrics['precision'][label_ix], metrics['recall'][label_ix],
-                           metrics['f1'][label_ix], int(np.sum(correct_labels[:, label_ix]))] for label_ix in
-                          range(level_start[level_id], level_stop[level_id])],
-                    x_labels=['Precision', 'Recall', 'F1', 'freq'], y_labels=self.labelmap.classes)
+                    data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
+                           global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]),
+                           int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
+                          for label_ix in range(level_start[level_id], level_stop[level_id])],
+                    x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                    y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
         return global_metrics
 

@@ -131,6 +131,17 @@ class CIFAR10(Experiment):
             num_features = self.model.fc.in_features
             self.model.fc = nn.Linear(num_features, self.n_classes)
 
+        self.n_train, self.n_val, self.n_test = torch.zeros(self.n_classes), torch.zeros(self.n_classes), \
+                                                torch.zeros(self.n_classes)
+        for phase in ['train', 'val', 'test']:
+            for data_item in self.dataloaders[phase]:
+                setattr(self, 'n_{}'.format(phase), getattr(self, 'n_{}'.format(phase)) + torch.sum(data_item['labels'], 0))
+        # print(self.n_train, torch.sum(self.n_train))
+        # print(self.n_val, torch.sum(self.n_val))
+        # print(self.n_test, torch.sum(self.n_test))
+
+        self.samples_split = {'train': self.n_train, 'val': self.n_val, 'test': self.n_test}
+
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
 
@@ -195,7 +206,8 @@ class CIFAR10(Experiment):
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
                                                        self.dataset_length[phase])] = labels.data
 
-        metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard)
+        metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard,
+                                     self.samples_split)
         macro_f1, micro_f1, macro_p, micro_p, macro_r, micro_r = metrics['macro']['f1'], metrics['micro']['f1'], \
                                                                  metrics['macro']['precision'], \
                                                                  metrics['micro']['precision'], \

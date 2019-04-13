@@ -128,7 +128,7 @@ class Experiment:
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
                                                        len(self.dataloaders[phase].dataset))] = labels.data
 
-        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard)
+        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard, )
 
         epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
         epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)

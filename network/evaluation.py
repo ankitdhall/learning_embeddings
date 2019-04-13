@@ -24,10 +24,12 @@ class Evaluation:
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-    def evaluate(self, predicted_scores, correct_labels, epoch, phase):
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard):
         if phase in ['val', 'test']:
-            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
-            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats',
+                                                       ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
+            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats',
+                                                     ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
             self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(epoch, phase), 1)
 
         mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
@@ -177,10 +179,12 @@ class MultiLabelEvaluation(Evaluation):
         else:
             self.optimal_thresholds = optimal_thresholds
 
-    def evaluate(self, predicted_scores, correct_labels, epoch, phase):
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard):
         if phase in ['val', 'test']:
-            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
-            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats',
+                                                       ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
+            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats',
+                                                     ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
             self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(epoch, phase), 1)
 
         mAP, precision, recall, average_precision, thresholds = self.make_curves(predicted_scores,
@@ -453,10 +457,12 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
         # self.optimal_thresholds = np.zeros(labelmap.n_classes)
         self.predicted_labels = None
 
-    def evaluate(self, predicted_scores, correct_labels, epoch, phase):
+    def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard):
         if phase in ['val', 'test']:
-            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
-            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats', phase + str(epoch)))
+            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, 'stats',
+                                                       ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
+            self.summarizer = Summarize(os.path.join(self.experiment_directory, 'stats',
+                                                     ('best_' if not save_to_tensorboard else '') + phase + str(epoch)))
             self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(epoch, phase), 1)
 
         predicted_scores = torch.from_numpy(predicted_scores)

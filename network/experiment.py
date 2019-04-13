@@ -128,7 +128,7 @@ class Experiment:
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
                                                        len(self.dataloaders[phase].dataset))] = labels.data
 
-        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase)
+        mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard)
 
         epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
         epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
@@ -193,7 +193,7 @@ class Experiment:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epoch = checkpoint['epoch']
-        print('Successfully loaded model epoch {} from {}'.format(epoch_to_load, self.path_to_save_model))
+        print('Successfully loaded model epoch {} from {}'.format(self.epoch, self.path_to_save_model))
 
     def find_existing_weights(self):
         weights = sorted([filename for filename in os.listdir(self.path_to_save_model)])

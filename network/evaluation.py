@@ -166,7 +166,7 @@ class Metrics:
                 'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat}
 
 
-class MLEvaluation(Evaluation):
+class MultiLabelEvaluation(Evaluation):
 
     def __init__(self, experiment_directory, labelmap, optimal_thresholds=None):
         Evaluation.__init__(self, experiment_directory, labelmap.classes)
@@ -304,10 +304,10 @@ class MLEvaluation(Evaluation):
         self.summarizer.make_table(data, x_labels, y_labels)
 
 
-class MLEvaluationSingleThresh(MLEvaluation):
+class MultiLabelEvaluationSingleThresh(MultiLabelEvaluation):
 
     def __init__(self, experiment_directory, labelmap, optimal_thresholds=None):
-        MLEvaluation.__init__(self, experiment_directory, labelmap, optimal_thresholds)
+        MultiLabelEvaluation.__init__(self, experiment_directory, labelmap, optimal_thresholds)
 
     def make_curves(self, predicted_scores, correct_labels, epoch, phase):
         if phase in ['val', 'test']:
@@ -348,7 +348,7 @@ class MLEvaluationSingleThresh(MLEvaluation):
             self.optimal_thresholds[class_ix] = best_f1_score['all_classes']['best_thresh']
 
 
-class MetricsML:
+class MetricsMultiLevel:
     def __init__(self, predicted_labels, correct_labels):
         self.predicted_labels = predicted_labels
         self.correct_labels = correct_labels
@@ -412,9 +412,9 @@ class MetricsML:
                 'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat}
 
 
-class MultiLevelEvaluation(MLEvaluation):
+class MultiLevelEvaluation(MultiLabelEvaluation):
     def __init__(self, experiment_directory, labelmap):
-        MLEvaluation.__init__(self, experiment_directory, labelmap, None)
+        MultiLabelEvaluation.__init__(self, experiment_directory, labelmap, None)
         self.labelmap = labelmap
         # self.optimal_thresholds = np.zeros(labelmap.n_classes)
         self.predicted_labels = None
@@ -449,11 +449,11 @@ class MultiLevelEvaluation(MLEvaluation):
 
         level_wise_metrics = {}
 
-        metrics_calculator = MetricsML(self.predicted_labels, correct_labels)
+        metrics_calculator = MetricsMultiLevel(self.predicted_labels, correct_labels)
         global_metrics = metrics_calculator.calculate_basic_metrics(list(range(0, self.labelmap.n_classes)))
 
         for level_id in range(len(level_start)):
-            metrics_calculator = MetricsML(self.predicted_labels, correct_labels)
+            metrics_calculator = MetricsMultiLevel(self.predicted_labels, correct_labels)
             level_wise_metrics[self.labelmap.level_names[level_id]] = metrics_calculator.calculate_basic_metrics(
                 list(range(level_start[level_id], level_stop[level_id]))
             )

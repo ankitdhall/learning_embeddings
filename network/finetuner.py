@@ -8,7 +8,7 @@ from torchvision import datasets, models, transforms
 
 import os
 from network.experiment import Experiment
-from network.evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh, MultiLevelEvaluation
+from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
 
 from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
 
@@ -397,9 +397,9 @@ def train_cifar10(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
-    eval_type = MLEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    eval_type = MultiLabelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     if arguments.evaluator == 'MLST':
-        eval_type = MLEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+        eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     use_criterion = None
     if arguments.loss == 'multi_label':

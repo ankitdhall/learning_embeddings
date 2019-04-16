@@ -44,14 +44,14 @@ class ETHECExperiment(CIFAR10):
 def ETHEC_train_model(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):
         os.makedirs(os.path.join(arguments.experiment_dir, arguments.experiment_name))
-    args_dict = vars(args)
+    args_dict = vars(arguments)
     repo = git.Repo(search_parent_directories=True)
     args_dict['commit_hash'] = repo.head.object.hexsha
     args_dict['branch'] = repo.active_branch.name
     with open(os.path.join(arguments.experiment_dir, arguments.experiment_name, 'config_params.txt'), 'w') as file:
         file.write(json.dumps(args_dict, indent=4))
 
-    print('Config parameters for this run are:\n{}'.format(json.dumps(vars(args), indent=4)))
+    print('Config parameters for this run are:\n{}'.format(json.dumps(vars(arguments), indent=4)))
 
     # initial_crop = 324
     input_size = 224
@@ -79,34 +79,34 @@ def ETHEC_train_model(arguments):
 
     if not arguments.merged:
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
-                            path_to_images=args.image_dir,
+                            path_to_images=arguments.image_dir,
                             labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
-                          path_to_images=args.image_dir,
+                          path_to_images=arguments.image_dir,
                           labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
-                           path_to_images=args.image_dir,
+                           path_to_images=arguments.image_dir,
                            labelmap=labelmap, transform=val_test_data_transforms)
     elif not arguments.debug:
         train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
-                                  path_to_images=args.image_dir,
+                                  path_to_images=arguments.image_dir,
                                   labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDBMerged(path_to_json='../database/ETHEC/val.json',
-                                path_to_images=args.image_dir,
+                                path_to_images=arguments.image_dir,
                                 labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDBMerged(path_to_json='../database/ETHEC/test.json',
-                                 path_to_images=args.image_dir,
+                                 path_to_images=arguments.image_dir,
                                  labelmap=labelmap, transform=val_test_data_transforms)
     else:
         labelmap = ETHECLabelMapMergedSmall(single_level=False)
         train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
-                                       path_to_images=args.image_dir,
+                                       path_to_images=arguments.image_dir,
                                        labelmap=labelmap, transform=train_data_transforms)
         val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
-                                     path_to_images=args.image_dir,
+                                     path_to_images=arguments.image_dir,
                                      labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
-                                      path_to_images=args.image_dir,
+                                      path_to_images=arguments.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
 
     print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),

@@ -4,6 +4,7 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.ticker import NullFormatter
 import os
 import numpy as np
 from summarize import Summarize
@@ -246,7 +247,67 @@ class MultiLabelEvaluation(Evaluation):
                     x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
+                score_vs_freq = [(global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]))
+                                 for label_ix in range(level_start[level_id], level_stop[level_id])]
+                self.make_score_vs_freq_hist(score_vs_freq,
+                                             os.path.join(self.experiment_directory, 'stats',
+                                                          ('best_' if not save_to_tensorboard else '') + phase +
+                                                          str(epoch)),
+                                             '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
+
         return global_metrics
+
+    def make_score_vs_freq_hist(self, score_vs_freq, path_to_save, plot_title):
+        x = np.array([sf[1] for sf in score_vs_freq])
+        y = np.array([sf[0] for sf in score_vs_freq])
+
+        nullfmt = NullFormatter()  # no labels
+
+        # definitions for the axes
+        left, width = 0.1, 0.65
+        bottom, height = 0.1, 0.65
+        bottom_h = left_h = left + width + 0.05
+
+        rect_scatter = [left, bottom, width, height]
+        rect_histx = [left, bottom_h, width, 0.17]
+        rect_histy = [left_h, bottom, 0.17, height]
+
+        # start with a rectangular Figure
+        plt.figure(1, figsize=(8, 8))
+
+        axScatter = plt.axes(rect_scatter)
+        axHistx = plt.axes(rect_histx)
+        axHisty = plt.axes(rect_histy)
+
+        # axHistx.get_xaxis().set_major_formatter(plt.NullFormatter())
+
+        # the scatter plot:
+        axScatter.scatter(x, y)
+        axScatter.set_xscale('log')
+        axScatter.set_xlabel('Training data size')
+        axScatter.set_ylabel('Score')
+        axScatter.set_ylim((0.0, 1.0))
+
+        # bins = np.arange(-lim, lim + binwidth, binwidth)
+        axHistx.hist(x, bins=50, log=True)
+        axHisty.hist(y, bins=50, orientation='horizontal')
+
+        axHistx.set_xscale('log')
+        axHistx.set_yscale('linear')
+
+        axHisty.set_yscale('linear')
+        axHisty.set_xscale('linear')
+
+        axHistx.set_xlim(axScatter.get_xlim())
+        axHisty.set_ylim(axScatter.get_ylim())
+
+        # no labels
+        # axHistx.xaxis.set_major_formatter(nullfmt)
+        # axHisty.yaxis.set_major_formatter(nullfmt)
+
+        save_fig_to = os.path.join(path_to_save, '{}_performance_vs_frequency.pdf'.format(plot_title))
+        plt.savefig(save_fig_to, format='pdf')
+        plt.clf()
 
     def get_optimal_thresholds(self):
         return self.optimal_thresholds
@@ -535,6 +596,14 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
                           for label_ix in range(level_start[level_id], level_stop[level_id])],
                     x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
+
+                score_vs_freq = [(global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]))
+                                 for label_ix in range(level_start[level_id], level_stop[level_id])]
+                self.make_score_vs_freq_hist(score_vs_freq,
+                                             os.path.join(self.experiment_directory, 'stats',
+                                                          ('best_' if not save_to_tensorboard else '') + phase +
+                                                          str(epoch)),
+                                             '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
 
         return global_metrics
 

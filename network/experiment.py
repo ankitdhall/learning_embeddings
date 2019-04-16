@@ -116,7 +116,7 @@ class Experiment:
                 # backward + optimize only if in training phase
                 if phase == 'train':
                     loss.backward()
-                    self.plot_grad_flow()
+                    # self.plot_grad_flow()
                     self.optimizer.step()
 
             # statistics
@@ -165,8 +165,11 @@ class Experiment:
 
             self.pass_samples(phase='train')
             if self.epoch % self.eval_interval == 0:
+                if self.epoch % 10 == 0:
+                    self.eval.enable_plotting()
                 self.pass_samples(phase='val')
                 self.pass_samples(phase='test')
+                self.eval.disable_plotting()
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -204,7 +207,9 @@ class Experiment:
 
     def load_best_model(self):
         self.load_model(epoch_to_load='best_model')
+        self.eval.enable_plotting()
         self.pass_samples(phase='test', save_to_tensorboard=False)
+        self.eval.disable_plotting()
 
 
 class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):

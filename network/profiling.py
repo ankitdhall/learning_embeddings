@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)
-    args = parser.parse_args(['--n_epochs', '5', '--experiment_name', 'ethec_alexnet_remove', '--experiment_dir',
+    args = parser.parse_args(['--n_epochs', '7', '--experiment_name', 'ethec_alexnet_remove', '--experiment_dir',
                               '../exp/ethec/multi_level', '--model', 'alexnet', '--set_mode', 'train', '--debug',
                               '--image_dir', '/media/ankit/DataPartition/IMAGO_build_test_resized', '--loss',
                               'multi_level', '--eval_interval', '1', '--merged', '--lr', '0.01', '--freeze_weights',

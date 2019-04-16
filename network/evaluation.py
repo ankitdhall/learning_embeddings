@@ -2,23 +2,30 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import average_precision_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib
 
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 import os
 import numpy as np
-from summarize import Summarize
+from network.summarize import Summarize
 
 import torch
+matplotlib.use('Agg')
 
 
 class Evaluation:
 
-    def __init__(self, experiment_directory, classes):
+    def __init__(self, experiment_directory, classes, generate_plots=False):
         self.classes = classes
+        self.generate_plots = generate_plots
         self.make_dir_if_non_existent(experiment_directory)
         self.experiment_directory = experiment_directory
         self.summarizer = None
+
+    def enable_plotting(self):
+        self.generate_plots = True
+
+    def disable_plotting(self):
+        self.generate_plots = False
 
     @staticmethod
     def make_dir_if_non_existent(dir):
@@ -73,7 +80,7 @@ class Evaluation:
             average_precision[class_name] = average_precision_score(correct_labels == class_index,
                                                                     predicted_scores[:, class_index])
 
-            if phase in ['val', 'test']:
+            if phase in ['val', 'test'] and self.generate_plots:
                 self.plot_prec_recall_vs_thresh(precision[class_name], recall[class_name],
                                                 thresholds[class_name], f1[class_name],
                                                 class_name)
@@ -171,8 +178,8 @@ class Metrics:
 
 class MultiLabelEvaluation(Evaluation):
 
-    def __init__(self, experiment_directory, labelmap, optimal_thresholds=None):
-        Evaluation.__init__(self, experiment_directory, labelmap.classes)
+    def __init__(self, experiment_directory, labelmap, optimal_thresholds=None, generate_plots=False):
+        Evaluation.__init__(self, experiment_directory, labelmap.classes, generate_plots)
         self.labelmap = labelmap
         self.predicted_labels = None
         if optimal_thresholds is None:
@@ -247,13 +254,14 @@ class MultiLabelEvaluation(Evaluation):
                     x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
-                score_vs_freq = [(global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]))
-                                 for label_ix in range(level_start[level_id], level_stop[level_id])]
-                self.make_score_vs_freq_hist(score_vs_freq,
-                                             os.path.join(self.experiment_directory, 'stats',
-                                                          ('best_' if not save_to_tensorboard else '') + phase +
-                                                          str(epoch)),
-                                             '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
+                if self.generate_plots:
+                    score_vs_freq = [(global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]))
+                                     for label_ix in range(level_start[level_id], level_stop[level_id])]
+                    self.make_score_vs_freq_hist(score_vs_freq,
+                                                 os.path.join(self.experiment_directory, 'stats',
+                                                              ('best_' if not save_to_tensorboard else '') + phase +
+                                                              str(epoch)),
+                                                 '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
 
         return global_metrics
 
@@ -336,16 +344,17 @@ class MultiLabelEvaluation(Evaluation):
             top_f1_score[class_name] = {'best_thresh': best_thresh, 'f1_score@thresh': f1[class_name][best_f1_ix],
                                         'thresh_ix': best_f1_ix}
 
-            self.plot_prec_recall_vs_thresh(precision[class_name], recall[class_name],
-                                            thresholds[class_name], f1[class_name],
-                                            class_name)
-            self.make_dir_if_non_existent(os.path.join(self.experiment_directory, phase, class_name))
-            save_fig_to = os.path.join(self.experiment_directory, phase, class_name,
-                                       'prec_recall_{}_{}.png'.format(epoch, class_name))
-            plt.savefig(save_fig_to)
-            plt.clf()
-            self.summarizer.make_heading('Precision Recall `{}` ({})'.format(class_name, phase), 3)
-            self.summarizer.make_image(save_fig_to, 'Precision Recall {}'.format(class_name))
+            if self.generate_plots:
+                self.plot_prec_recall_vs_thresh(precision[class_name], recall[class_name],
+                                                thresholds[class_name], f1[class_name],
+                                                class_name)
+                self.make_dir_if_non_existent(os.path.join(self.experiment_directory, phase, class_name))
+                save_fig_to = os.path.join(self.experiment_directory, phase, class_name,
+                                           'prec_recall_{}_{}.png'.format(epoch, class_name))
+                plt.savefig(save_fig_to)
+                plt.clf()
+                self.summarizer.make_heading('Precision Recall `{}` ({})'.format(class_name, phase), 3)
+                self.summarizer.make_image(save_fig_to, 'Precision Recall {}'.format(class_name))
 
         return precision, recall, f1, average_precision, thresholds, top_f1_score
 
@@ -408,8 +417,8 @@ class MultiLabelEvaluation(Evaluation):
 
 class MultiLabelEvaluationSingleThresh(MultiLabelEvaluation):
 
-    def __init__(self, experiment_directory, labelmap, optimal_thresholds=None):
-        MultiLabelEvaluation.__init__(self, experiment_directory, labelmap, optimal_thresholds)
+    def __init__(self, experiment_directory, labelmap, optimal_thresholds=None, generate_plots=False):
+        MultiLabelEvaluation.__init__(experiment_directory, labelmap, optimal_thresholds, generate_plots)
 
     def make_curves(self, predicted_scores, correct_labels, epoch, phase):
         if phase in ['val', 'test']:
@@ -515,10 +524,9 @@ class MetricsMultiLevel:
 
 
 class MultiLevelEvaluation(MultiLabelEvaluation):
-    def __init__(self, experiment_directory, labelmap):
-        MultiLabelEvaluation.__init__(self, experiment_directory, labelmap, None)
+    def __init__(self, experiment_directory, labelmap=None, generate_plots=False):
+        MultiLabelEvaluation.__init__(self, experiment_directory, labelmap, None, generate_plots)
         self.labelmap = labelmap
-        # self.optimal_thresholds = np.zeros(labelmap.n_classes)
         self.predicted_labels = None
 
     def evaluate(self, predicted_scores, correct_labels, epoch, phase, save_to_tensorboard, samples_split):
@@ -597,13 +605,14 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
                     x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
-                score_vs_freq = [(global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]))
-                                 for label_ix in range(level_start[level_id], level_stop[level_id])]
-                self.make_score_vs_freq_hist(score_vs_freq,
-                                             os.path.join(self.experiment_directory, 'stats',
-                                                          ('best_' if not save_to_tensorboard else '') + phase +
-                                                          str(epoch)),
-                                             '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
+                if self.generate_plots:
+                    score_vs_freq = [(global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]))
+                                     for label_ix in range(level_start[level_id], level_stop[level_id])]
+                    self.make_score_vs_freq_hist(score_vs_freq,
+                                                 os.path.join(self.experiment_directory, 'stats',
+                                                              ('best_' if not save_to_tensorboard else '') + phase +
+                                                              str(epoch)),
+                                                 '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
 
         return global_metrics
 

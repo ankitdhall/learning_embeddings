@@ -189,7 +189,7 @@ class CIFAR10(Experiment):
                 # backward + optimize only if in training phase
                 if phase == 'train':
                     loss.backward()
-                    self.plot_grad_flow()
+                    # self.plot_grad_flow()
                     self.optimizer.step()
 
             # statistics
@@ -411,7 +411,8 @@ def train_cifar10(arguments):
 
     eval_type = MultiLabelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     if arguments.evaluator == 'MLST':
-        eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+        eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name),
+                                                     labelmap)
 
     use_criterion = None
     if arguments.loss == 'multi_label':

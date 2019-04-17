@@ -418,7 +418,7 @@ class MultiLabelEvaluation(Evaluation):
 class MultiLabelEvaluationSingleThresh(MultiLabelEvaluation):
 
     def __init__(self, experiment_directory, labelmap, optimal_thresholds=None, generate_plots=False):
-        MultiLabelEvaluation.__init__(experiment_directory, labelmap, optimal_thresholds, generate_plots)
+        MultiLabelEvaluation.__init__(self, experiment_directory, labelmap, optimal_thresholds, generate_plots)
 
     def make_curves(self, predicted_scores, correct_labels, epoch, phase):
         if phase in ['val', 'test']:

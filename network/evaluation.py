@@ -1,6 +1,7 @@
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import average_precision_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib
+matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
@@ -9,7 +10,6 @@ import numpy as np
 from network.summarize import Summarize
 
 import torch
-matplotlib.use('Agg')
 
 
 class Evaluation:

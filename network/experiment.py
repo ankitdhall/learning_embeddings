@@ -35,6 +35,8 @@ class Experiment:
         self.batch_size = batch_size
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print('Using device: {}'.format(self.device))
+        if torch.cuda.device_count() > 1:
+            print("== Using", torch.cuda.device_count(), "GPUs!")
         self.model = model.to(self.device)
         self.n_epochs = n_epochs
         self.eval_interval = eval_interval

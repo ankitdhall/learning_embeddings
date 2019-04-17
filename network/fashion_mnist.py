@@ -54,6 +54,8 @@ class FMNIST(CIFAR10):
             dil = self.model.conv1.dilation
             self.model.conv1 = nn.Conv2d(1, o_channels, kernel_size=k_size, stride=stride, padding=pad, dilation=dil)
 
+        self.model = nn.DataParallel(self.model)
+
 
 def train_FMNIST(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):

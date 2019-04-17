@@ -7,9 +7,10 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 import os
-from experiment import Experiment
-from evaluation import MLEvaluation, Evaluation, MLEvaluationSingleThresh
-from finetuner import CIFAR10
+from network.experiment import Experiment
+from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss
+from network.finetuner import CIFAR10
 
 from PIL import Image
 import numpy as np
@@ -122,14 +123,19 @@ def train_FMNIST(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
-
-
-    eval_type = MLEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+    eval_type = MultiLabelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
     if arguments.evaluator == 'MLST':
-        eval_type = MLEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+        eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+
+    use_criterion = None
+    if arguments.loss == 'multi_label':
+        use_criterion = MultiLabelSMLoss()
+    elif arguments.loss == 'multi_level':
+        use_criterion = MultiLevelCELoss(labelmap=lmap)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
 
     FMNIST_trainer = FMNIST(data_loaders=data_loaders, labelmap=lmap,
-                            criterion=nn.MultiLabelSoftMarginLoss(),
+                            criterion=use_criterion,
                             lr=arguments.lr,
                             batch_size=batch_size, evaluator=eval_type,
                             experiment_name=arguments.experiment_name, # 'cifar_test_ft_multi',
@@ -179,6 +185,10 @@ class labelmap_FMNIST:
         retval[indices] = 1
         return retval
 
+    def get_level_labels(self, class_index):
+        level_labels = self.get_labels(class_index)
+        return np.array([level_labels[0], level_labels[1]-self.levels[0]])
+
 
 class FMNISTHierarchical(torchvision.datasets.FashionMNIST):
     def __init__(self, root, labelmap, train=True,
@@ -201,7 +211,8 @@ class FMNISTHierarchical(torchvision.datasets.FashionMNIST):
             target = self.target_transform(target)
 
         multi_class_target = self.labelmap.labels_one_hot(target)
-        return {'image': img, 'labels': multi_class_target, 'leaf_class': target}
+        return {'image': img, 'labels': torch.from_numpy(multi_class_target).float(), 'leaf_class': target,
+                'level_labels': torch.from_numpy(self.labelmap.get_level_labels(target)).long()}
 
 
 def FMNIST_set_indices(trainset, testset, labelmap=labelmap_FMNIST()):
@@ -245,6 +256,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str, required=True)
+    parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
     args = parser.parse_args()
 
     train_FMNIST(args)

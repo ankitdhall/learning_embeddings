@@ -39,6 +39,7 @@ class ETHECExperiment(CIFAR10):
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained,
                          load_wt, model_name)
+        self.model = nn.DataParallel(self.model)
 
 
 def ETHEC_train_model(arguments):

@@ -1998,7 +1998,8 @@ class SplitDataset:
         for data_id in range(len(self.database)):
             sample = self.database[data_id]
 
-            label_id = self.labelmap.get_label_id('specific_epithet', sample['specific_epithet'])
+            label_id = self.labelmap.get_label_id('genus_specific_epithet',
+                                                  '{}_{}'.format(sample['genus'], sample['specific_epithet']))
             if label_id not in self.stats:
                 self.stats[label_id] = [sample['token']]
             else:
@@ -2028,6 +2029,8 @@ class SplitDataset:
             n_val_samples += remaining_samples % 2 + remaining_samples // 2
             n_test_samples += remaining_samples // 2
 
+            # print(label_id, n_train_samples, n_val_samples, n_test_samples)
+
             train_samples_id_list = samples_for_label_id[:n_train_samples]
             val_samples_id_list = samples_for_label_id[n_train_samples:n_train_samples + n_val_samples]
             test_samples_id_list = samples_for_label_id[-n_test_samples:]
@@ -2044,11 +2047,11 @@ class SplitDataset:
         Write the train, val, test .json splits to disk.
         :return: -
         """
-        with open(os.path.join(self.path_to_save_splits, 'train.json'), 'w') as fp:
+        with open(os.path.join(self.path_to_save_splits, 'train_merged.json'), 'w') as fp:
             json.dump(self.train, fp, indent=4)
-        with open(os.path.join(self.path_to_save_splits, 'val.json'), 'w') as fp:
+        with open(os.path.join(self.path_to_save_splits, 'val_merged.json'), 'w') as fp:
             json.dump(self.val, fp, indent=4)
-        with open(os.path.join(self.path_to_save_splits, 'test.json'), 'w') as fp:
+        with open(os.path.join(self.path_to_save_splits, 'test_merged.json'), 'w') as fp:
             json.dump(self.test, fp, indent=4)
 
     def make_split_to_disk(self):
@@ -2211,7 +2214,7 @@ if __name__ == '__main__':
 
     if args.mode == 'split':
         # create files with train, val and test splits
-        data_splitter = SplitDataset(args.json_path, args.images_dir, args.path_to_save_splits, ETHECLabelMap())
+        data_splitter = SplitDataset(args.json_path, args.images_dir, args.path_to_save_splits, ETHECLabelMapMerged())
         data_splitter.make_split_to_disk()
 
     elif args.mode == 'calc_mean_std':

@@ -24,10 +24,10 @@ def ethec_trainer():
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)
     args = parser.parse_args(['--n_epochs', '10', '--experiment_name', 'ethec_alexnet_remove', '--experiment_dir',
-                              '../exp/ethec/multi_level', '--model', 'alexnet', '--set_mode', 'train', '--debug',
+                              '../exp/ethec/multi_level', '--model', 'resnet18', '--set_mode', 'train', '--debug',
                               '--image_dir', '/media/ankit/DataPartition/IMAGO_build_test_resized', '--loss',
-                              'multi_level', '--eval_interval', '1', '--merged', '--lr', '0.01', '--freeze_weights',
-                              '--resume'])
+                              'multi_level', '--eval_interval', '1', '--merged', '--lr', '0.01', # '--freeze_weights',
+                              ])
 
     ETHEC_train_model(args)
 
@@ -58,4 +58,5 @@ def cifar_trainer():
 
 
 if __name__ == '__main__':
-    cifar_trainer()
+    # cifar_trainer()
+    ethec_trainer()

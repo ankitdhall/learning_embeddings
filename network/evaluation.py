@@ -296,15 +296,16 @@ class MultiLabelEvaluation(Evaluation):
         axScatter.set_ylabel('Score')
         axScatter.set_ylim((0.0, 1.0))
 
-        # bins = np.arange(-lim, lim + binwidth, binwidth)
-        axHistx.hist(x, bins=50, log=True)
-        axHisty.hist(y, bins=50, orientation='horizontal')
-
         axHistx.set_xscale('log')
         axHistx.set_yscale('linear')
 
         axHisty.set_yscale('linear')
         axHisty.set_xscale('linear')
+
+        # bins = np.arange(-lim, lim + binwidth, binwidth)
+        _, bins = np.histogram(np.log10(x + 1), bins=50)
+        axHistx.hist(x, bins=10 ** bins)
+        axHisty.hist(y, bins=50, orientation='horizontal')
 
         axHistx.set_xlim(axScatter.get_xlim())
         axHisty.set_ylim(axScatter.get_ylim())

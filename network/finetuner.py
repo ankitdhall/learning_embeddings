@@ -409,6 +409,13 @@ def train_cifar10(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
+    weight = None
+    if arguments.class_weights:
+        n_train = torch.zeros(labelmap.n_classes)
+        for data_item in data_loaders['train']:
+            n_train += torch.sum(data_item['labels'], 0)
+        weight = 1.0 / n_train
+
     eval_type = MultiLabelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     if arguments.evaluator == 'MLST':
         eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name),
@@ -416,9 +423,9 @@ def train_cifar10(arguments):
 
     use_criterion = None
     if arguments.loss == 'multi_label':
-        use_criterion = MultiLabelSMLoss()
+        use_criterion = MultiLabelSMLoss(weight=weight)
     elif arguments.loss == 'multi_level':
-        use_criterion = MultiLevelCELoss(labelmap=labelmap)
+        use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=labelmap,
@@ -586,6 +593,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
+    parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.', action='store_true')
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)

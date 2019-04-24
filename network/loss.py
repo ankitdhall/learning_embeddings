@@ -4,12 +4,28 @@ from data.db import ETHECLabelMap
 
 
 class MultiLevelCELoss(torch.nn.Module):
-    def __init__(self, labelmap, weights=None):
+    def __init__(self, labelmap, level_weights=None, weight=None):
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
-        self.weights = [1.0]*len(self.labelmap.levels) if weights is None else weights
-        self.criterion = nn.CrossEntropyLoss(reduction='none')
-        print('==Using the following weights config for multi level cross entropy loss: {}'.format(self.weights))
+        self.level_weights = [1.0] * len(self.labelmap.levels) if level_weights is None else level_weights
+
+        self.criterion = []
+        if weight is None:
+            for level_len in self.labelmap.levels:
+                self.criterion.append(nn.CrossEntropyLoss(weight=None, reduction='none'))
+        else:
+            level_stop, level_start = [], []
+            for level_id, level_len in enumerate(self.labelmap.levels):
+                if level_id == 0:
+                    level_start.append(0)
+                    level_stop.append(level_len)
+                else:
+                    level_start.append(level_stop[level_id - 1])
+                    level_stop.append(level_stop[level_id - 1] + level_len)
+                self.criterion.append(nn.CrossEntropyLoss(weight=weight[level_start[level_id]:level_stop[level_id]],
+                                                          reduction='none'))
+
+        print('==Using the following weights config for multi level cross entropy loss: {}'.format(self.level_weights))
 
     def forward(self, outputs, labels, level_labels):
         # print('Outputs: {}'.format(outputs))
@@ -18,7 +34,7 @@ class MultiLevelCELoss(torch.nn.Module):
         loss = 0.0
         for level_id, level in enumerate(self.labelmap.levels):
             if level_id == 0:
-                loss += self.weights[level_id] * self.criterion(outputs[:, 0:level], level_labels[:, level_id])
+                loss += self.level_weights[level_id] * self.criterion[level_id](outputs[:, 0:level], level_labels[:, level_id])
                 # print(self.weights[level_id] * self.criterion(outputs[:, 0:level], level_labels[:, level_id]))
             else:
                 start = sum([self.labelmap.levels[l_id] for l_id in range(level_id)])
@@ -26,8 +42,8 @@ class MultiLevelCELoss(torch.nn.Module):
                 # print(outputs[:, start:start+level])
                 # print(self.weights[level_id] * self.criterion(outputs[:, start:start+level],
                 #                                                 level_labels[:, level_id]))
-                loss += self.weights[level_id] * self.criterion(outputs[:, start:start+level],
-                                                                level_labels[:, level_id])
+                loss += self.level_weights[level_id] * self.criterion[level_id](outputs[:, start:start + level],
+                                                                          level_labels[:, level_id])
         # print('Loss per sample: {}'.format(loss))
         # print('Avg loss: {}'.format(torch.mean(loss)))
         return torch.mean(loss)
@@ -35,6 +51,7 @@ class MultiLevelCELoss(torch.nn.Module):
 
 class MultiLabelSMLoss(torch.nn.MultiLabelSoftMarginLoss):
     def __init__(self, weight=None, size_average=None, reduce=None, reduction='mean'):
+        print(weight)
         torch.nn.MultiLabelSoftMarginLoss.__init__(self, weight, size_average, reduce, reduction)
 
     def forward(self, outputs, labels, level_labels):
@@ -43,7 +60,7 @@ class MultiLabelSMLoss(torch.nn.MultiLabelSoftMarginLoss):
 
 if __name__ == '__main__':
     lmap = ETHECLabelMap()
-    criterion = MultiLevelCELoss(labelmap=lmap, weights=[1, 1, 1, 1])
+    criterion = MultiLevelCELoss(labelmap=lmap, level_weights=[1, 1, 1, 1])
     output, level_labels = torch.zeros((1, lmap.n_classes)), torch.tensor([[0,
                                                                             7-lmap.levels[0],
                                                                             90-(lmap.levels[0]+lmap.levels[1]),

@@ -78,13 +78,13 @@ def train_FMNIST(arguments):
             # transforms.Normalize(0.5, 0.5)
         ])
 
-    lmap = labelmap_FMNIST()
+    labelmap = labelmap_FMNIST()
     batch_size = arguments.batch_size
     n_workers = arguments.n_workers
 
     if arguments.debug:
         print("== Running in DEBUG mode!")
-        trainset = FMNISTHierarchical(root='../database', labelmap=lmap, train=False,
+        trainset = FMNISTHierarchical(root='../database', labelmap=labelmap, train=False,
                                        download=True, transform=data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))), batch_size=batch_size,
                                                   shuffle=True, num_workers=n_workers)
@@ -100,14 +100,14 @@ def train_FMNIST(arguments):
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     else:
-        trainset = FMNISTHierarchical(root='../database', labelmap=lmap, train=True,
+        trainset = FMNISTHierarchical(root='../database', labelmap=labelmap, train=True,
                                        download=True, transform=data_transforms)
-        testset = FMNISTHierarchical(root='../database', labelmap=lmap, train=False,
+        testset = FMNISTHierarchical(root='../database', labelmap=labelmap, train=False,
                                       download=True, transform=data_transforms)
 
         # split the dataset into 80:10:10
         train_indices_from_train, val_indices_from_train, val_indices_from_test, test_indices_from_test = \
-            FMNIST_set_indices(trainset, testset, lmap)
+            FMNIST_set_indices(trainset, testset, labelmap)
 
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, train_indices_from_train),
                                                   batch_size=batch_size,
@@ -125,18 +125,25 @@ def train_FMNIST(arguments):
 
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
-    eval_type = MultiLabelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+    weight = None
+    if arguments.class_weights:
+        n_train = torch.zeros(labelmap.n_classes)
+        for data_item in data_loaders['train']:
+            n_train += torch.sum(data_item['labels'], 0)
+        weight = 1.0 / n_train
+
+    eval_type = MultiLabelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     if arguments.evaluator == 'MLST':
-        eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+        eval_type = MultiLabelEvaluationSingleThresh(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     use_criterion = None
     if arguments.loss == 'multi_label':
-        use_criterion = MultiLabelSMLoss()
+        use_criterion = MultiLabelSMLoss(weight=weight)
     elif arguments.loss == 'multi_level':
-        use_criterion = MultiLevelCELoss(labelmap=lmap)
-        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), lmap)
+        use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
-    FMNIST_trainer = FMNIST(data_loaders=data_loaders, labelmap=lmap,
+    FMNIST_trainer = FMNIST(data_loaders=data_loaders, labelmap=labelmap,
                             criterion=use_criterion,
                             lr=arguments.lr,
                             batch_size=batch_size, evaluator=eval_type,
@@ -257,6 +264,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+    parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
     args = parser.parse_args()

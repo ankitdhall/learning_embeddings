@@ -200,6 +200,12 @@ class MultiLabelEvaluation(Evaluation):
 
         self.predicted_labels = predicted_scores >= np.tile(self.optimal_thresholds, (correct_labels.shape[0], 1))
 
+        classes_predicted_per_sample = np.sum(self.predicted_labels, axis=1)
+        print("Max: {}".format(np.max(classes_predicted_per_sample)))
+        print("Min: {}".format(np.min(classes_predicted_per_sample)))
+        print("Mean: {}".format(np.mean(classes_predicted_per_sample)))
+        print("std: {}".format(np.std(classes_predicted_per_sample)))
+
         level_stop, level_start = [], []
         for level_id, level_len in enumerate(self.labelmap.levels):
             if level_id == 0:

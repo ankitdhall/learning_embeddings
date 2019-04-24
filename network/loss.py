@@ -8,7 +8,7 @@ class MultiLevelCELoss(torch.nn.Module):
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
         self.level_weights = [1.0] * len(self.labelmap.levels) if level_weights is None else level_weights
-
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.criterion = []
         if weight is None:
             for level_len in self.labelmap.levels:
@@ -22,7 +22,7 @@ class MultiLevelCELoss(torch.nn.Module):
                 else:
                     level_start.append(level_stop[level_id - 1])
                     level_stop.append(level_stop[level_id - 1] + level_len)
-                self.criterion.append(nn.CrossEntropyLoss(weight=weight[level_start[level_id]:level_stop[level_id]],
+                self.criterion.append(nn.CrossEntropyLoss(weight=weight[level_start[level_id]:level_stop[level_id]].to(self.device),
                                                           reduction='none'))
 
         print('==Using the following weights config for multi level cross entropy loss: {}'.format(self.level_weights))
@@ -52,6 +52,9 @@ class MultiLevelCELoss(torch.nn.Module):
 class MultiLabelSMLoss(torch.nn.MultiLabelSoftMarginLoss):
     def __init__(self, weight=None, size_average=None, reduce=None, reduction='mean'):
         print(weight)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if weight is not None:
+            weight = weight.to(self.device)
         torch.nn.MultiLabelSoftMarginLoss.__init__(self, weight, size_average, reduce, reduction)
 
     def forward(self, outputs, labels, level_labels):

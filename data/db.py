@@ -1619,9 +1619,6 @@ class ETHECDBMerged(ETHECDB):
         if self.transform:
             img = self.transform(img)
 
-        if '{}_{}'.format(sample['genus'], sample['specific_epithet']) == 'Agriades_lehanus':
-            print(sample)
-
         ret_sample = {
             'image': img,
             'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],

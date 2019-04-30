@@ -215,7 +215,7 @@ class Experiment:
 
 
 class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):
-    def __init__(self, dataset, start=None, stop=None):
+    def __init__(self, dataset, start=None, stop=None, weight_strategy='inv'):
         dset_len = len(dataset)
         if start is None and stop is None:
             label_ids = [dataset[ind]['leaf_label'] for ind in range(len(dataset))]
@@ -230,7 +230,11 @@ class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):
         if np.any(dense_label_counts == 0):
             print("[warning] Found labels with zero samples")
 
-        label_weights = 1.0 / dense_label_counts
+        if weight_strategy == 'inv':
+            label_weights = 1.0 / dense_label_counts
+        elif weight_strategy == 'inv_sqrt':
+            label_weights = 1.0 / np.sqrt(dense_label_counts)
+
         label_weights[dense_label_counts == 0] = 0.0
 
         weights = label_weights[label_ids]

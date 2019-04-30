@@ -123,7 +123,7 @@ def ETHEC_train_model(arguments):
                                                   num_workers=n_workers,
                                                   shuffle=True if arguments.class_weights else False,
                                                   sampler=None if arguments.class_weights else WeightedResampler(
-                                                      train_set))
+                                                      train_set, weight_strategy=arguments.weight_strategy))
 
         valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=batch_size,
@@ -141,7 +141,7 @@ def ETHEC_train_model(arguments):
                                                   num_workers=n_workers,
                                                   shuffle=True if arguments.class_weights else False,
                                                   sampler=None if arguments.class_weights else WeightedResampler(
-                                                      train_set))
+                                                      train_set, weight_strategy=arguments.weight_strategy))
         valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=batch_size,
                                                 shuffle=False, num_workers=n_workers)
@@ -203,6 +203,8 @@ if __name__ == '__main__':
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
+    parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
+                        type=str, default='inv')
     parser.add_argument("--model", help='NN model to use. Use one of [`multi_label`, `multi_level`]',
                         type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)

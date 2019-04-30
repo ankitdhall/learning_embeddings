@@ -23,7 +23,7 @@ class ConvertLog:
         :param title: <str> Title of the plot
         """
         self.path_to_log = path_to_log
-        self.val_only = val_only
+        self.test_only = val_only
         self.metric_list = metric_list
         self.combine = combine
         self.title = title
@@ -80,7 +80,7 @@ class ConvertLog:
         :param legend_label: <str> specify legend name
         :return:
         """
-        train, val, epoch = [], [], []
+        train, val, test, epoch = [], [], [], []
         for e in tf.train.summary_iterator(tf_log):
             for v in e.summary.value:
                 if v.tag == 'train_{}'.format(field):
@@ -88,17 +88,20 @@ class ConvertLog:
                     epoch.append(e.step)
                 if v.tag == 'val_{}'.format(field):
                     val.append(v.simple_value)
+                if v.tag == 'test_{}'.format(field):
+                    test.append(v.simple_value)
 
         # save as plot
-        if not self.val_only:
-            plt.plot(epoch, train, '--', label='train {} {}'.format(field, legend_label if legend_label else ''))
-        plt.plot(epoch, val, '--', label='val {} {}'.format(field, legend_label if legend_label else ''))
+        if not self.test_only:
+            plt.plot(epoch, train, '-', label='train {} {}'.format(field, legend_label if legend_label else ''))
+            plt.plot(epoch, val, '-', label='val {} {}'.format(field, legend_label if legend_label else ''))
+        plt.plot(epoch, test, '-', label='test {} {}'.format(field, legend_label if legend_label else ''))
         plt.xlabel('Epoch')
         plt.legend(loc='best')
         if title:
             plt.title(title)
         else:
-            plt.title('train {0} vs. val {0}'.format(field))
+            plt.title('train {0}, val {0} and test {0}'.format(field))
 
         if not self.combine:
             save_fig_to = os.path.join(self.path_to_save, exp, '{}_train_val_{}.pdf'.format(exp, field))
@@ -115,7 +118,7 @@ if __name__ == '__main__':
                         default='../')
     parser.add_argument("--experiment_list", help='Experiments to parse logs for.', nargs='*', default=None)
     parser.add_argument("--combine", help='If used, combines plots across experiments', action='store_true')
-    parser.add_argument("--val_only", help='If used, combines plots across experiments for val metrics only', action='store_true')
+    parser.add_argument("--test_only", help='If used, combines plots across experiments for test metrics only', action='store_true')
     parser.add_argument("--legend_labels", help='List of labels for the legend', nargs='*', default=None)
     parser.add_argument("--title", help='List of labels for the legend', type=str, default=None)
     parser.add_argument("--metric_list", help='Metrics to plot.', nargs='*', default=['macro_f1', 'micro_f1', 'loss',
@@ -129,7 +132,7 @@ if __name__ == '__main__':
                       experiment_list=args.experiment_list,
                       metric_list=args.metric_list,
                       combine=args.combine,
-                      val_only=args.val_only,
+                      val_only=args.test_only,
                       legend_labels=args.legend_labels,
                       title=args.title)
     clog.convert_exp()

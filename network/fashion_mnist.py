@@ -32,11 +32,12 @@ class FMNIST(CIFAR10):
                  feature_extracting=True,
                  use_pretrained=True,
                  load_wt=False,
-                 model_name=None):
+                 model_name=None,
+                 optimizer_method='adam'):
 
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained,
-                         load_wt, model_name)
+                         load_wt, model_name, optimizer_method)
 
         if model_name in ['alexnet', 'vgg']:
             o_channels = self.model.features[0].out_channels
@@ -154,7 +155,8 @@ def train_FMNIST(arguments):
                             feature_extracting=arguments.freeze_weights,
                             use_pretrained=True,
                             load_wt=False,
-                            model_name=arguments.model)
+                            model_name=arguments.model,
+                            optimizer_method=arguments.optimizer_method)
     FMNIST_trainer.prepare_model()
     if arguments.set_mode == 'train':
         FMNIST_trainer.train()
@@ -253,13 +255,14 @@ def FMNIST_set_indices(trainset, testset, labelmap=labelmap_FMNIST()):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
-    parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
+    parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
     parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
+    parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)

@@ -96,7 +96,8 @@ class CIFAR10(Experiment):
                  feature_extracting=True,
                  use_pretrained=True,
                  load_wt=False,
-                 model_name=None):
+                 model_name=None,
+                 optimizer_method='adam'):
 
         self.classes = labelmap.classes
         self.n_classes = labelmap.n_classes
@@ -107,6 +108,7 @@ class CIFAR10(Experiment):
         self.batch_size = batch_size
         self.feature_extracting = feature_extracting
         self.optimal_thresholds = np.zeros(self.n_classes)
+        self.optimizer_method = optimizer_method
 
         if model_name == 'alexnet':
             model = models.alexnet(pretrained=use_pretrained)
@@ -260,11 +262,17 @@ class CIFAR10(Experiment):
         return n_exact_matches, np.array(level_matches)
 
     def train(self):
-        self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        if self.optimizer_method == 'sgd':
+            self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        elif self.optimizer_method == 'adam':
+            self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
         self.load_best_model()
 
     def test(self):
-        self.optimizer = optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9)
+        if self.optimizer_method == 'sgd':
+            self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        elif self.optimizer_method == 'adam':
+            self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
         self.load_best_model()
 
 
@@ -439,7 +447,8 @@ def train_cifar10(arguments):
                             feature_extracting=arguments.freeze_weights,
                             use_pretrained=True,
                             load_wt=False,
-                            model_name=arguments.model)
+                            model_name=arguments.model,
+                            optimizer_method=arguments.optimizer_method)
     cifar_trainer.prepare_model()
     if arguments.set_mode == 'train':
         cifar_trainer.train()
@@ -582,13 +591,14 @@ def train_alexnet_binary():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
-    parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
+    parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
     parser.add_argument("--evaluator", help='Evaluator type. If using `multi_level` option for --loss then is overidden.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
+    parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)

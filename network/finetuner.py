@@ -116,6 +116,10 @@ class CIFAR10(Experiment):
             model = models.resnet18(pretrained=use_pretrained)
         elif model_name == 'resnet50':
             model = models.resnet50(pretrained=use_pretrained)
+        elif model_name == 'resnet101':
+            model = models.resnet101(pretrained=use_pretrained)
+        elif model_name == 'resnet152':
+            model = models.resnet152(pretrained=use_pretrained)
         elif model_name == 'vgg':
             model = models.vgg11_bn(pretrained=use_pretrained)
 

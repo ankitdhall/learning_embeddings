@@ -1308,6 +1308,1056 @@ class ETHECLabelMap:
             "Agriades_lehanus": 560
         }
 
+        child_of_family = {
+            "Hesperiidae": [
+                "Heteropterinae",
+                "Hesperiinae",
+                "Pyrginae"
+            ],
+            "Papilionidae": [
+                "Parnassiinae",
+                "Papilioninae"
+            ],
+            "Pieridae": [
+                "Dismorphiinae",
+                "Coliadinae",
+                "Pierinae"
+            ],
+            "Nymphalidae": [
+                "Satyrinae",
+                "Nymphalinae",
+                "Heliconiinae",
+                "Libytheinae",
+                "Danainae",
+                "Charaxinae",
+                "Apaturinae",
+                "Limenitidinae"
+            ],
+            "Lycaenidae": [
+                "Lycaeninae",
+                "Theclinae",
+                "Aphnaeinae",
+                "Polyommatinae"
+            ],
+            "Riodinidae": [
+                "Nemeobiinae"
+            ]
+        }
+
+        child_of_subfamily = {
+            "Heteropterinae": [
+                "Carterocephalus",
+                "Heteropterus"
+            ],
+            "Hesperiinae": [
+                "Thymelicus",
+                "Hesperia",
+                "Ochlodes",
+                "Gegenes"
+            ],
+            "Pyrginae": [
+                "Erynnis",
+                "Carcharodus",
+                "Spialia",
+                "Muschampia",
+                "Pyrgus"
+            ],
+            "Parnassiinae": [
+                "Parnassius",
+                "Archon",
+                "Sericinus",
+                "Zerynthia",
+                "Allancastria",
+                "Bhutanitis",
+                "Luehdorfia"
+            ],
+            "Papilioninae": [
+                "Papilio",
+                "Iphiclides",
+                "Atrophaneura",
+                "Agehana",
+                "Arisbe",
+                "Teinopalpus",
+                "Graphium",
+                "Meandrusa"
+            ],
+            "Dismorphiinae": [
+                "Leptidea"
+            ],
+            "Coliadinae": [
+                "Colias",
+                "Catopsilia",
+                "Gonepteryx"
+            ],
+            "Pierinae": [
+                "Aporia",
+                "Mesapia",
+                "Baltia",
+                "Pieris",
+                "Pontia",
+                "Anthocharis",
+                "Zegris",
+                "Euchloe",
+                "Colotis"
+            ],
+            "Satyrinae": [
+                "Erebia",
+                "Berberia",
+                "Proterebia",
+                "Boeberia",
+                "Loxerebia",
+                "Melanargia",
+                "Davidina",
+                "Hipparchia",
+                "Chazara",
+                "Pseudochazara",
+                "Karanasa",
+                "Oeneis",
+                "Satyrus",
+                "Minois",
+                "Arethusana",
+                "Brintesia",
+                "Maniola",
+                "Aphantopus",
+                "Hyponephele",
+                "Pyronia",
+                "Coenonympha",
+                "Pararge",
+                "Ypthima",
+                "Lasiommata",
+                "Lopinga",
+                "Kirinia",
+                "Neope"
+            ],
+            "Lycaeninae": [
+                "Lycaena",
+                "Heliophorus"
+            ],
+            "Nymphalinae": [
+                "Melitaea",
+                "Nymphalis",
+                "Inachis",
+                "Araschnia",
+                "Vanessa",
+                "Euphydryas"
+            ],
+            "Heliconiinae": [
+                "Argynnis",
+                "Cethosia",
+                "Childrena",
+                "Speyeria",
+                "Fabriciana",
+                "Argyronome",
+                "Issoria",
+                "Brenthis",
+                "Boloria",
+                "Kuekenthaliella",
+                "Clossiana",
+                "Proclossiana"
+            ],
+            "Nemeobiinae": [
+                "Hamearis",
+                "Polycaena"
+            ],
+            "Theclinae": [
+                "Favonius",
+                "Tomares",
+                "Chrysozephyrus",
+                "Ussuriana",
+                "Coreana",
+                "Japonica",
+                "Thecla",
+                "Laeosopis",
+                "Callophrys",
+                "Satyrium",
+                "Neolycaena"
+            ],
+            "Aphnaeinae": [
+                "Cigaritis"
+            ],
+            "Polyommatinae": [
+                "Celastrina",
+                "Zizeeria",
+                "Tarucus",
+                "Cyclyrius",
+                "Leptotes",
+                "Lampides",
+                "Cupido",
+                "Maculinea",
+                "Glaucopsyche",
+                "Pseudophilotes",
+                "Scolitantides",
+                "Iolana",
+                "Plebejus",
+                "Agriades",
+                "Plebejidea",
+                "Kretania",
+                "Aricia",
+                "Pamiria",
+                "Polyommatus",
+                "Eumedonia",
+                "Cyaniris",
+                "Lysandra",
+                "Glabroculus",
+                "Neolysandra"
+            ],
+            "Libytheinae": [
+                "Libythea"
+            ],
+            "Danainae": [
+                "Danaus"
+            ],
+            "Charaxinae": [
+                "Charaxes"
+            ],
+            "Apaturinae": [
+                "Apatura",
+                "Euapatura",
+                "Hestina",
+                "Timelaea",
+                "Mimathyma"
+            ],
+            "Limenitidinae": [
+                "Limenitis",
+                "Lelecella",
+                "Neptis"
+            ]
+        }
+
+        child_of_genus = {
+            "Carterocephalus": [
+                "Carterocephalus_palaemon"
+            ],
+            "Heteropterus": [
+                "Heteropterus_morpheus"
+            ],
+            "Thymelicus": [
+                "Thymelicus_sylvestris",
+                "Thymelicus_lineola",
+                "Thymelicus_acteon"
+            ],
+            "Hesperia": [
+                "Hesperia_comma"
+            ],
+            "Ochlodes": [
+                "Ochlodes_venata"
+            ],
+            "Gegenes": [
+                "Gegenes_nostrodamus"
+            ],
+            "Erynnis": [
+                "Erynnis_tages"
+            ],
+            "Carcharodus": [
+                "Carcharodus_alceae",
+                "Carcharodus_lavatherae",
+                "Carcharodus_baeticus",
+                "Carcharodus_floccifera"
+            ],
+            "Spialia": [
+                "Spialia_sertorius",
+                "Spialia_orbifer"
+            ],
+            "Muschampia": [
+                "Muschampia_proto"
+            ],
+            "Pyrgus": [
+                "Pyrgus_alveus",
+                "Pyrgus_armoricanus",
+                "Pyrgus_andromedae",
+                "Pyrgus_cacaliae",
+                "Pyrgus_carlinae",
+                "Pyrgus_carthami",
+                "Pyrgus_malvae",
+                "Pyrgus_cinarae",
+                "Pyrgus_cirsii",
+                "Pyrgus_malvoides",
+                "Pyrgus_onopordi",
+                "Pyrgus_serratulae",
+                "Pyrgus_sidae",
+                "Pyrgus_warrenensis"
+            ],
+            "Parnassius": [
+                "Parnassius_sacerdos",
+                "Parnassius_apollo",
+                "Parnassius_mnemosyne",
+                "Parnassius_glacialis",
+                "Parnassius_stubbendorfii",
+                "Parnassius_apollonius",
+                "Parnassius_eversmannii",
+                "Parnassius_ariadne",
+                "Parnassius_stenosemus",
+                "Parnassius_hardwickii",
+                "Parnassius_charltonius",
+                "Parnassius_imperator",
+                "Parnassius_acdestis",
+                "Parnassius_cardinal",
+                "Parnassius_szechenyii",
+                "Parnassius_delphius",
+                "Parnassius_maximinus",
+                "Parnassius_staudingeri",
+                "Parnassius_orleans",
+                "Parnassius_augustus",
+                "Parnassius_loxias",
+                "Parnassius_charltontonius",
+                "Parnassius_autocrator",
+                "Parnassius_stoliczkanus",
+                "Parnassius_nordmanni",
+                "Parnassius_simo",
+                "Parnassius_bremeri",
+                "Parnassius_actius",
+                "Parnassius_cephalus",
+                "Parnassius_maharaja",
+                "Parnassius_tenedius",
+                "Parnassius_acco",
+                "Parnassius_boedromius",
+                "Parnassius_tianschanicus",
+                "Parnassius_phoebus",
+                "Parnassius_honrathi",
+                "Parnassius_ruckbeili",
+                "Parnassius_epaphus",
+                "Parnassius_nomion",
+                "Parnassius_jacquemonti",
+                "Parnassius_mercurius",
+                "Parnassius_tibetanus",
+                "Parnassius_clodius",
+                "Parnassius_smintheus",
+                "Parnassius_behrii"
+            ],
+            "Archon": [
+                "Archon_apollinus"
+            ],
+            "Sericinus": [
+                "Sericinus_montela"
+            ],
+            "Zerynthia": [
+                "Zerynthia_rumina",
+                "Zerynthia_polyxena"
+            ],
+            "Allancastria": [
+                "Allancastria_cerisyi",
+                "Allancastria_deyrollei",
+                "Allancastria_caucasica"
+            ],
+            "Bhutanitis": [
+                "Bhutanitis_thaidina",
+                "Bhutanitis_lidderdalii",
+                "Bhutanitis_mansfieldi"
+            ],
+            "Luehdorfia": [
+                "Luehdorfia_japonica",
+                "Luehdorfia_puziloi",
+                "Luehdorfia_chinensis"
+            ],
+            "Papilio": [
+                "Papilio_machaon",
+                "Papilio_alexanor",
+                "Papilio_hospiton",
+                "Papilio_xuthus",
+                "Papilio_dehaani",
+                "Papilio_polytes",
+                "Papilio_bootes",
+                "Papilio_maackii",
+                "Papilio_helenus",
+                "Papilio_bianor",
+                "Papilio_paris",
+                "Papilio_krishna",
+                "Papilio_macilentus",
+                "Papilio_protenor",
+                "Papilio_castor",
+                "Papilio_arcturus"
+            ],
+            "Iphiclides": [
+                "Iphiclides_podalirius",
+                "Iphiclides_feisthamelii"
+            ],
+            "Leptidea": [
+                "Leptidea_sinapis",
+                "Leptidea_juvernica",
+                "Leptidea_morsei",
+                "Leptidea_amurensis",
+                "Leptidea_duponcheli"
+            ],
+            "Colias": [
+                "Colias_palaeno",
+                "Colias_pelidne",
+                "Colias_marcopolo",
+                "Colias_ladakensis",
+                "Colias_nebulosa",
+                "Colias_nastes",
+                "Colias_cocandica",
+                "Colias_sieversi",
+                "Colias_sifanica",
+                "Colias_alpherakii",
+                "Colias_christophi",
+                "Colias_tyche",
+                "Colias_phicomone",
+                "Colias_alfacariensis",
+                "Colias_hyale",
+                "Colias_erate",
+                "Colias_erschoffi",
+                "Colias_romanovi",
+                "Colias_regia",
+                "Colias_stoliczkana",
+                "Colias_hecla",
+                "Colias_eogene",
+                "Colias_thisoa",
+                "Colias_staudingeri",
+                "Colias_lada",
+                "Colias_baeckeri",
+                "Colias_fieldii",
+                "Colias_heos",
+                "Colias_caucasica",
+                "Colias_diva",
+                "Colias_chrysotheme",
+                "Colias_balcanica",
+                "Colias_myrmidone",
+                "Colias_croceus",
+                "Colias_felderi",
+                "Colias_viluiensis",
+                "Colias_aurorina",
+                "Colias_chlorocoma",
+                "Colias_libanotica",
+                "Colias_wiskotti"
+            ],
+            "Aporia": [
+                "Aporia_crataegi",
+                "Aporia_procris",
+                "Aporia_potanini",
+                "Aporia_nabellica"
+            ],
+            "Catopsilia": [
+                "Catopsilia_florella"
+            ],
+            "Gonepteryx": [
+                "Gonepteryx_rhamni",
+                "Gonepteryx_maxima",
+                "Gonepteryx_cleopatra",
+                "Gonepteryx_cleobule",
+                "Gonepteryx_amintha",
+                "Gonepteryx_farinosa"
+            ],
+            "Mesapia": [
+                "Mesapia_peloria"
+            ],
+            "Baltia": [
+                "Baltia_butleri"
+            ],
+            "Pieris": [
+                "Pieris_brassicae",
+                "Pieris_cheiranthi",
+                "Pieris_rapae",
+                "Pieris_mannii",
+                "Pieris_ergane",
+                "Pieris_krueperi",
+                "Pieris_napi",
+                "Pieris_bryoniae"
+            ],
+            "Erebia": [
+                "Erebia_gorge",
+                "Erebia_aethiopellus",
+                "Erebia_mnestra",
+                "Erebia_epistygne",
+                "Erebia_ottomana",
+                "Erebia_tyndarus",
+                "Erebia_oeme",
+                "Erebia_lefebvrei",
+                "Erebia_melas",
+                "Erebia_zapateri",
+                "Erebia_neoridas",
+                "Erebia_montana",
+                "Erebia_cassioides",
+                "Erebia_nivalis",
+                "Erebia_scipio",
+                "Erebia_pronoe",
+                "Erebia_styx",
+                "Erebia_meolans",
+                "Erebia_palarica",
+                "Erebia_pandrose",
+                "Erebia_meta",
+                "Erebia_erinnyn",
+                "Erebia_euryale",
+                "Erebia_ligea",
+                "Erebia_eriphyle",
+                "Erebia_manto",
+                "Erebia_epiphron",
+                "Erebia_flavofasciata",
+                "Erebia_bubastis",
+                "Erebia_claudina",
+                "Erebia_christi",
+                "Erebia_pharte",
+                "Erebia_aethiops",
+                "Erebia_melampus",
+                "Erebia_sudetica",
+                "Erebia_neriene",
+                "Erebia_triaria",
+                "Erebia_medusa",
+                "Erebia_alberganus",
+                "Erebia_pluto"
+            ],
+            "Berberia": [
+                "Berberia_lambessanus",
+                "Berberia_abdelkader"
+            ],
+            "Proterebia": [
+                "Proterebia_afra"
+            ],
+            "Boeberia": [
+                "Boeberia_parmenio"
+            ],
+            "Loxerebia": [
+                "Loxerebia_saxicola"
+            ],
+            "Lycaena": [
+                "Lycaena_thersamon",
+                "Lycaena_lampon",
+                "Lycaena_solskyi",
+                "Lycaena_splendens",
+                "Lycaena_candens",
+                "Lycaena_ochimus",
+                "Lycaena_hippothoe",
+                "Lycaena_tityrus",
+                "Lycaena_thetis",
+                "Lycaena_phlaeas",
+                "Lycaena_helle",
+                "Lycaena_pang",
+                "Lycaena_caspius",
+                "Lycaena_margelanica",
+                "Lycaena_dispar",
+                "Lycaena_alciphron",
+                "Lycaena_virgaureae",
+                "Lycaena_kasyapa"
+            ],
+            "Melitaea": [
+                "Melitaea_athalia",
+                "Melitaea_parthenoides",
+                "Melitaea_cinxia",
+                "Melitaea_phoebe",
+                "Melitaea_didyma",
+                "Melitaea_varia",
+                "Melitaea_aurelia",
+                "Melitaea_asteria",
+                "Melitaea_diamina",
+                "Melitaea_britomartis",
+                "Melitaea_acraeina",
+                "Melitaea_trivia",
+                "Melitaea_persea",
+                "Melitaea_ambigua",
+                "Melitaea_deione",
+                "Melitaea_turanica",
+                "Melitaea_nevadensis"
+            ],
+            "Argynnis": [
+                "Argynnis_paphia",
+                "Argynnis_pandora"
+            ],
+            "Heliophorus": [
+                "Heliophorus_tamu",
+                "Heliophorus_brahma",
+                "Heliophorus_androcles"
+            ],
+            "Cethosia": [
+                "Cethosia_biblis"
+            ],
+            "Childrena": [
+                "Childrena_childreni"
+            ],
+            "Pontia": [
+                "Pontia_edusa",
+                "Pontia_daplidice",
+                "Pontia_callidice",
+                "Pontia_chloridice"
+            ],
+            "Anthocharis": [
+                "Anthocharis_thibetana",
+                "Anthocharis_bambusarum",
+                "Anthocharis_bieti",
+                "Anthocharis_scolymus",
+                "Anthocharis_gruneri",
+                "Anthocharis_damone",
+                "Anthocharis_cardamines",
+                "Anthocharis_belia",
+                "Anthocharis_euphenoides"
+            ],
+            "Zegris": [
+                "Zegris_pyrothoe",
+                "Zegris_eupheme",
+                "Zegris_fausti"
+            ],
+            "Euchloe": [
+                "Euchloe_simplonia",
+                "Euchloe_belemia",
+                "Euchloe_ausonia",
+                "Euchloe_tagis",
+                "Euchloe_crameri",
+                "Euchloe_insularis",
+                "Euchloe_orientalis",
+                "Euchloe_transcaspica",
+                "Euchloe_charlonia",
+                "Euchloe_tomyris"
+            ],
+            "Colotis": [
+                "Colotis_fausta",
+                "Colotis_evagore"
+            ],
+            "Hamearis": [
+                "Hamearis_lucina"
+            ],
+            "Polycaena": [
+                "Polycaena_tamerlana"
+            ],
+            "Favonius": [
+                "Favonius_quercus"
+            ],
+            "Cigaritis": [
+                "Cigaritis_siphax",
+                "Cigaritis_allardi"
+            ],
+            "Tomares": [
+                "Tomares_ballus",
+                "Tomares_nogelii",
+                "Tomares_mauretanicus",
+                "Tomares_romanovi",
+                "Tomares_callimachus"
+            ],
+            "Chrysozephyrus": [
+                "Chrysozephyrus_smaragdinus"
+            ],
+            "Ussuriana": [
+                "Ussuriana_micahaelis"
+            ],
+            "Coreana": [
+                "Coreana_raphaelis"
+            ],
+            "Japonica": [
+                "Japonica_saepestriata"
+            ],
+            "Thecla": [
+                "Thecla_betulae"
+            ],
+            "Celastrina": [
+                "Celastrina_argiolus"
+            ],
+            "Laeosopis": [
+                "Laeosopis_roboris"
+            ],
+            "Callophrys": [
+                "Callophrys_rubi",
+                "Callophrys_avis"
+            ],
+            "Zizeeria": [
+                "Zizeeria_knysna"
+            ],
+            "Tarucus": [
+                "Tarucus_theophrastus",
+                "Tarucus_balkanica"
+            ],
+            "Cyclyrius": [
+                "Cyclyrius_webbianus"
+            ],
+            "Leptotes": [
+                "Leptotes_pirithous"
+            ],
+            "Satyrium": [
+                "Satyrium_spini",
+                "Satyrium_w-album",
+                "Satyrium_ilicis",
+                "Satyrium_pruni",
+                "Satyrium_acaciae",
+                "Satyrium_esculi"
+            ],
+            "Lampides": [
+                "Lampides_boeticus"
+            ],
+            "Neolycaena": [
+                "Neolycaena_rhymnus"
+            ],
+            "Cupido": [
+                "Cupido_minimus",
+                "Cupido_alcetas",
+                "Cupido_osiris",
+                "Cupido_argiades",
+                "Cupido_decolorata"
+            ],
+            "Maculinea": [
+                "Maculinea_rebeli",
+                "Maculinea_arion",
+                "Maculinea_alcon",
+                "Maculinea_teleius",
+                "Maculinea_nausithous"
+            ],
+            "Glaucopsyche": [
+                "Glaucopsyche_melanops",
+                "Glaucopsyche_alexis",
+                "Glaucopsyche_paphos"
+            ],
+            "Pseudophilotes": [
+                "Pseudophilotes_abencerragus",
+                "Pseudophilotes_panoptes",
+                "Pseudophilotes_vicrama",
+                "Pseudophilotes_baton"
+            ],
+            "Scolitantides": [
+                "Scolitantides_orion"
+            ],
+            "Iolana": [
+                "Iolana_gigantea",
+                "Iolana_iolas"
+            ],
+            "Plebejus": [
+                "Plebejus_argus",
+                "Plebejus_eversmanni",
+                "Plebejus_argyrognomon",
+                "Plebejus_idas",
+                "Plebejus_samudra"
+            ],
+            "Agriades": [
+                "Agriades_optilete",
+                "Agriades_orbitulus",
+                "Agriades_glandon",
+                "Agriades_pheretiades",
+                "Agriades_lehanus"
+            ],
+            "Plebejidea": [
+                "Plebejidea_loewii"
+            ],
+            "Kretania": [
+                "Kretania_trappi",
+                "Kretania_pylaon",
+                "Kretania_martini"
+            ],
+            "Aricia": [
+                "Aricia_artaxerxes",
+                "Aricia_agestis",
+                "Aricia_nicias",
+                "Aricia_anteros"
+            ],
+            "Pamiria": [
+                "Pamiria_omphisa"
+            ],
+            "Polyommatus": [
+                "Polyommatus_damon",
+                "Polyommatus_dolus",
+                "Polyommatus_antidolus",
+                "Polyommatus_phyllis",
+                "Polyommatus_iphidamon",
+                "Polyommatus_damonides",
+                "Polyommatus_damone",
+                "Polyommatus_ripartii",
+                "Polyommatus_admetus",
+                "Polyommatus_dorylas",
+                "Polyommatus_erschoffi",
+                "Polyommatus_thersites",
+                "Polyommatus_escheri",
+                "Polyommatus_nivescens",
+                "Polyommatus_aedon",
+                "Polyommatus_atys",
+                "Polyommatus_icarus",
+                "Polyommatus_caeruleus",
+                "Polyommatus_stoliczkana",
+                "Polyommatus_golgus",
+                "Polyommatus_amandus",
+                "Polyommatus_daphnis",
+                "Polyommatus_eros",
+                "Polyommatus_celina"
+            ],
+            "Eumedonia": [
+                "Eumedonia_eumedon"
+            ],
+            "Cyaniris": [
+                "Cyaniris_semiargus"
+            ],
+            "Lysandra": [
+                "Lysandra_bellargus",
+                "Lysandra_coridon",
+                "Lysandra_hispana",
+                "Lysandra_albicans",
+                "Lysandra_caelestissima",
+                "Lysandra_punctifera"
+            ],
+            "Glabroculus": [
+                "Glabroculus_elvira",
+                "Glabroculus_cyane"
+            ],
+            "Neolysandra": [
+                "Neolysandra_coelestina",
+                "Neolysandra_corona"
+            ],
+            "Libythea": [
+                "Libythea_celtis"
+            ],
+            "Danaus": [
+                "Danaus_plexippus",
+                "Danaus_chrysippus"
+            ],
+            "Charaxes": [
+                "Charaxes_jasius"
+            ],
+            "Apatura": [
+                "Apatura_iris",
+                "Apatura_ilia",
+                "Apatura_metis"
+            ],
+            "Limenitis": [
+                "Limenitis_reducta",
+                "Limenitis_populi",
+                "Limenitis_camilla",
+                "Limenitis_sydyi"
+            ],
+            "Euapatura": [
+                "Euapatura_mirza"
+            ],
+            "Hestina": [
+                "Hestina_japonica"
+            ],
+            "Timelaea": [
+                "Timelaea_albescens"
+            ],
+            "Mimathyma": [
+                "Mimathyma_schrenckii"
+            ],
+            "Lelecella": [
+                "Lelecella_limenitoides"
+            ],
+            "Neptis": [
+                "Neptis_sappho",
+                "Neptis_rivularis"
+            ],
+            "Nymphalis": [
+                "Nymphalis_antiopa",
+                "Nymphalis_polychloros",
+                "Nymphalis_xanthomelas",
+                "Nymphalis_l-album",
+                "Nymphalis_urticae",
+                "Nymphalis_ichnusa",
+                "Nymphalis_egea",
+                "Nymphalis_c-album",
+                "Nymphalis_canace",
+                "Nymphalis_c-aureum"
+            ],
+            "Inachis": [
+                "Inachis_io"
+            ],
+            "Araschnia": [
+                "Araschnia_burejana",
+                "Araschnia_levana"
+            ],
+            "Vanessa": [
+                "Vanessa_atalanta",
+                "Vanessa_vulcania",
+                "Vanessa_cardui"
+            ],
+            "Speyeria": [
+                "Speyeria_aglaja",
+                "Speyeria_clara"
+            ],
+            "Fabriciana": [
+                "Fabriciana_niobe",
+                "Fabriciana_adippe",
+                "Fabriciana_jainadeva",
+                "Fabriciana_auresiana",
+                "Fabriciana_elisa"
+            ],
+            "Argyronome": [
+                "Argyronome_laodice"
+            ],
+            "Issoria": [
+                "Issoria_lathonia"
+            ],
+            "Brenthis": [
+                "Brenthis_hecate",
+                "Brenthis_daphne",
+                "Brenthis_ino"
+            ],
+            "Boloria": [
+                "Boloria_pales",
+                "Boloria_aquilonaris",
+                "Boloria_napaea",
+                "Boloria_graeca"
+            ],
+            "Kuekenthaliella": [
+                "Kuekenthaliella_eugenia"
+            ],
+            "Clossiana": [
+                "Clossiana_selene",
+                "Clossiana_thore",
+                "Clossiana_dia",
+                "Clossiana_euphrosyne",
+                "Clossiana_titania",
+                "Clossiana_freija"
+            ],
+            "Proclossiana": [
+                "Proclossiana_eunomia"
+            ],
+            "Euphydryas": [
+                "Euphydryas_maturna",
+                "Euphydryas_ichnea",
+                "Euphydryas_cynthia",
+                "Euphydryas_aurinia",
+                "Euphydryas_sibirica",
+                "Euphydryas_iduna"
+            ],
+            "Melanargia": [
+                "Melanargia_titea",
+                "Melanargia_parce",
+                "Melanargia_lachesis",
+                "Melanargia_galathea",
+                "Melanargia_russiae",
+                "Melanargia_larissa",
+                "Melanargia_ines",
+                "Melanargia_pherusa",
+                "Melanargia_occitanica",
+                "Melanargia_arge",
+                "Melanargia_meridionalis",
+                "Melanargia_leda",
+                "Melanargia_halimede"
+            ],
+            "Davidina": [
+                "Davidina_armandi"
+            ],
+            "Hipparchia": [
+                "Hipparchia_semele",
+                "Hipparchia_parisatis",
+                "Hipparchia_fidia",
+                "Hipparchia_genava",
+                "Hipparchia_aristaeus",
+                "Hipparchia_fagi",
+                "Hipparchia_wyssii",
+                "Hipparchia_fatua",
+                "Hipparchia_statilinus",
+                "Hipparchia_syriaca",
+                "Hipparchia_neomiris",
+                "Hipparchia_azorina"
+            ],
+            "Chazara": [
+                "Chazara_briseis",
+                "Chazara_prieuri",
+                "Chazara_bischoffii",
+                "Chazara_persephone"
+            ],
+            "Pseudochazara": [
+                "Pseudochazara_pelopea",
+                "Pseudochazara_beroe",
+                "Pseudochazara_schahrudensis",
+                "Pseudochazara_telephassa",
+                "Pseudochazara_anthelea",
+                "Pseudochazara_amalthea",
+                "Pseudochazara_graeca",
+                "Pseudochazara_cingovskii"
+            ],
+            "Karanasa": [
+                "Karanasa_modesta"
+            ],
+            "Oeneis": [
+                "Oeneis_magna",
+                "Oeneis_glacialis"
+            ],
+            "Satyrus": [
+                "Satyrus_actaea",
+                "Satyrus_parthicus",
+                "Satyrus_ferula"
+            ],
+            "Minois": [
+                "Minois_dryas"
+            ],
+            "Arethusana": [
+                "Arethusana_arethusa"
+            ],
+            "Brintesia": [
+                "Brintesia_circe"
+            ],
+            "Maniola": [
+                "Maniola_jurtina",
+                "Maniola_nurag"
+            ],
+            "Aphantopus": [
+                "Aphantopus_hyperantus"
+            ],
+            "Hyponephele": [
+                "Hyponephele_pulchra",
+                "Hyponephele_pulchella",
+                "Hyponephele_cadusia",
+                "Hyponephele_amardaea",
+                "Hyponephele_lycaon",
+                "Hyponephele_lupina"
+            ],
+            "Pyronia": [
+                "Pyronia_tithonus",
+                "Pyronia_bathseba",
+                "Pyronia_cecilia",
+                "Pyronia_janiroides"
+            ],
+            "Coenonympha": [
+                "Coenonympha_gardetta",
+                "Coenonympha_tullia",
+                "Coenonympha_corinna",
+                "Coenonympha_pamphilus",
+                "Coenonympha_dorus",
+                "Coenonympha_darwiniana",
+                "Coenonympha_arcania",
+                "Coenonympha_leander",
+                "Coenonympha_iphioides",
+                "Coenonympha_glycerion",
+                "Coenonympha_hero",
+                "Coenonympha_oedippus"
+            ],
+            "Pararge": [
+                "Pararge_aegeria",
+                "Pararge_xiphioides"
+            ],
+            "Ypthima": [
+                "Ypthima_baldus"
+            ],
+            "Lasiommata": [
+                "Lasiommata_megera",
+                "Lasiommata_petropolitana",
+                "Lasiommata_maera",
+                "Lasiommata_paramegaera"
+            ],
+            "Lopinga": [
+                "Lopinga_achine"
+            ],
+            "Kirinia": [
+                "Kirinia_roxelana",
+                "Kirinia_climene",
+                "Kirinia_eversmanni"
+            ],
+            "Neope": [
+                "Neope_goschkevitschii"
+            ],
+            "Atrophaneura": [
+                "Atrophaneura_mencius",
+                "Atrophaneura_plutonius",
+                "Atrophaneura_horishana",
+                "Atrophaneura_impediens",
+                "Atrophaneura_polyeuctes",
+                "Atrophaneura_alcinous",
+                "Atrophaneura_nevilli"
+            ],
+            "Agehana": [
+                "Agehana_elwesi"
+            ],
+            "Arisbe": [
+                "Arisbe_mandarinus",
+                "Arisbe_parus",
+                "Arisbe_alebion",
+                "Arisbe_eurous",
+                "Arisbe_doson",
+                "Arisbe_tamerlanus",
+                "Arisbe_leechi"
+            ],
+            "Teinopalpus": [
+                "Teinopalpus_imperialis"
+            ],
+            "Graphium": [
+                "Graphium_sarpedon",
+                "Graphium_cloanthus"
+            ],
+            "Meandrusa": [
+                "Meandrusa_sciron"
+            ]
+        }
+
         self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.specific_epithet)]
         self.n_classes = sum(self.levels)
         self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.specific_epithet] for key
@@ -1932,27 +2982,41 @@ def print_labelmap():
         data_dict = json.load(json_file)
     family, subfamily, genus, specific_epithet, genus_specific_epithet = {}, {}, {}, {}, {}
     f_c, sf_c, g_c, se_c, gse_c = 0, 0, 0, 0, 0
+    # to store the children for each node
+    child_of_family, child_of_subfamily, child_of_genus = {}, {}, {}
     for key in data_dict:
         if data_dict[key]['family'] not in family:
             family[data_dict[key]['family']] = f_c
+            child_of_family[data_dict[key]['family']] = []
             f_c += 1
         if data_dict[key]['subfamily'] not in subfamily:
             subfamily[data_dict[key]['subfamily']] = sf_c
+            child_of_subfamily[data_dict[key]['subfamily']] = []
+            child_of_family[data_dict[key]['family']].append(data_dict[key]['subfamily'])
             sf_c += 1
         if data_dict[key]['genus'] not in genus:
             genus[data_dict[key]['genus']] = g_c
+            child_of_genus[data_dict[key]['genus']] = []
+            child_of_subfamily[data_dict[key]['subfamily']].append(data_dict[key]['genus'])
             g_c += 1
         if data_dict[key]['specific_epithet'] not in specific_epithet:
             specific_epithet[data_dict[key]['specific_epithet']] = se_c
             se_c += 1
         if '{}_{}'.format(data_dict[key]['genus'], data_dict[key]['specific_epithet']) not in genus_specific_epithet:
             genus_specific_epithet['{}_{}'.format(data_dict[key]['genus'], data_dict[key]['specific_epithet'])] = gse_c
+            specific_epithet[data_dict[key]['specific_epithet']] = se_c
+            child_of_genus[data_dict[key]['genus']].append(
+                '{}_{}'.format(data_dict[key]['genus'], data_dict[key]['specific_epithet']))
             gse_c += 1
     print(json.dumps(family, indent=4))
     print(json.dumps(subfamily, indent=4))
     print(json.dumps(genus, indent=4))
     print(json.dumps(specific_epithet, indent=4))
     print(json.dumps(genus_specific_epithet, indent=4))
+
+    print(json.dumps(child_of_family, indent=4))
+    print(json.dumps(child_of_subfamily, indent=4))
+    print(json.dumps(child_of_genus, indent=4))
 
 
 if __name__ == '__main__':

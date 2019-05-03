@@ -28,24 +28,14 @@ class MultiLevelCELoss(torch.nn.Module):
         print('==Using the following weights config for multi level cross entropy loss: {}'.format(self.level_weights))
 
     def forward(self, outputs, labels, level_labels):
-        # print('Outputs: {}'.format(outputs))
-        # print('Level labels: {}'.format(level_labels))
-        # print('Levels: {}'.format(self.labelmap.levels))
         loss = 0.0
         for level_id, level in enumerate(self.labelmap.levels):
             if level_id == 0:
                 loss += self.level_weights[level_id] * self.criterion[level_id](outputs[:, 0:level], level_labels[:, level_id])
-                # print(self.weights[level_id] * self.criterion(outputs[:, 0:level], level_labels[:, level_id]))
             else:
                 start = sum([self.labelmap.levels[l_id] for l_id in range(level_id)])
-                # print([self.labelmap.levels[l_id] for l_id in range(level_id)], level)
-                # print(outputs[:, start:start+level])
-                # print(self.weights[level_id] * self.criterion(outputs[:, start:start+level],
-                #                                                 level_labels[:, level_id]))
                 loss += self.level_weights[level_id] * self.criterion[level_id](outputs[:, start:start + level],
                                                                           level_labels[:, level_id])
-        # print('Loss per sample: {}'.format(loss))
-        # print('Avg loss: {}'.format(torch.mean(loss)))
         return torch.mean(loss)
 
 

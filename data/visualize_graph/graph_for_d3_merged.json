@@ -1,0 +1,7312 @@
+{
+    "nodes": [
+        {
+            "name": "Hesperiidae",
+            "count": 2592,
+            "level": "family",
+            "color": "b"
+        },
+        {
+            "name": "Heteropterinae",
+            "count": 197,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Carterocephalus_palaemon",
+            "count": 139,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Carterocephalus_silvicola",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Heteropterus_morpheus",
+            "count": 54,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hesperiinae",
+            "count": 807,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Thymelicus_sylvestris",
+            "count": 163,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Thymelicus_lineola",
+            "count": 191,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Thymelicus_hamza",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Thymelicus_acteon",
+            "count": 62,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hesperia_comma",
+            "count": 178,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Ochlodes_venata",
+            "count": 202,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gegenes_nostrodamus",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrginae",
+            "count": 1588,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Erynnis_tages",
+            "count": 173,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Carcharodus_alceae",
+            "count": 72,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Carcharodus_lavatherae",
+            "count": 48,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Carcharodus_baeticus",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Carcharodus_floccifera",
+            "count": 63,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Spialia_sertorius",
+            "count": 185,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Spialia_orbifer",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Muschampia_cribrellum",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Muschampia_proto",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Muschampia_tessellum",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_accretus",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_alveus",
+            "count": 220,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_armoricanus",
+            "count": 30,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_andromedae",
+            "count": 42,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_cacaliae",
+            "count": 85,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_carlinae",
+            "count": 77,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_carthami",
+            "count": 110,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_malvae",
+            "count": 149,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_cinarae",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_cirsii",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_centaureae",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_bellieri",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_malvoides",
+            "count": 117,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_onopordi",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_serratulae",
+            "count": 146,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_sidae",
+            "count": 12,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyrgus_warrenensis",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilionidae",
+            "count": 5504,
+            "level": "family",
+            "color": "b"
+        },
+        {
+            "name": "Parnassiinae",
+            "count": 4716,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Parnassius_sacerdos",
+            "count": 417,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Archon_apollinus",
+            "count": 44,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Archon_apollinaris",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_apollo",
+            "count": 1980,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_geminus",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_mnemosyne",
+            "count": 487,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_glacialis",
+            "count": 70,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Sericinus_montela",
+            "count": 63,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zerynthia_rumina",
+            "count": 74,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zerynthia_polyxena",
+            "count": 200,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Allancastria_cerisyi",
+            "count": 42,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Allancastria_deyrollei",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Allancastria_caucasica",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Allancastria_cretica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Bhutanitis_thaidina",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Bhutanitis_lidderdalii",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Bhutanitis_mansfieldi",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Luehdorfia_japonica",
+            "count": 15,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Luehdorfia_puziloi",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Luehdorfia_chinensis",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilioninae",
+            "count": 788,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Papilio_machaon",
+            "count": 288,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_stubbendorfii",
+            "count": 40,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_apollonius",
+            "count": 47,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_alexanor",
+            "count": 31,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_hospiton",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_xuthus",
+            "count": 15,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Iphiclides_podalirius",
+            "count": 225,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Iphiclides_feisthamelii",
+            "count": 24,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieridae",
+            "count": 6842,
+            "level": "family",
+            "color": "b"
+        },
+        {
+            "name": "Dismorphiinae",
+            "count": 781,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Leptidea_sinapis",
+            "count": 508,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coliadinae",
+            "count": 2538,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Colias_palaeno",
+            "count": 363,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Iphiclides_podalirinus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_pelidne",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Leptidea_juvernica",
+            "count": 242,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Leptidea_morsei",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Leptidea_amurensis",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Leptidea_duponcheli",
+            "count": 19,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_marcopolo",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_ladakensis",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_grumi",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_nebulosa",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_nastes",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_tamerlana",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_cocandica",
+            "count": 15,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_sieversi",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_sifanica",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_alpherakii",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_christophi",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_shahfuladi",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_tyche",
+            "count": 44,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_phicomone",
+            "count": 395,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_montium",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_alfacariensis",
+            "count": 326,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_hyale",
+            "count": 209,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_erate",
+            "count": 18,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_erschoffi",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_romanovi",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_regia",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_stoliczkana",
+            "count": 19,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_hecla",
+            "count": 17,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_eogene",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_thisoa",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_staudingeri",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_lada",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_baeckeri",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_adelaidae",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_fieldii",
+            "count": 19,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_heos",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_caucasica",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_diva",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_chrysotheme",
+            "count": 31,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_balcanica",
+            "count": 31,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_myrmidone",
+            "count": 57,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_croceus",
+            "count": 439,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_felderi",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_viluiensis",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pierinae",
+            "count": 3523,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Aporia_crataegi",
+            "count": 184,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_aurorina",
+            "count": 19,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_chlorocoma",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_libanotica",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_wiskotti",
+            "count": 42,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Catopsilia_florella",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_rhamni",
+            "count": 158,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_maxima",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colias_sagartia",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_cleopatra",
+            "count": 123,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_cleobule",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_amintha",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_mahaguru",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Sinopieris_davidis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Sinopieris_venata",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aporia_procris",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aporia_hippia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Mesapia_peloria",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aporia_potanini",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aporia_nabellica",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Baltia_butleri",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Baltia_shawii",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_brassicae",
+            "count": 176,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_cheiranthi",
+            "count": 42,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_rapae",
+            "count": 542,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalidae",
+            "count": 20919,
+            "level": "family",
+            "color": "b"
+        },
+        {
+            "name": "Satyrinae",
+            "count": 11034,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Erebia_gorge",
+            "count": 231,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_aethiopellus",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_mnestra",
+            "count": 132,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_epistygne",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_turanica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_ottomana",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_tyndarus",
+            "count": 403,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_oeme",
+            "count": 149,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_lefebvrei",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_melas",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_zapateri",
+            "count": 17,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_neoridas",
+            "count": 18,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_montana",
+            "count": 199,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_cassioides",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_nivalis",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_scipio",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_pronoe",
+            "count": 180,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_styx",
+            "count": 58,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_meolans",
+            "count": 155,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_palarica",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_pandrose",
+            "count": 194,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_hispania",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_meta",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_wanga",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_theano",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_erinnyn",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Berberia_lambessanus",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Berberia_abdelkader",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_disa",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_rossii",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_cyclopius",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Paralasa_hades",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Proterebia_afra",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Boeberia_parmenio",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Loxerebia_saxicola",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Proteerbia_afra",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_rondoui",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_mannii",
+            "count": 129,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_ergane",
+            "count": 27,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_krueperi",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_melete",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_napi",
+            "count": 929,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_nesis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaenidae",
+            "count": 12206,
+            "level": "family",
+            "color": "b"
+        },
+        {
+            "name": "Lycaeninae",
+            "count": 2199,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Lycaena_thersamon",
+            "count": 39,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_lampon",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_solskyi",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_splendens",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_candens",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_ochimus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_hippothoe",
+            "count": 418,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_tityrus",
+            "count": 484,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_asabinus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_thetis",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalinae",
+            "count": 5691,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Melitaea_athalia",
+            "count": 696,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Heliconiinae",
+            "count": 3358,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Argynnis_paphia",
+            "count": 247,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Heliophorus_tamu",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Heliophorus_brahma",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Heliophorus_epicles",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Heliophorus_androcles",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cethosia_biblis",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Childrena_childreni",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Argyronome_ruslana",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_parthenoides",
+            "count": 280,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pieris_bryoniae",
+            "count": 307,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pontia_edusa",
+            "count": 198,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pontia_daplidice",
+            "count": 34,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pontia_callidice",
+            "count": 152,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_thibetana",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_bambusarum",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_bieti",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_scolymus",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zegris_pyrothoe",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zegris_eupheme",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zegris_fausti",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_simplonia",
+            "count": 95,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_daphalis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pontia_chloridice",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_belemia",
+            "count": 28,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_ausonia",
+            "count": 31,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_tagis",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_crameri",
+            "count": 57,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_insularis",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_orientalis",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_transcaspica",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_charlonia",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_penia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_tomyris",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_falloui",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euchloe_pulverata",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_gruneri",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_damone",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_cardamines",
+            "count": 269,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_belia",
+            "count": 29,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Anthocharis_euphenoides",
+            "count": 75,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colotis_fausta",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colotis_phisadia",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colotis_protractus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Colotis_evagore",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Riodinidae",
+            "count": 146,
+            "level": "family",
+            "color": "b"
+        },
+        {
+            "name": "Nemeobiinae",
+            "count": 146,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Hamearis_lucina",
+            "count": 141,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polycaena_tamerlana",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_phlaeas",
+            "count": 300,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_helle",
+            "count": 102,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_pang",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_caspius",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_margelanica",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_li",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_dispar",
+            "count": 78,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_alciphron",
+            "count": 270,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_virgaureae",
+            "count": 422,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_kasyapa",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lycaena_Tschamut, Tujetsch",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Theclinae",
+            "count": 927,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Favonius_quercus",
+            "count": 128,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aphnaeinae",
+            "count": 14,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Cigaritis_cilissa",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cigaritis_siphax",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cigaritis_zohra",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cigaritis_allardi",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tomares_ballus",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tomares_nogelii",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tomares_mauretanicus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tomares_romanovi",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tomares_callimachus",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chrysozephyrus_smaragdinus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Ussuriana_micahaelis",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coreana_raphaelis",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Japonica_saepestriata",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Thecla_betulae",
+            "count": 144,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatinae",
+            "count": 9066,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Celastrina_argiolus",
+            "count": 186,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Artopoetes_pryeri",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Laeosopis_roboris",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Callophrys_rubi",
+            "count": 162,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zizeeria_knysna",
+            "count": 27,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudozizeeria_maha",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tarucus_theophrastus",
+            "count": 12,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cyclyrius_webbianus",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Tarucus_balkanica",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Leptotes_pirithous",
+            "count": 100,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_spini",
+            "count": 124,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lampides_boeticus",
+            "count": 94,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_w-album",
+            "count": 62,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_ilicis",
+            "count": 107,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_pruni",
+            "count": 58,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_acaciae",
+            "count": 62,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_esculi",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Azanus_jesous",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrium_ledereri",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neolycaena_rhymnus",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Zizeeria_karsandra",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Callophrys_avis",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Leptotes_pirthous",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neolycaena_davidi",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_minimus",
+            "count": 309,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maculinea_rebeli",
+            "count": 62,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maculinea_arion",
+            "count": 313,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_alcetas",
+            "count": 41,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_lorquinii",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_osiris",
+            "count": 73,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_argiades",
+            "count": 107,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_decolorata",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cupido_staudingeri",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Glaucopsyche_melanops",
+            "count": 15,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Glaucopsyche_alexis",
+            "count": 171,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maculinea_alcon",
+            "count": 80,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maculinea_teleius",
+            "count": 162,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudophilotes_abencerragus",
+            "count": 18,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudophilotes_bavius",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudophilotes_panoptes",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudophilotes_vicrama",
+            "count": 15,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudophilotes_baton",
+            "count": 107,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maculinea_nausithous",
+            "count": 120,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Scolitantides_orion",
+            "count": 178,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Iolana_gigantea",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Iolana_iolas",
+            "count": 71,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejus_argus",
+            "count": 454,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejus_eversmanni",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Glaucopsyche_paphos",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Caerulea_coeli",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Glaucopsyche_astraea",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Afarsia_morgiana",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejus_argyrognomon",
+            "count": 124,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Agriades_optilete",
+            "count": 154,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Alpherakya_devanica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejidea_loewii",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejus_idas",
+            "count": 760,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kretania_trappi",
+            "count": 100,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kretania_pylaon",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kretania_psylorita",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kretania_martini",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kretania_allardii",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maurus_vogelii",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejus_samudra",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Agriades_orbitulus",
+            "count": 204,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aricia_artaxerxes",
+            "count": 260,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pamiria_omphisa",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pamiria_galathea",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Agriades_glandon",
+            "count": 235,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aricia_agestis",
+            "count": 149,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Plebejus_maracandica",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_damon",
+            "count": 261,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aricia_montensis",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Eumedonia_eumedon",
+            "count": 162,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aricia_nicias",
+            "count": 120,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Cyaniris_semiargus",
+            "count": 532,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_dolus",
+            "count": 25,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aricia_isaurica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aricia_anteros",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_menalcas",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_antidolus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_phyllis",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_iphidamon",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_damonides",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_poseidon",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_damone",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_ripartii",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_admetus",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_humedasae",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_dorylas",
+            "count": 217,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_erschoffi",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_thersites",
+            "count": 127,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_escheri",
+            "count": 177,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lysandra_bellargus",
+            "count": 510,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lysandra_coridon",
+            "count": 584,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lysandra_hispana",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lysandra_albicans",
+            "count": 26,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lysandra_caelestissima",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lysandra_punctifera",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_nivescens",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_aedon",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_myrrha",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_atys",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_icarus",
+            "count": 780,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_caeruleus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Glabroculus_elvira",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Glabroculus_cyane",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_elbursica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_firdussii",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_stoliczkana",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_golgus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neolysandra_ellisoni",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neolysandra_coelestina",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neolysandra_corona",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_amandus",
+            "count": 163,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_venus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_daphnis",
+            "count": 153,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_eros",
+            "count": 198,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Polyommatus_celina",
+            "count": 65,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Libytheinae",
+            "count": 29,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Libythea_celtis",
+            "count": 29,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Danainae",
+            "count": 15,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Danaus_plexippus",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Danaus_chrysippus",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Charaxinae",
+            "count": 14,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Charaxes_jasius",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Apaturinae",
+            "count": 307,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Mimathyma_nycteis",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Apatura_iris",
+            "count": 120,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Apatura_ilia",
+            "count": 161,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Limenitidinae",
+            "count": 471,
+            "level": "subfamily",
+            "color": "r"
+        },
+        {
+            "name": "Limenitis_reducta",
+            "count": 123,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Apatura_metis",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euapatura_mirza",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hestina_japonica",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Timelaea_albescens",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Limenitis_populi",
+            "count": 69,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Limenitis_camilla",
+            "count": 163,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Mimathyma_schrenckii",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Thaleropis_ionia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parasarpa_albomaculata",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Limenitis_sydyi",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lelecella_limenitoides",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neptis_sappho",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neptis_alwina",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neptis_rivularis",
+            "count": 82,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_antiopa",
+            "count": 137,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_polychloros",
+            "count": 139,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_xanthomelas",
+            "count": 15,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_l-album",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_urticae",
+            "count": 301,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Athyma_punctata",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Athyma_perius",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neptis_pryeri",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_ichnusa",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_ladakensis",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_egea",
+            "count": 57,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_c-album",
+            "count": 199,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Inachis_io",
+            "count": 177,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Araschnia_burejana",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Araschnia_levana",
+            "count": 360,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_canace",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_c-aureum",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Nymphalis_rizana",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Junonia_hierta",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Vanessa_atalanta",
+            "count": 151,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Vanessa_vulcania",
+            "count": 51,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Vanessa_virginiensis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Vanessa_indica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Vanessa_cardui",
+            "count": 176,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Argynnis_pandora",
+            "count": 59,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Speyeria_aglaja",
+            "count": 243,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Fabriciana_niobe",
+            "count": 237,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Speyeria_clara",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Argyronome_laodice",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Fabriciana_adippe",
+            "count": 198,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Fabriciana_jainadeva",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Fabriciana_auresiana",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Fabriciana_nerippe",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Fabriciana_elisa",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Issoria_lathonia",
+            "count": 179,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Brenthis_hecate",
+            "count": 28,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Brenthis_daphne",
+            "count": 105,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Brenthis_ino",
+            "count": 270,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Boloria_pales",
+            "count": 218,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kuekenthaliella_eugenia",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Boloria_sipora",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Boloria_aquilonaris",
+            "count": 63,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Boloria_napaea",
+            "count": 306,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_selene",
+            "count": 218,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Proclossiana_eunomia",
+            "count": 49,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Boloria_graeca",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_thore",
+            "count": 97,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_dia",
+            "count": 204,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_euphrosyne",
+            "count": 288,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_titania",
+            "count": 282,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_freija",
+            "count": 12,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_iphigenia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Clossiana_chariclea",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_cinxia",
+            "count": 208,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_aetherie",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_arduinna",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_phoebe",
+            "count": 244,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_didyma",
+            "count": 572,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_varia",
+            "count": 175,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_aurelia",
+            "count": 164,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_asteria",
+            "count": 111,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_diamina",
+            "count": 409,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Meiltaea_didyma",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_punica",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_britomartis",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_fergana",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_acraeina",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_trivia",
+            "count": 21,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_persea",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_ambigua",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_deione",
+            "count": 74,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_chitralensis",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_saxatilis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_turanica",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_minerva",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_scotosia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_maturna",
+            "count": 35,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_ichnea",
+            "count": 77,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_cynthia",
+            "count": 268,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_aurinia",
+            "count": 490,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_sibirica",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_iduna",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_titea",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_parce",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_lachesis",
+            "count": 49,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_galathea",
+            "count": 418,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_provincialis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Euphydryas_desfontainii",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_russiae",
+            "count": 27,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_larissa",
+            "count": 19,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_ines",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_pherusa",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_occitanica",
+            "count": 40,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_arge",
+            "count": 18,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_meridionalis",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_leda",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_halimede",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_lugens",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melanargia_hylata",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Davidina_armandi",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_semele",
+            "count": 174,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chazara_briseis",
+            "count": 160,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_parisatis",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_stulta",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_fidia",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_genava",
+            "count": 135,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_aristaeus",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_fagi",
+            "count": 98,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_wyssii",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_fatua",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_statilinus",
+            "count": 120,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_syriaca",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_neomiris",
+            "count": 13,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hipparchia_azorina",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chazara_prieuri",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chazara_bischoffii",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chazara_enervata",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chazara_persephone",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Chazara_kaufmanni",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_hippolyte",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_pelopea",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_alpina",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_beroe",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_schahrudensis",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_mniszechii",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_geyeri",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_telephassa",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_anthelea",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_amalthea",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_graeca",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_cingovskii",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pseudochazara_orestes",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Karanasa_abramovi",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Karanasa_modesta",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Karanasa_huebneri",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Paroeneis_palaearcticus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Paroeneis_pumilis",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Oeneis_magna",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Oeneis_tarpeia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Oeneis_glacialis",
+            "count": 138,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Oeneis_norna",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrus_actaea",
+            "count": 12,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrus_parthicus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Satyrus_ferula",
+            "count": 199,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Minois_dryas",
+            "count": 227,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arethusana_arethusa",
+            "count": 43,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Brintesia_circe",
+            "count": 88,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maniola_jurtina",
+            "count": 415,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Aphantopus_hyperantus",
+            "count": 204,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_pulchra",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_pulchella",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_davendra",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_cadusia",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_amardaea",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_lycaon",
+            "count": 134,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Maniola_nurag",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_lupina",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_capella",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Hyponephele_interposita",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyronia_tithonus",
+            "count": 189,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_gardetta",
+            "count": 341,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_tullia",
+            "count": 133,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyronia_bathseba",
+            "count": 59,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyronia_cecilia",
+            "count": 59,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_corinna",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_sunbecca",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_pamphilus",
+            "count": 389,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pyronia_janiroides",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_dorus",
+            "count": 24,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_elbana",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_darwiniana",
+            "count": 144,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_arcania",
+            "count": 242,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pararge_aegeria",
+            "count": 280,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_leander",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_orientalis",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Ypthima_baldus",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_iphioides",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_glycerion",
+            "count": 146,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_hero",
+            "count": 47,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_oedippus",
+            "count": 46,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Coenonympha_mongolica",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Ypthima_asterope",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pararge_xiphioides",
+            "count": 52,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Pararge_xiphia",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lasiommata_megera",
+            "count": 215,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lasiommata_petropolitana",
+            "count": 101,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lasiommata_maera",
+            "count": 305,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lasiommata_paramegaera",
+            "count": 9,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lopinga_achine",
+            "count": 137,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_euryale",
+            "count": 449,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kirinia_roxelana",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kirinia_climene",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Neope_goschkevitschii",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lethe_diana",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Mycalesis_francisca",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_ligea",
+            "count": 207,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Lethe_sicelis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Mycalesis_gotama",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kirinia_eversmanni",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_eriphyle",
+            "count": 47,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_manto",
+            "count": 305,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_epiphron",
+            "count": 275,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_flavofasciata",
+            "count": 114,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_bubastis",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_claudina",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_christi",
+            "count": 87,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_pharte",
+            "count": 163,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_aethiops",
+            "count": 359,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_melampus",
+            "count": 358,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_sudetica",
+            "count": 12,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_neriene",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_triaria",
+            "count": 119,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_medusa",
+            "count": 257,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_alberganus",
+            "count": 264,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Erebia_pluto",
+            "count": 139,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Gonepteryx_farinosa",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Melitaea_nevadensis",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Agriades_pheretiades",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Kretania_eurypilus",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_eversmannii",
+            "count": 78,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_ariadne",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_stenosemus",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_hardwickii",
+            "count": 35,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_charltonius",
+            "count": 45,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_imperator",
+            "count": 29,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_acdestis",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_cardinal",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_szechenyii",
+            "count": 28,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_delphius",
+            "count": 78,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_maximinus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_staudingeri",
+            "count": 29,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_orleans",
+            "count": 20,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_augustus",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_loxias",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_charltontonius",
+            "count": 17,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_inopinatus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_autocrator",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_cardinalgebi",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_patricius",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_stoliczkanus",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_nordmanni",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_simo",
+            "count": 16,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_bremeri",
+            "count": 54,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_actius",
+            "count": 44,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_andreji",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_cephalus",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_maharaja",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_tenedius",
+            "count": 19,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_acco",
+            "count": 12,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_boedromius",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_simonius",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_tianschanicus",
+            "count": 76,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_phoebus",
+            "count": 54,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_honrathi",
+            "count": 10,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_ruckbeili",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_epaphus",
+            "count": 115,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_nomion",
+            "count": 118,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_jacquemonti",
+            "count": 34,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_mercurius",
+            "count": 7,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_tibetanus",
+            "count": 14,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_clodius",
+            "count": 39,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_smintheus",
+            "count": 81,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Parnassius_behrii",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_mullah",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_mencius",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_plutonius",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_dehaani",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_polytes",
+            "count": 25,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_horishana",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_bootes",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Agehana_elwesi",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_maackii",
+            "count": 24,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_impediens",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_polyeuctes",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_mandarinus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_parus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_alcinous",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_alebion",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_helenus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Teinopalpus_imperialis",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_memnon",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_eurous",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Graphium_sarpedon",
+            "count": 8,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_doson",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_tamerlanus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_bianor",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_paris",
+            "count": 6,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_hopponis",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Atrophaneura_nevilli",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_krishna",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_macilentus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Arisbe_leechi",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_protenor",
+            "count": 11,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Graphium_cloanthus",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_thaiwanus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_chaon",
+            "count": 1,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_castor",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Meandrusa_sciron",
+            "count": 4,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Papilio_arcturus",
+            "count": 3,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Teinopalpus_aureus",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Agriades_lehanus",
+            "count": 5,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        },
+        {
+            "name": "Carterocephalus_dieckmanni",
+            "count": 2,
+            "level": "genus_specific_epithet",
+            "color": "m"
+        }
+    ],
+    "links": [
+        {
+            "source": "Hesperiidae",
+            "target": "Heteropterinae"
+        },
+        {
+            "source": "Hesperiidae",
+            "target": "Hesperiinae"
+        },
+        {
+            "source": "Hesperiidae",
+            "target": "Pyrginae"
+        },
+        {
+            "source": "Heteropterinae",
+            "target": "Carterocephalus_palaemon"
+        },
+        {
+            "source": "Heteropterinae",
+            "target": "Carterocephalus_silvicola"
+        },
+        {
+            "source": "Heteropterinae",
+            "target": "Heteropterus_morpheus"
+        },
+        {
+            "source": "Heteropterinae",
+            "target": "Carterocephalus_dieckmanni"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Thymelicus_sylvestris"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Thymelicus_lineola"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Thymelicus_hamza"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Thymelicus_acteon"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Hesperia_comma"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Ochlodes_venata"
+        },
+        {
+            "source": "Hesperiinae",
+            "target": "Gegenes_nostrodamus"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Erynnis_tages"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Carcharodus_alceae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Carcharodus_lavatherae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Carcharodus_baeticus"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Carcharodus_floccifera"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Spialia_sertorius"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Spialia_orbifer"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Muschampia_cribrellum"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Muschampia_proto"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Muschampia_tessellum"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_accretus"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_alveus"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_armoricanus"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_andromedae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_cacaliae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_carlinae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_carthami"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_malvae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_cinarae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_cirsii"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_centaureae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_bellieri"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_malvoides"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_onopordi"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_serratulae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_sidae"
+        },
+        {
+            "source": "Pyrginae",
+            "target": "Pyrgus_warrenensis"
+        },
+        {
+            "source": "Papilionidae",
+            "target": "Parnassiinae"
+        },
+        {
+            "source": "Papilionidae",
+            "target": "Papilioninae"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_sacerdos"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Archon_apollinus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Archon_apollinaris"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_apollo"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_geminus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_mnemosyne"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_glacialis"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Sericinus_montela"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Zerynthia_rumina"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Zerynthia_polyxena"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Allancastria_cerisyi"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Allancastria_deyrollei"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Allancastria_caucasica"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Allancastria_cretica"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Bhutanitis_thaidina"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Bhutanitis_lidderdalii"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Bhutanitis_mansfieldi"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Luehdorfia_japonica"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Luehdorfia_puziloi"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Luehdorfia_chinensis"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_stubbendorfii"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_apollonius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_eversmannii"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_ariadne"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_stenosemus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_hardwickii"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_charltonius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_imperator"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_acdestis"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_cardinal"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_szechenyii"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_delphius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_maximinus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_staudingeri"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_orleans"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_augustus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_loxias"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_charltontonius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_inopinatus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_autocrator"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_cardinalgebi"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_patricius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_stoliczkanus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_nordmanni"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_simo"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_bremeri"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_actius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_andreji"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_cephalus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_maharaja"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_tenedius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_acco"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_boedromius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_simonius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_tianschanicus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_phoebus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_honrathi"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_ruckbeili"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_epaphus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_nomion"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_jacquemonti"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_mercurius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_tibetanus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_clodius"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_smintheus"
+        },
+        {
+            "source": "Parnassiinae",
+            "target": "Parnassius_behrii"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_machaon"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_alexanor"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_hospiton"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_xuthus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Iphiclides_podalirius"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Iphiclides_feisthamelii"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Iphiclides_podalirinus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_mullah"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_mencius"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_plutonius"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_dehaani"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_polytes"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_horishana"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_bootes"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Agehana_elwesi"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_maackii"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_impediens"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_polyeuctes"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_mandarinus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_parus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_alcinous"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_alebion"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_helenus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Teinopalpus_imperialis"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_memnon"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_eurous"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Graphium_sarpedon"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_doson"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_tamerlanus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_bianor"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_paris"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_hopponis"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Atrophaneura_nevilli"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_krishna"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_macilentus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Arisbe_leechi"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_protenor"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Graphium_cloanthus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_thaiwanus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_chaon"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_castor"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Meandrusa_sciron"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Papilio_arcturus"
+        },
+        {
+            "source": "Papilioninae",
+            "target": "Teinopalpus_aureus"
+        },
+        {
+            "source": "Pieridae",
+            "target": "Dismorphiinae"
+        },
+        {
+            "source": "Pieridae",
+            "target": "Coliadinae"
+        },
+        {
+            "source": "Pieridae",
+            "target": "Pierinae"
+        },
+        {
+            "source": "Dismorphiinae",
+            "target": "Leptidea_sinapis"
+        },
+        {
+            "source": "Dismorphiinae",
+            "target": "Leptidea_juvernica"
+        },
+        {
+            "source": "Dismorphiinae",
+            "target": "Leptidea_morsei"
+        },
+        {
+            "source": "Dismorphiinae",
+            "target": "Leptidea_amurensis"
+        },
+        {
+            "source": "Dismorphiinae",
+            "target": "Leptidea_duponcheli"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_palaeno"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_pelidne"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_marcopolo"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_ladakensis"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_grumi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_nebulosa"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_nastes"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_tamerlana"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_cocandica"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_sieversi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_sifanica"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_alpherakii"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_christophi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_shahfuladi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_tyche"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_phicomone"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_montium"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_alfacariensis"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_hyale"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_erate"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_erschoffi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_romanovi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_regia"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_stoliczkana"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_hecla"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_eogene"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_thisoa"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_staudingeri"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_lada"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_baeckeri"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_adelaidae"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_fieldii"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_heos"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_caucasica"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_diva"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_chrysotheme"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_balcanica"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_myrmidone"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_croceus"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_felderi"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_viluiensis"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_aurorina"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_chlorocoma"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_libanotica"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_wiskotti"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Catopsilia_florella"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_rhamni"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_maxima"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Colias_sagartia"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_cleopatra"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_cleobule"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_amintha"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_mahaguru"
+        },
+        {
+            "source": "Coliadinae",
+            "target": "Gonepteryx_farinosa"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Aporia_crataegi"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Sinopieris_davidis"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Sinopieris_venata"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Aporia_procris"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Aporia_hippia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Mesapia_peloria"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Aporia_potanini"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Aporia_nabellica"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Baltia_butleri"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Baltia_shawii"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_brassicae"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_cheiranthi"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_rapae"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_mannii"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_ergane"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_krueperi"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_melete"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_napi"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_nesis"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pieris_bryoniae"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pontia_edusa"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pontia_daplidice"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pontia_callidice"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_thibetana"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_bambusarum"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_bieti"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_scolymus"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Zegris_pyrothoe"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Zegris_eupheme"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Zegris_fausti"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_simplonia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_daphalis"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Pontia_chloridice"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_belemia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_ausonia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_tagis"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_crameri"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_insularis"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_orientalis"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_transcaspica"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_charlonia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_penia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_tomyris"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_falloui"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Euchloe_pulverata"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_gruneri"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_damone"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_cardamines"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_belia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Anthocharis_euphenoides"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Colotis_fausta"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Colotis_phisadia"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Colotis_protractus"
+        },
+        {
+            "source": "Pierinae",
+            "target": "Colotis_evagore"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Satyrinae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Nymphalinae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Heliconiinae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Libytheinae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Danainae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Charaxinae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Apaturinae"
+        },
+        {
+            "source": "Nymphalidae",
+            "target": "Limenitidinae"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_gorge"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_aethiopellus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_mnestra"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_epistygne"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_turanica"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_ottomana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_tyndarus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_oeme"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_lefebvrei"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_melas"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_zapateri"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_neoridas"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_montana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_cassioides"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_nivalis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_scipio"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_pronoe"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_styx"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_meolans"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_palarica"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_pandrose"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_hispania"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_meta"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_wanga"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_theano"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_erinnyn"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Berberia_lambessanus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Berberia_abdelkader"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_disa"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_rossii"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_cyclopius"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Paralasa_hades"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Proterebia_afra"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Boeberia_parmenio"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Loxerebia_saxicola"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Proteerbia_afra"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_rondoui"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_titea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_parce"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_lachesis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_galathea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_russiae"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_larissa"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_ines"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_pherusa"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_occitanica"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_arge"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_meridionalis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_leda"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_halimede"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_lugens"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Melanargia_hylata"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Davidina_armandi"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_semele"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Chazara_briseis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_parisatis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_stulta"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_fidia"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_genava"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_aristaeus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_fagi"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_wyssii"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_fatua"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_statilinus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_syriaca"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_neomiris"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hipparchia_azorina"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Chazara_prieuri"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Chazara_bischoffii"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Chazara_enervata"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Chazara_persephone"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Chazara_kaufmanni"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_hippolyte"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_pelopea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_alpina"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_beroe"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_schahrudensis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_mniszechii"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_geyeri"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_telephassa"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_anthelea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_amalthea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_graeca"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_cingovskii"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pseudochazara_orestes"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Karanasa_abramovi"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Karanasa_modesta"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Karanasa_huebneri"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Paroeneis_palaearcticus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Paroeneis_pumilis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Oeneis_magna"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Oeneis_tarpeia"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Oeneis_glacialis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Oeneis_norna"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Satyrus_actaea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Satyrus_parthicus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Satyrus_ferula"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Minois_dryas"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Arethusana_arethusa"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Brintesia_circe"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Maniola_jurtina"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Aphantopus_hyperantus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_pulchra"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_pulchella"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_davendra"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_cadusia"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_amardaea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_lycaon"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Maniola_nurag"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_lupina"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_capella"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Hyponephele_interposita"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pyronia_tithonus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_gardetta"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_tullia"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pyronia_bathseba"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pyronia_cecilia"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_corinna"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_sunbecca"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_pamphilus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pyronia_janiroides"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_dorus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_elbana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_darwiniana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_arcania"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pararge_aegeria"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_leander"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_orientalis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Ypthima_baldus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_iphioides"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_glycerion"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_hero"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_oedippus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Coenonympha_mongolica"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Ypthima_asterope"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pararge_xiphioides"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Pararge_xiphia"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lasiommata_megera"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lasiommata_petropolitana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lasiommata_maera"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lasiommata_paramegaera"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lopinga_achine"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_euryale"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Kirinia_roxelana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Kirinia_climene"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Neope_goschkevitschii"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lethe_diana"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Mycalesis_francisca"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_ligea"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Lethe_sicelis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Mycalesis_gotama"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Kirinia_eversmanni"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_eriphyle"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_manto"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_epiphron"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_flavofasciata"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_bubastis"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_claudina"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_christi"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_pharte"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_aethiops"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_melampus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_sudetica"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_neriene"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_triaria"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_medusa"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_alberganus"
+        },
+        {
+            "source": "Satyrinae",
+            "target": "Erebia_pluto"
+        },
+        {
+            "source": "Lycaenidae",
+            "target": "Lycaeninae"
+        },
+        {
+            "source": "Lycaenidae",
+            "target": "Theclinae"
+        },
+        {
+            "source": "Lycaenidae",
+            "target": "Aphnaeinae"
+        },
+        {
+            "source": "Lycaenidae",
+            "target": "Polyommatinae"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_thersamon"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_lampon"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_solskyi"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_splendens"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_candens"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_ochimus"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_hippothoe"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_tityrus"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_asabinus"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_thetis"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Heliophorus_tamu"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Heliophorus_brahma"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Heliophorus_epicles"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Heliophorus_androcles"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_phlaeas"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_helle"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_pang"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_caspius"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_margelanica"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_li"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_dispar"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_alciphron"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_virgaureae"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_kasyapa"
+        },
+        {
+            "source": "Lycaeninae",
+            "target": "Lycaena_Tschamut, Tujetsch"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_athalia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_parthenoides"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_antiopa"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_polychloros"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_xanthomelas"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_l-album"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_urticae"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_ichnusa"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_ladakensis"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_egea"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_c-album"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Inachis_io"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Araschnia_burejana"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Araschnia_levana"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_canace"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_c-aureum"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Nymphalis_rizana"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Junonia_hierta"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Vanessa_atalanta"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Vanessa_vulcania"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Vanessa_virginiensis"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Vanessa_indica"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Vanessa_cardui"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_cinxia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_aetherie"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_arduinna"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_phoebe"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_didyma"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_varia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_aurelia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_asteria"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_diamina"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Meiltaea_didyma"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_punica"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_britomartis"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_fergana"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_acraeina"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_trivia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_persea"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_ambigua"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_deione"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_chitralensis"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_saxatilis"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_turanica"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_minerva"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_scotosia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_maturna"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_ichnea"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_cynthia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_aurinia"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_sibirica"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_iduna"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_provincialis"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Euphydryas_desfontainii"
+        },
+        {
+            "source": "Nymphalinae",
+            "target": "Melitaea_nevadensis"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Argynnis_paphia"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Cethosia_biblis"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Childrena_childreni"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Argyronome_ruslana"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Argynnis_pandora"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Speyeria_aglaja"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Fabriciana_niobe"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Speyeria_clara"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Argyronome_laodice"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Fabriciana_adippe"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Fabriciana_jainadeva"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Fabriciana_auresiana"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Fabriciana_nerippe"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Fabriciana_elisa"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Issoria_lathonia"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Brenthis_hecate"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Brenthis_daphne"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Brenthis_ino"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Boloria_pales"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Kuekenthaliella_eugenia"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Boloria_sipora"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Boloria_aquilonaris"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Boloria_napaea"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_selene"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Proclossiana_eunomia"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Boloria_graeca"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_thore"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_dia"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_euphrosyne"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_titania"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_freija"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_iphigenia"
+        },
+        {
+            "source": "Heliconiinae",
+            "target": "Clossiana_chariclea"
+        },
+        {
+            "source": "Riodinidae",
+            "target": "Nemeobiinae"
+        },
+        {
+            "source": "Nemeobiinae",
+            "target": "Hamearis_lucina"
+        },
+        {
+            "source": "Nemeobiinae",
+            "target": "Polycaena_tamerlana"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Favonius_quercus"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Tomares_ballus"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Tomares_nogelii"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Tomares_mauretanicus"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Tomares_romanovi"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Tomares_callimachus"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Chrysozephyrus_smaragdinus"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Ussuriana_micahaelis"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Coreana_raphaelis"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Japonica_saepestriata"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Thecla_betulae"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Artopoetes_pryeri"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Laeosopis_roboris"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Callophrys_rubi"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_spini"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_w-album"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_ilicis"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_pruni"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_acaciae"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_esculi"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Satyrium_ledereri"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Neolycaena_rhymnus"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Callophrys_avis"
+        },
+        {
+            "source": "Theclinae",
+            "target": "Neolycaena_davidi"
+        },
+        {
+            "source": "Aphnaeinae",
+            "target": "Cigaritis_cilissa"
+        },
+        {
+            "source": "Aphnaeinae",
+            "target": "Cigaritis_siphax"
+        },
+        {
+            "source": "Aphnaeinae",
+            "target": "Cigaritis_zohra"
+        },
+        {
+            "source": "Aphnaeinae",
+            "target": "Cigaritis_allardi"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Celastrina_argiolus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Zizeeria_knysna"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pseudozizeeria_maha"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Tarucus_theophrastus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cyclyrius_webbianus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Tarucus_balkanica"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Leptotes_pirithous"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lampides_boeticus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Azanus_jesous"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Zizeeria_karsandra"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Leptotes_pirthous"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_minimus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Maculinea_rebeli"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Maculinea_arion"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_alcetas"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_lorquinii"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_osiris"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_argiades"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_decolorata"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cupido_staudingeri"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Glaucopsyche_melanops"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Glaucopsyche_alexis"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Maculinea_alcon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Maculinea_teleius"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pseudophilotes_abencerragus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pseudophilotes_bavius"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pseudophilotes_panoptes"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pseudophilotes_vicrama"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pseudophilotes_baton"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Maculinea_nausithous"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Scolitantides_orion"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Iolana_gigantea"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Iolana_iolas"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejus_argus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejus_eversmanni"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Glaucopsyche_paphos"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Caerulea_coeli"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Glaucopsyche_astraea"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Afarsia_morgiana"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejus_argyrognomon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Agriades_optilete"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Alpherakya_devanica"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejidea_loewii"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejus_idas"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Kretania_trappi"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Kretania_pylaon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Kretania_psylorita"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Kretania_martini"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Kretania_allardii"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Maurus_vogelii"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejus_samudra"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Agriades_orbitulus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Aricia_artaxerxes"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pamiria_omphisa"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Pamiria_galathea"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Agriades_glandon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Aricia_agestis"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Plebejus_maracandica"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_damon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Aricia_montensis"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Eumedonia_eumedon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Aricia_nicias"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Cyaniris_semiargus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_dolus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Aricia_isaurica"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Aricia_anteros"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_menalcas"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_antidolus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_phyllis"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_iphidamon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_damonides"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_poseidon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_damone"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_ripartii"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_admetus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_humedasae"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_dorylas"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_erschoffi"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_thersites"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_escheri"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lysandra_bellargus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lysandra_coridon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lysandra_hispana"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lysandra_albicans"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lysandra_caelestissima"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Lysandra_punctifera"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_nivescens"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_aedon"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_myrrha"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_atys"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_icarus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_caeruleus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Glabroculus_elvira"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Glabroculus_cyane"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_elbursica"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_firdussii"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_stoliczkana"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_golgus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Neolysandra_ellisoni"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Neolysandra_coelestina"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Neolysandra_corona"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_amandus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_venus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_daphnis"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_eros"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Polyommatus_celina"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Agriades_pheretiades"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Kretania_eurypilus"
+        },
+        {
+            "source": "Polyommatinae",
+            "target": "Agriades_lehanus"
+        },
+        {
+            "source": "Libytheinae",
+            "target": "Libythea_celtis"
+        },
+        {
+            "source": "Danainae",
+            "target": "Danaus_plexippus"
+        },
+        {
+            "source": "Danainae",
+            "target": "Danaus_chrysippus"
+        },
+        {
+            "source": "Charaxinae",
+            "target": "Charaxes_jasius"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Mimathyma_nycteis"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Apatura_iris"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Apatura_ilia"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Apatura_metis"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Euapatura_mirza"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Hestina_japonica"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Timelaea_albescens"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Mimathyma_schrenckii"
+        },
+        {
+            "source": "Apaturinae",
+            "target": "Thaleropis_ionia"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Limenitis_reducta"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Limenitis_populi"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Limenitis_camilla"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Parasarpa_albomaculata"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Limenitis_sydyi"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Lelecella_limenitoides"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Neptis_sappho"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Neptis_alwina"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Neptis_rivularis"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Athyma_punctata"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Athyma_perius"
+        },
+        {
+            "source": "Limenitidinae",
+            "target": "Neptis_pryeri"
+        }
+    ]
+}

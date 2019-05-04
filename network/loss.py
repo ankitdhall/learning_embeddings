@@ -68,7 +68,7 @@ class LastLevelCELoss(torch.nn.Module):
     def forward(self, outputs, labels, level_labels):
         # print(outputs)
         # print(level_labels)
-        outputs_new = torch.zeros((outputs.shape[0], self.labelmap.n_classes))
+        outputs_new = torch.zeros((outputs.shape[0], self.labelmap.n_classes)).to(self.device)
         # print("outputs_new", outputs_new)
         outputs_new[:, self.level_start[-1]:self.level_stop[-1]] = self.softmax(outputs[:, :])
         # print("outputs_new", outputs_new)

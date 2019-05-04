@@ -10,9 +10,9 @@ import os
 from network.experiment import Experiment
 from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
 
-from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, ToPILImage, ETHECDB
+from data.db import ETHECLabelMap, ETHECDB
 
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss
 
 from PIL import Image
 import numpy as np
@@ -132,10 +132,16 @@ class CIFAR10(Experiment):
         self.set_parameter_requires_grad(self.feature_extracting)
         if model_name in ['alexnet', 'vgg']:
             num_features = self.model.classifier[6].in_features
-            self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
+            if isinstance(criterion, LastLevelCELoss):
+                self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
+            else:
+                self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
         elif 'resnet' in model_name:
             num_features = self.model.fc.in_features
-            self.model.fc = nn.Linear(num_features, self.n_classes)
+            if isinstance(criterion, LastLevelCELoss):
+                self.model.fc = nn.Linear(num_features, self.levels[-1])
+            else:
+                self.model.fc = nn.Linear(num_features, self.n_classes)
 
         self.n_train, self.n_val, self.n_test = torch.zeros(self.n_classes), torch.zeros(self.n_classes), \
                                                 torch.zeros(self.n_classes)
@@ -188,7 +194,10 @@ class CIFAR10(Experiment):
             with torch.set_grad_enabled(phase == 'train'):
                 self.model = self.model.to(self.device)
                 outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels, level_labels)
+                if isinstance(self.criterion, LastLevelCELoss):
+                    outputs, loss = self.criterion(outputs, labels, level_labels)
+                else:
+                    loss = self.criterion(outputs, labels, level_labels)
 
                 _, preds = torch.max(outputs, 1)
 

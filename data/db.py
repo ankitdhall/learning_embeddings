@@ -1308,7 +1308,7 @@ class ETHECLabelMap:
             "Agriades_lehanus": 560
         }
 
-        child_of_family = {
+        self.child_of_family = {
             "Hesperiidae": [
                 "Heteropterinae",
                 "Hesperiinae",
@@ -1344,7 +1344,7 @@ class ETHECLabelMap:
             ]
         }
 
-        child_of_subfamily = {
+        self.child_of_subfamily = {
             "Heteropterinae": [
                 "Carterocephalus",
                 "Heteropterus"
@@ -1524,7 +1524,7 @@ class ETHECLabelMap:
             ]
         }
 
-        child_of_genus = {
+        self.child_of_genus = {
             "Carterocephalus": [
                 "Carterocephalus_palaemon"
             ],
@@ -2364,6 +2364,37 @@ class ETHECLabelMap:
                         in class_list]
         self.level_names = ['family', 'subfamily', 'genus', 'specific_epithet']
 
+        self.convert_child_of()
+
+    def convert_child_of(self):
+        self.child_of_family_ix, self.child_of_subfamily_ix, self.child_of_genus_ix = {}, {}, {}
+        for family_name in self.child_of_family:
+            if family_name not in self.family:
+                continue
+            self.child_of_family_ix[self.family[family_name]] = []
+            for subfamily_name in self.child_of_family[family_name]:
+                if subfamily_name not in self.subfamily:
+                    continue
+                self.child_of_family_ix[self.family[family_name]].append(self.subfamily[subfamily_name])
+
+        for subfamily_name in self.child_of_subfamily:
+            if subfamily_name not in self.subfamily:
+                continue
+            self.child_of_subfamily_ix[self.subfamily[subfamily_name]] = []
+            for genus_name in self.child_of_subfamily[subfamily_name]:
+                if genus_name not in self.genus:
+                    continue
+                self.child_of_subfamily_ix[self.subfamily[subfamily_name]].append(self.genus[genus_name])
+
+        for genus_name in self.child_of_genus:
+            if genus_name not in self.genus:
+                continue
+            self.child_of_genus_ix[self.genus[genus_name]] = []
+            for genus_specific_epithet_name in self.child_of_genus[genus_name]:
+                if genus_specific_epithet_name not in self.genus_specific_epithet:
+                    continue
+                self.child_of_genus_ix[self.genus[genus_name]].append(self.genus_specific_epithet[genus_specific_epithet_name])
+
     def get_one_hot(self, family, subfamily, genus, specific_epithet):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1
@@ -2393,6 +2424,7 @@ class ETHECLabelMapMerged(ETHECLabelMap):
                         key
                         in class_list]
         self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
+        self.convert_child_of()
 
     def get_one_hot(self, family, subfamily, genus, genus_specific_epithet):
         retval = np.zeros(self.n_classes)
@@ -2539,6 +2571,7 @@ class ETHECLabelMapMergedSmall(ETHECLabelMapMerged):
             self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet]
                             for key in class_list]
             self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
+            self.convert_child_of()
 
     def get_one_hot(self, family, subfamily, genus, genus_specific_epithet):
         retval = np.zeros(self.n_classes)

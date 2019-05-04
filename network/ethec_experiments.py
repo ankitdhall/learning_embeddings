@@ -11,9 +11,8 @@ from network.experiment import Experiment, WeightedResampler
 from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
 from network.finetuner import CIFAR10
 
-from data.db import ETHECLabelMap, Rescale, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomCrop, \
-    ToPILImage, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss
+from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss
 
 from PIL import Image
 import numpy as np
@@ -169,6 +168,9 @@ def ETHEC_train_model(arguments):
         use_criterion = MultiLabelSMLoss(weight=weight)
     elif arguments.loss == 'multi_level':
         use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    elif arguments.loss == 'last_level':
+        use_criterion = LastLevelCELoss(labelmap=labelmap, weight=weight)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     ETHEC_trainer = ETHECExperiment(data_loaders=data_loaders, labelmap=labelmap,

@@ -291,15 +291,18 @@ class CIFAR10(Experiment):
 
 class labelmap_CIFAR10:
     def __init__(self):
-        self.classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck',
-                        'living', 'non_living',
-                        'non_land', 'land', 'vehicle', 'craft')
 
-        self.family = {'living': 10, 'non_living': 11}
-        self.subfamily = {'non_land': 12, 'land': 13, 'vehicle': 14, 'craft': 15}
+        self.family = {'living': 0, 'non_living': 1}
+        self.subfamily = {'non_land': 2, 'land': 3, 'vehicle': 4, 'craft': 5}
+        self.classes_to_ix = {'living': 0, 'non_living': 1,
+                        'non_land': 2, 'land': 3, 'vehicle': 4, 'craft': 5,
+                        'plane': 6, 'car': 7, 'bird': 8, 'cat': 9, 'deer': 10, 'dog': 11, 'frog': 12, 'horse': 13,
+                        'ship': 14, 'truck': 15}
+        self.ix_to_classes = {self.classes_to_ix[k]: k for k in self.classes_to_ix}
+        self.classes = [k for k in self.classes_to_ix]
         self.n_classes = 16
-        self.levels = [10, 2, 4]
-        self.level_names = ['classes', 'family', 'subfamily']
+        self.levels = [2, 4, 10]
+        self.level_names = ['family', 'subfamily', 'classes']
         self.map = {
             'plane': ['non_living', 'craft'],
             'car': ['non_living', 'vehicle'],
@@ -312,10 +315,14 @@ class labelmap_CIFAR10:
             'ship': ['non_living', 'craft'],
             'truck': ['non_living', 'vehicle']
         }
+        self.child_of_family_ix, self.child_of_subfamily_ix = {}, {}
+        self.child_of_family_ix = {0: [0, 1], 1: [2, 3]}
+        self.child_of_subfamily_ix = {0: [2, 6], 1: [3, 4, 5, 7], 2: [1, 9], 3: [0, 8]}
 
     def get_labels(self, class_index):
-        family, subfamily = self.map[self.classes[class_index]]
-        return [class_index, self.family[family], self.subfamily[subfamily]]
+        class_index += 6
+        family, subfamily = self.map[self.ix_to_classes[class_index]]
+        return [self.family[family], self.subfamily[subfamily], class_index]
 
     def labels_one_hot(self, class_index):
         indices = self.get_labels(class_index)
@@ -447,6 +454,9 @@ def train_cifar10(arguments):
         use_criterion = MultiLabelSMLoss(weight=weight)
     elif arguments.loss == 'multi_level':
         use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    elif arguments.loss == 'last_level':
+        use_criterion = LastLevelCELoss(labelmap=labelmap, weight=weight)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     cifar_trainer = CIFAR10(data_loaders=data_loaders, labelmap=labelmap,

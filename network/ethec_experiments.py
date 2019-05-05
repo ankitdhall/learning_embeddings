@@ -167,10 +167,10 @@ def ETHEC_train_model(arguments):
     if arguments.loss == 'multi_label':
         use_criterion = MultiLabelSMLoss(weight=weight)
     elif arguments.loss == 'multi_level':
-        use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight)
+        use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight, level_weights=arguments.level_weights)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     elif arguments.loss == 'last_level':
-        use_criterion = LastLevelCELoss(labelmap=labelmap, weight=weight)
+        use_criterion = LastLevelCELoss(labelmap=labelmap, weight=weight, level_weights=arguments.level_weights)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     ETHEC_trainer = ETHECExperiment(data_loaders=data_loaders, labelmap=labelmap,
@@ -217,6 +217,7 @@ if __name__ == '__main__':
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)
+    parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     args = parser.parse_args()
 
     ETHEC_train_model(args)

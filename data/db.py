@@ -2415,7 +2415,7 @@ class ETHECLabelMap:
         ])
 
     def decode_children(self, level_labels):
-        level_labels = level_labels.numpy()
+        level_labels = level_labels.cpu().numpy()
         possible_family = [self.family[k] for k in self.family]
         possible_subfamily = self.child_of_family_ix[level_labels[0]]
         possible_genus = self.child_of_subfamily_ix[level_labels[1]]

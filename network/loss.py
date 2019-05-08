@@ -98,6 +98,46 @@ class LastLevelCELoss(torch.nn.Module):
         return outputs_new, torch.mean(loss)
 
 
+class MaskedCELoss(torch.nn.Module):
+    def __init__(self, labelmap, level_weights=None):
+        torch.nn.Module.__init__(self)
+        self.labelmap = labelmap
+        self.level_weights = [1.0] * len(self.labelmap.levels) if level_weights is None else level_weights
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.criterion = []
+
+        self.level_stop, self.level_start = [], []
+        for level_id, level_len in enumerate(self.labelmap.levels):
+            if level_id == 0:
+                self.level_start.append(0)
+                self.level_stop.append(level_len)
+            else:
+                self.level_start.append(self.level_stop[level_id - 1])
+                self.level_stop.append(self.level_stop[level_id - 1] + level_len)
+
+        for level_len in self.labelmap.levels:
+            self.criterion.append(nn.CrossEntropyLoss(weight=None, reduction='none'))
+
+        print('==Using the following weights config for masked cross entropy loss: {}'.format(self.level_weights))
+
+    def forward(self, outputs, labels, level_labels):
+        outputs_new = -1000*torch.ones_like(outputs).to(self.device)
+        loss = 0.0
+        for sample_id in range(outputs.shape[0]):
+            possible_children_dict, new_level_labels = self.labelmap.decode_children(level_labels[sample_id, :])
+            # print(possible_children_dict, new_level_labels)
+            # print(outputs)
+            for level_id, k in enumerate(possible_children_dict):
+                possible_children_dict[k] = [ix+self.level_start[level_id] for ix in possible_children_dict[k]]
+                # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]))
+                # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0).shape, torch.tensor([new_level_labels[level_id]]).shape)
+                loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]))
+                outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
+                if torch.argmax(outputs[sample_id, possible_children_dict[k]]) != new_level_labels[level_id]:
+                    break
+        return outputs_new, torch.mean(loss)
+
+
 class MultiLabelSMLoss(torch.nn.MultiLabelSoftMarginLoss):
     def __init__(self, weight=None, size_average=None, reduce=None, reduction='mean'):
         print(weight)
@@ -133,14 +173,28 @@ if __name__ == '__main__':
     print('MLSMLoss: {}'.format(criterion_multi_label(output, labels)))
     print('MLSMLoss: {}'.format(custom_criterion_multi_label(output, labels, level_labels)))
 
-    print("="*30)
+    # print("="*30)
+    # torch.manual_seed(0)
+    #
+    # lmap = ETHECLabelMapMergedSmall()
+    # criterion = LastLevelCELoss(labelmap=lmap)
+    # print("Labelmap levels: {}".format(lmap.levels))
+    #
+    # outputs, level_labels = torch.rand((2, lmap.levels[-1])), torch.tensor([[0, 0, 0, 0], [0, 0, 0, 0]])
+    #
+    # print(criterion(outputs, None, level_labels))
+
+    print("=" * 30, "Masked CE", "=" * 30)
     torch.manual_seed(0)
 
     lmap = ETHECLabelMapMergedSmall()
     criterion = LastLevelCELoss(labelmap=lmap)
     print("Labelmap levels: {}".format(lmap.levels))
 
-    outputs, level_labels = torch.rand((2, lmap.levels[-1])), torch.tensor([[0, 0, 0, 0], [0, 0, 0, 0]])
+    outputs, level_labels = torch.rand((2, lmap.n_classes)), torch.tensor([[0, 0, 0, 0], [0, 0, 0, 0]])
+    outputs[0, 0] = 1.0
+
+    criterion = MaskedCELoss(labelmap=lmap)
 
     print(criterion(outputs, None, level_labels))
 

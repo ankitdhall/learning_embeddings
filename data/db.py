@@ -2414,6 +2414,22 @@ class ETHECLabelMap:
             self.get_label_id('specific_epithet', specific_epithet)
         ])
 
+    def decode_children(self, level_labels):
+        level_labels = level_labels.numpy()
+        possible_family = [self.family[k] for k in self.family]
+        possible_subfamily = self.child_of_family_ix[level_labels[0]]
+        possible_genus = self.child_of_subfamily_ix[level_labels[1]]
+        possible_genus_specific_epithet = self.child_of_genus_ix[level_labels[2]]
+        new_level_labels = [
+            level_labels[0],
+            possible_subfamily.index(level_labels[1]),
+            possible_genus.index(level_labels[2]),
+            possible_genus_specific_epithet.index(level_labels[3])
+        ]
+        return {'family': possible_family, 'subfamily': possible_subfamily, 'genus': possible_genus,
+                'genus_specific_epithet': possible_genus_specific_epithet}, new_level_labels
+
+
 
 class ETHECLabelMapMerged(ETHECLabelMap):
     def __init__(self):

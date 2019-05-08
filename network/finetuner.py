@@ -12,7 +12,7 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 
 from data.db import ETHECLabelMap, ETHECDB
 
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss
 
 from PIL import Image
 import numpy as np
@@ -194,7 +194,7 @@ class CIFAR10(Experiment):
             with torch.set_grad_enabled(phase == 'train'):
                 self.model = self.model.to(self.device)
                 outputs = self.model(inputs)
-                if isinstance(self.criterion, LastLevelCELoss):
+                if isinstance(self.criterion, LastLevelCELoss) or isinstance(self.criterion, MaskedCELoss):
                     outputs, loss = self.criterion(outputs, labels, level_labels)
                 else:
                     loss = self.criterion(outputs, labels, level_labels)

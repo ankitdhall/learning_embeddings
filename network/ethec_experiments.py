@@ -12,7 +12,7 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 from network.finetuner import CIFAR10
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss
 
 from PIL import Image
 import numpy as np
@@ -172,6 +172,11 @@ def ETHEC_train_model(arguments):
     elif arguments.loss == 'last_level':
         use_criterion = LastLevelCELoss(labelmap=labelmap, weight=weight, level_weights=arguments.level_weights)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    elif arguments.loss == 'masked_loss':
+        use_criterion = MaskedCELoss(labelmap=labelmap, level_weights=arguments.level_weights)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    else:
+        print("== Invalid --loss argument")
 
     ETHEC_trainer = ETHECExperiment(data_loaders=data_loaders, labelmap=labelmap,
                                     criterion=use_criterion,

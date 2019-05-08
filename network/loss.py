@@ -131,7 +131,7 @@ class MaskedCELoss(torch.nn.Module):
                 possible_children_dict[k] = [ix+self.level_start[level_id] for ix in possible_children_dict[k]]
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]))
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0).shape, torch.tensor([new_level_labels[level_id]]).shape)
-                loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]))
+                loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]).to(self.device))
                 outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
                 if torch.argmax(outputs[sample_id, possible_children_dict[k]]) != new_level_labels[level_id]:
                     break

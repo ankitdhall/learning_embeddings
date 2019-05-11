@@ -121,7 +121,7 @@ class MaskedCELoss(torch.nn.Module):
         print('==Using the following weights config for masked cross entropy loss: {}'.format(self.level_weights))
 
     def forward(self, outputs, labels, level_labels):
-        outputs_new = -1000*torch.ones_like(outputs).to(self.device)
+        outputs_new = -100000*torch.ones_like(outputs).to(self.device)
         loss = 0.0
         for sample_id in range(outputs.shape[0]):
             possible_children_dict, new_level_labels = self.labelmap.decode_children(level_labels[sample_id, :])
@@ -133,8 +133,8 @@ class MaskedCELoss(torch.nn.Module):
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0).shape, torch.tensor([new_level_labels[level_id]]).shape)
                 loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]).to(self.device))
                 outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
-                if torch.argmax(outputs[sample_id, possible_children_dict[k]]) != new_level_labels[level_id]:
-                    break
+                # if torch.argmax(outputs[sample_id, possible_children_dict[k]]) != new_level_labels[level_id]:
+                #     break
         return outputs_new, torch.mean(loss)
 
 

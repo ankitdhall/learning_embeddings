@@ -35,10 +35,31 @@ class ETHECExperiment(CIFAR10):
                  use_pretrained=True,
                  load_wt=False,
                  model_name=None,
-                 optimizer_method='adam'):
+                 optimizer_method='adam',
+                 use_grayscale=False):
+
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained,
                          load_wt, model_name, optimizer_method)
+
+        if use_grayscale:
+            if model_name in ['alexnet', 'vgg']:
+                o_channels = self.model.features[0].out_channels
+                k_size = self.model.features[0].kernel_size
+                stride = self.model.features[0].stride
+                pad = self.model.features[0].padding
+                dil = self.model.features[0].dilation
+                self.model.features[0] = nn.Conv2d(1, o_channels, kernel_size=k_size, stride=stride, padding=pad,
+                                                   dilation=dil)
+            elif 'resnet' in model_name:
+                o_channels = self.model.conv1.out_channels
+                k_size = self.model.conv1.kernel_size
+                stride = self.model.conv1.stride
+                pad = self.model.conv1.padding
+                dil = self.model.conv1.dilation
+                self.model.conv1 = nn.Conv2d(1, o_channels, kernel_size=k_size, stride=stride, padding=pad,
+                                             dilation=dil)
+
         self.model = nn.DataParallel(self.model)
 
 
@@ -77,6 +98,18 @@ def ETHEC_train_model(arguments):
                                                    # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
                                                    #                      std=(66.7762, 59.2524, 51.5077))
                                                   ])
+    if arguments.use_grayscale:
+        train_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                    transforms.Grayscale(),
+                                                    transforms.Resize((input_size, input_size)),
+                                                    transforms.RandomHorizontalFlip(),
+                                                    transforms.ToTensor(),
+                                                    ])
+        val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                       transforms.Grayscale(),
+                                                       transforms.Resize((input_size, input_size)),
+                                                       transforms.ToTensor(),
+                                                       ])
 
     if not arguments.merged:
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
@@ -190,7 +223,8 @@ def ETHEC_train_model(arguments):
                                     use_pretrained=True,
                                     load_wt=False,
                                     model_name=arguments.model,
-                                    optimizer_method=arguments.optimizer_method)
+                                    optimizer_method=arguments.optimizer_method,
+                                    use_grayscale=arguments.use_grayscale)
     ETHEC_trainer.prepare_model()
     if arguments.set_mode == 'train':
         ETHEC_trainer.train()
@@ -218,6 +252,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", help='NN model to use. Use one of [`multi_label`, `multi_level`]',
                         type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
+    parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
     parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.', action='store_true')
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,

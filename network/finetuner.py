@@ -147,7 +147,8 @@ class CIFAR10(Experiment):
                                                 torch.zeros(self.n_classes)
         for phase in ['train', 'val', 'test']:
             for data_item in self.dataloaders[phase]:
-                setattr(self, 'n_{}'.format(phase), getattr(self, 'n_{}'.format(phase)) + torch.sum(data_item['labels'], 0))
+                setattr(self, 'n_{}'.format(phase),
+                        getattr(self, 'n_{}'.format(phase)) + torch.sum(data_item['labels'], 0))
         # print(self.n_train, torch.sum(self.n_train))
         # print(self.n_val, torch.sum(self.n_val))
         # print(self.n_test, torch.sum(self.n_test))
@@ -289,15 +290,170 @@ class CIFAR10(Experiment):
         self.load_best_model()
 
 
+class labelmap_CIFAR100:
+    def __init__(self):
+        self.family = {
+            'aquatic mammals': 0,
+            'fish': 1,
+            'flowers': 2,
+            'food containers': 3,
+            'fruit and vegetables': 4,
+            'household electrical device': 5,
+            'household furniture': 6,
+            'insects': 7,
+            'large carnivores': 8,
+            'large man-made outdoor things': 9,
+            'large natural outdoor scenes': 10,
+            'large omnivores and herbivores': 11,
+            'medium-sized mammals': 12,
+            'non-insect invertebrates': 13,
+            'people': 14,
+            'reptiles': 15,
+            'small mammals': 16,
+            'trees': 17,
+            'vehicles 1': 18,
+            'vehicles 2': 19
+        }
+        self.classes = {'apple': 20, 'aquarium_fish': 21, 'baby': 22, 'bear': 23, 'beaver': 24, 'bed': 25, 'bee': 26,
+                        'beetle': 27,
+                        'bicycle': 28, 'bottle': 29, 'bowl': 30, 'boy': 31, 'bridge': 32, 'bus': 33, 'butterfly': 34,
+                        'camel': 35,
+                        'can': 36, 'castle': 37, 'caterpillar': 38, 'cattle': 39, 'chair': 40, 'chimpanzee': 41,
+                        'clock': 42,
+                        'cloud': 43, 'cockroach': 44, 'couch': 45, 'crab': 46, 'crocodile': 47, 'cup': 48,
+                        'dinosaur': 49,
+                        'dolphin': 50, 'elephant': 51, 'flatfish': 52, 'forest': 53, 'fox': 54, 'girl': 55,
+                        'hamster': 56,
+                        'house': 57, 'kangaroo': 58, 'computer_keyboard': 59, 'lamp': 60, 'lawn_mower': 61,
+                        'leopard': 62,
+                        'lion': 63, 'lizard': 64, 'lobster': 65, 'man': 66, 'maple_tree': 67, 'motorcycle': 68,
+                        'mountain': 69,
+                        'mouse': 70, 'mushroom': 71, 'oak_tree': 72, 'orange': 73, 'orchid': 74, 'otter': 75,
+                        'palm_tree': 76,
+                        'pear': 77, 'pickup_truck': 78, 'pine_tree': 79, 'plain': 80, 'plate': 81, 'poppy': 82,
+                        'porcupine': 83,
+                        'possum': 84, 'rabbit': 85, 'raccoon': 86, 'ray': 87, 'road': 88, 'rocket': 89, 'rose': 90,
+                        'sea': 91,
+                        'seal': 92, 'shark': 93, 'shrew': 94, 'skunk': 95, 'skyscraper': 96, 'snail': 97, 'snake': 98,
+                        'spider': 99, 'squirrel': 100, 'streetcar': 101, 'sunflower': 102, 'sweet_pepper': 103,
+                        'table': 104,
+                        'tank': 105, 'telephone': 106, 'television': 107, 'tiger': 108, 'tractor': 109, 'train': 110,
+                        'trout': 111,
+                        'tulip': 112, 'turtle': 113, 'wardrobe': 114, 'whale': 115, 'willow_tree': 116, 'wolf': 117,
+                        'woman': 118, 'worm': 119
+                        }
+        self.classes_to_ix = {
+            'aquatic mammals': 0,
+            'fish': 1,
+            'flowers': 2,
+            'food containers': 3,
+            'fruit and vegetables': 4,
+            'household electrical device': 5,
+            'household furniture': 6,
+            'insects': 7,
+            'large carnivores': 8,
+            'large man-made outdoor things': 9,
+            'large natural outdoor scenes': 10,
+            'large omnivores and herbivores': 11,
+            'medium-sized mammals': 12,
+            'non-insect invertebrates': 13,
+            'people': 14,
+            'reptiles': 15,
+            'small mammals': 16,
+            'trees': 17,
+            'vehicles 1': 18,
+            'vehicles 2': 19,
+            'apple': 20, 'aquarium_fish': 21, 'baby': 22, 'bear': 23, 'beaver': 24, 'bed': 25, 'bee': 26, 'beetle': 27,
+            'bicycle': 28, 'bottle': 29, 'bowl': 30, 'boy': 31, 'bridge': 32, 'bus': 33, 'butterfly': 34, 'camel': 35,
+            'can': 36, 'castle': 37, 'caterpillar': 38, 'cattle': 39, 'chair': 40, 'chimpanzee': 41, 'clock': 42,
+            'cloud': 43, 'cockroach': 44, 'couch': 45, 'crab': 46, 'crocodile': 47, 'cup': 48, 'dinosaur': 49,
+            'dolphin': 50, 'elephant': 51, 'flatfish': 52, 'forest': 53, 'fox': 54, 'girl': 55, 'hamster': 56,
+            'house': 57, 'kangaroo': 58, 'computer_keyboard': 59, 'lamp': 60, 'lawn_mower': 61, 'leopard': 62,
+            'lion': 63, 'lizard': 64, 'lobster': 65, 'man': 66, 'maple_tree': 67, 'motorcycle': 68, 'mountain': 69,
+            'mouse': 70, 'mushroom': 71, 'oak_tree': 72, 'orange': 73, 'orchid': 74, 'otter': 75, 'palm_tree': 76,
+            'pear': 77, 'pickup_truck': 78, 'pine_tree': 79, 'plain': 80, 'plate': 81, 'poppy': 82, 'porcupine': 83,
+            'possum': 84, 'rabbit': 85, 'raccoon': 86, 'ray': 87, 'road': 88, 'rocket': 89, 'rose': 90, 'sea': 91,
+            'seal': 92, 'shark': 93, 'shrew': 94, 'skunk': 95, 'skyscraper': 96, 'snail': 97, 'snake': 98,
+            'spider': 99, 'squirrel': 100, 'streetcar': 101, 'sunflower': 102, 'sweet_pepper': 103, 'table': 104,
+            'tank': 105, 'telephone': 106, 'television': 107, 'tiger': 108, 'tractor': 109, 'train': 110, 'trout': 111,
+            'tulip': 112, 'turtle': 113, 'wardrobe': 114, 'whale': 115, 'willow_tree': 116, 'wolf': 117, 'woman': 118,
+            'worm': 119
+        }
+        self.ix_to_classes = {self.classes_to_ix[k]: k for k in self.classes_to_ix}
+        self.classes = [k for k in self.classes_to_ix]
+        self.n_classes = 120
+        self.levels = [20, 100]
+        self.level_names = ['family', 'classes']
+        self.map = {'beaver': ['aquatic mammals'], 'dolphin': ['aquatic mammals'], 'otter': ['aquatic mammals'],
+                    'seal': ['aquatic mammals'], 'whale': ['aquatic mammals'], 'aquarium_fish': ['fish'],
+                    'flatfish': ['fish'], 'ray': ['fish'], 'shark': ['fish'], 'trout': ['fish'], 'orchid': ['flowers'],
+                    'poppy': ['flowers'], 'rose': ['flowers'], 'sunflower': ['flowers'], 'tulip': ['flowers'],
+                    'bottle': ['food containers'], 'bowl': ['food containers'], 'can': ['food containers'],
+                    'cup': ['food containers'], 'plate': ['food containers'], 'apple': ['fruit and vegetables'],
+                    'mushroom': ['fruit and vegetables'], 'orange': ['fruit and vegetables'],
+                    'pear': ['fruit and vegetables'], 'sweet_pepper': ['fruit and vegetables'],
+                    'clock': ['household electrical device'], 'computer_keyboard': ['household electrical device'],
+                    'lamp': ['household electrical device'], 'telephone': ['household electrical device'],
+                    'television': ['household electrical device'], 'bed': ['household furniture'],
+                    'chair': ['household furniture'], 'couch': ['household furniture'],
+                    'table': ['household furniture'], 'wardrobe': ['household furniture'], 'bee': ['insects'],
+                    'beetle': ['insects'], 'butterfly': ['insects'], 'caterpillar': ['insects'],
+                    'cockroach': ['insects'], 'bear': ['large carnivores'], 'leopard': ['large carnivores'],
+                    'lion': ['large carnivores'], 'tiger': ['large carnivores'], 'wolf': ['large carnivores'],
+                    'bridge': ['large man-made outdoor things'], 'castle': ['large man-made outdoor things'],
+                    'house': ['large man-made outdoor things'], 'road': ['large man-made outdoor things'],
+                    'skyscraper': ['large man-made outdoor things'], 'cloud': ['large natural outdoor scenes'],
+                    'forest': ['large natural outdoor scenes'], 'mountain': ['large natural outdoor scenes'],
+                    'plain': ['large natural outdoor scenes'], 'sea': ['large natural outdoor scenes'],
+                    'camel': ['large omnivores and herbivores'], 'cattle': ['large omnivores and herbivores'],
+                    'chimpanzee': ['large omnivores and herbivores'], 'elephant': ['large omnivores and herbivores'],
+                    'kangaroo': ['large omnivores and herbivores'], 'fox': ['medium-sized mammals'],
+                    'porcupine': ['medium-sized mammals'], 'possum': ['medium-sized mammals'],
+                    'raccoon': ['medium-sized mammals'], 'skunk': ['medium-sized mammals'],
+                    'crab': ['non-insect invertebrates'], 'lobster': ['non-insect invertebrates'],
+                    'snail': ['non-insect invertebrates'], 'spider': ['non-insect invertebrates'],
+                    'worm': ['non-insect invertebrates'], 'baby': ['people'], 'boy': ['people'], 'girl': ['people'],
+                    'man': ['people'], 'woman': ['people'], 'crocodile': ['reptiles'], 'dinosaur': ['reptiles'],
+                    'lizard': ['reptiles'], 'snake': ['reptiles'], 'turtle': ['reptiles'], 'hamster': ['small mammals'],
+                    'mouse': ['small mammals'], 'rabbit': ['small mammals'], 'shrew': ['small mammals'],
+                    'squirrel': ['small mammals'], 'maple_tree': ['trees'], 'oak_tree': ['trees'],
+                    'palm_tree': ['trees'], 'pine_tree': ['trees'], 'willow_tree': ['trees'], 'bicycle': ['vehicles 1'],
+                    'bus': ['vehicles 1'], 'motorcycle': ['vehicles 1'], 'pickup_truck': ['vehicles 1'],
+                    'train': ['vehicles 1'], 'lawn_mower': ['vehicles 2'], 'rocket': ['vehicles 2'],
+                    'streetcar': ['vehicles 2'], 'tank': ['vehicles 2'], 'tractor': ['vehicles 2']
+                    }
+        self.child_of_family_ix = {0: [4, 30, 55, 72, 95], 1: [1, 32, 67, 73, 91], 2: [54, 62, 70, 82, 92],
+                                   3: [9, 10, 16, 28, 61], 4: [0, 51, 53, 57, 83], 5: [22, 39, 40, 86, 87],
+                                   6: [5, 20, 25, 84, 94], 7: [6, 7, 14, 18, 24], 8: [3, 42, 43, 88, 97],
+                                   9: [12, 17, 37, 68, 76], 10: [23, 33, 49, 60, 71], 11: [15, 19, 21, 31, 38],
+                                   12: [34, 63, 64, 66, 75], 13: [26, 45, 77, 79, 99], 14: [2, 11, 35, 46, 98],
+                                   15: [27, 29, 44, 78, 93], 16: [36, 50, 65, 74, 80], 17: [47, 52, 56, 59, 96],
+                                   18: [8, 13, 48, 58, 90], 19: [41, 69, 81, 85, 89]}
+
+    def get_labels(self, class_index):
+        class_index += 20
+        family = self.map[self.ix_to_classes[class_index]][0]
+        return [self.family[family], class_index]
+
+    def labels_one_hot(self, class_index):
+        indices = self.get_labels(class_index)
+        retval = np.zeros(self.n_classes)
+        retval[indices] = 1
+        return retval
+
+    def get_level_labels(self, class_index):
+        level_labels = self.get_labels(class_index)
+        return np.array([level_labels[0], level_labels[1] - self.levels[0]])
+
+
 class labelmap_CIFAR10:
     def __init__(self):
-
         self.family = {'living': 0, 'non_living': 1}
         self.subfamily = {'non_land': 2, 'land': 3, 'vehicle': 4, 'craft': 5}
         self.classes_to_ix = {'living': 0, 'non_living': 1,
-                        'non_land': 2, 'land': 3, 'vehicle': 4, 'craft': 5,
-                        'plane': 6, 'car': 7, 'bird': 8, 'cat': 9, 'deer': 10, 'dog': 11, 'frog': 12, 'horse': 13,
-                        'ship': 14, 'truck': 15}
+                              'non_land': 2, 'land': 3, 'vehicle': 4, 'craft': 5,
+                              'plane': 6, 'car': 7, 'bird': 8, 'cat': 9, 'deer': 10, 'dog': 11, 'frog': 12, 'horse': 13,
+                              'ship': 14, 'truck': 15}
         self.ix_to_classes = {self.classes_to_ix[k]: k for k in self.classes_to_ix}
         self.classes = [k for k in self.classes_to_ix]
         self.n_classes = 16
@@ -332,7 +488,8 @@ class labelmap_CIFAR10:
 
     def get_level_labels(self, class_index):
         level_labels = self.get_labels(class_index)
-        return np.array([level_labels[0], level_labels[1]-self.levels[0], level_labels[2]-(self.levels[0]+self.levels[1])])
+        return np.array(
+            [level_labels[0], level_labels[1] - self.levels[0], level_labels[2] - (self.levels[0] + self.levels[1])])
 
 
 class labelmap_CIFAR10_single:
@@ -368,6 +525,26 @@ class Cifar10Hierarchical(torchvision.datasets.CIFAR10):
                 'level_labels': torch.from_numpy(self.labelmap.get_level_labels(target)).long()}
 
 
+class Cifar100Hierarchical(torchvision.datasets.CIFAR100):
+    def __init__(self, root, labelmap, train=True,
+                 transform=None, target_transform=None,
+                 download=False):
+        self.labelmap = labelmap
+        torchvision.datasets.CIFAR100.__init__(self, root, train, transform, target_transform, download)
+
+    def __getitem__(self, index):
+        img, target = self.data[index], self.targets[index]
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        multi_class_target = self.labelmap.labels_one_hot(target)
+
+        return {'image': img, 'labels': torch.from_numpy(multi_class_target).float(), 'leaf_label': target,
+                'level_labels': torch.from_numpy(self.labelmap.get_level_labels(target)).long()}
+
+
 def train_cifar10(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):
         os.makedirs(os.path.join(arguments.experiment_dir, arguments.experiment_name))
@@ -390,13 +567,20 @@ def train_cifar10(arguments):
         ])
 
     labelmap = labelmap_CIFAR10()
+    if arguments.dataset == 'cifar100':
+        labelmap = labelmap_CIFAR100()
+
     batch_size = arguments.batch_size
     n_workers = arguments.n_workers
 
     if arguments.debug:
         print("== Running in DEBUG mode!")
-        trainset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=False,
-                                       download=True, transform=data_transforms)
+        if arguments.dataset == 'cifar100':
+            trainset = Cifar100Hierarchical(root='../database', labelmap=labelmap, train=False,
+                                            download=True, transform=data_transforms)
+        else:
+            trainset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=False,
+                                           download=True, transform=data_transforms)
         trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset, list(range(100))),
                                                   batch_size=batch_size,
                                                   shuffle=True, num_workers=n_workers)
@@ -412,11 +596,16 @@ def train_cifar10(arguments):
         data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     else:
-        trainset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=True,
-                                       download=True, transform=data_transforms)
-        testset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=False,
-                                      download=True, transform=data_transforms)
-
+        if arguments.dataset == 'cifar100':
+            trainset = Cifar100Hierarchical(root='../database', labelmap=labelmap, train=True,
+                                            download=True, transform=data_transforms)
+            testset = Cifar100Hierarchical(root='../database', labelmap=labelmap, train=False,
+                                           download=True, transform=data_transforms)
+        else:
+            trainset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=True,
+                                           download=True, transform=data_transforms)
+            testset = Cifar10Hierarchical(root='../database', labelmap=labelmap, train=False,
+                                          download=True, transform=data_transforms)
         # split the dataset into 80:10:10
         train_indices_from_train, val_indices_from_train, val_indices_from_test, test_indices_from_test = \
             cifar10_set_indices(trainset, testset, labelmap)
@@ -616,7 +805,9 @@ if __name__ == '__main__':
     parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
     parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
-    parser.add_argument("--evaluator", help='Evaluator type. If using `multi_level` option for --loss then is overidden.', type=str, default='ML')
+    parser.add_argument("--evaluator",
+                        help='Evaluator type. If using `multi_level` option for --loss then is overidden.', type=str,
+                        default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
@@ -626,7 +817,9 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--model", help='NN model to use.', type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
-    parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.', action='store_true')
+    parser.add_argument("--dataset", help='Use cifar10 or cifar100 dataset', type=str, required=True)
+    parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',
+                        action='store_true')
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)

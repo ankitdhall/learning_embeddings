@@ -2430,7 +2430,6 @@ class ETHECLabelMap:
                 'genus_specific_epithet': possible_genus_specific_epithet}, new_level_labels
 
 
-
 class ETHECLabelMapMerged(ETHECLabelMap):
     def __init__(self):
         ETHECLabelMap.__init__(self)

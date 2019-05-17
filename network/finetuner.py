@@ -12,7 +12,7 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 
 from data.db import ETHECLabelMap, ETHECDB
 
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss, HierarchicalSoftmax
 
 from PIL import Image
 import numpy as np
@@ -130,16 +130,22 @@ class CIFAR10(Experiment):
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
+
+        # modify last layers based on the model being used
         if model_name in ['alexnet', 'vgg']:
             num_features = self.model.classifier[6].in_features
             if isinstance(criterion, LastLevelCELoss):
                 self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
+            elif isinstance(criterion, HierarchicalSoftmaxLoss):
+                self.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
             else:
                 self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
         elif 'resnet' in model_name:
             num_features = self.model.fc.in_features
             if isinstance(criterion, LastLevelCELoss):
                 self.model.fc = nn.Linear(num_features, self.levels[-1])
+            elif isinstance(criterion, HierarchicalSoftmaxLoss):
+                self.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
             else:
                 self.model.fc = nn.Linear(num_features, self.n_classes)
 
@@ -194,10 +200,15 @@ class CIFAR10(Experiment):
             # track history if only in train
             with torch.set_grad_enabled(phase == 'train'):
                 self.model = self.model.to(self.device)
-                outputs = self.model(inputs)
+
                 if isinstance(self.criterion, LastLevelCELoss) or isinstance(self.criterion, MaskedCELoss):
+                    outputs = self.model(inputs)
                     outputs, loss = self.criterion(outputs, labels, level_labels)
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    outputs, final_level_log_probs = self.model(inputs)
+                    loss = self.criterion(final_level_log_probs, labels, level_labels)
                 else:
+                    outputs = self.model(inputs)
                     loss = self.criterion(outputs, labels, level_labels)
 
                 _, preds = torch.max(outputs, 1)

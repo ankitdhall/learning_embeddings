@@ -12,7 +12,7 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 from network.finetuner import CIFAR10
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
 
 from PIL import Image
 import numpy as np
@@ -208,6 +208,9 @@ def ETHEC_train_model(arguments):
     elif arguments.loss == 'masked_loss':
         use_criterion = MaskedCELoss(labelmap=labelmap, level_weights=arguments.level_weights)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    elif arguments.loss == 'hsoftmax':
+        use_criterion = HierarchicalSoftmaxLoss(labelmap=labelmap, level_weights=arguments.level_weights)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
     else:
         print("== Invalid --loss argument")
 
@@ -249,9 +252,8 @@ if __name__ == '__main__':
     parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
     parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
                         type=str, default='inv')
-    parser.add_argument("--model", help='NN model to use. Use one of [`multi_label`, `multi_level`]',
-                        type=str, required=True)
-    parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
+    parser.add_argument("--model", help='NN model to use.', type=str, required=True)
+    parser.add_argument("--loss", help='Loss function to use. [multi_label, multi_level, last_level, masked_loss, hsoftmax]', type=str, required=True)
     parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
     parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.', action='store_true')
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')

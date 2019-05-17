@@ -150,6 +150,78 @@ class MultiLabelSMLoss(torch.nn.MultiLabelSoftMarginLoss):
         return super().forward(outputs, labels)
 
 
+class HierarchicalSoftmax(torch.nn.Module):
+    def __init__(self, labelmap, input_size, level_weights=None):
+        torch.nn.Module.__init__(self)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.labelmap = labelmap
+
+        self.level_stop, self.level_start = [], []
+        for level_id, level_len in enumerate(self.labelmap.levels):
+            if level_id == 0:
+                self.level_start.append(0)
+                self.level_stop.append(level_len)
+            else:
+                self.level_start.append(self.level_stop[level_id - 1])
+                self.level_stop.append(self.level_stop[level_id - 1] + level_len)
+
+        self.module_dict = {}
+        for level_id, level_name in enumerate(self.labelmap.level_names):
+            if level_id == 0:
+                self.module_dict[level_name] = nn.Linear(input_size, self.labelmap.levels[0])
+
+            # setup linear layer for current nodes which are children of level_id-1
+            else:
+                child_of_l_1 = getattr(self.labelmap, 'child_of_{}_ix'.format(self.labelmap.level_names[level_id-1]))
+                for parent_id in child_of_l_1:
+                    self.module_dict['{}_{}'.format(level_name, parent_id)] = nn.Linear(input_size, len(child_of_l_1[parent_id]))
+
+        self.module_dict = nn.ModuleDict(self.module_dict)
+        print(self.module_dict)
+
+    def forward(self, x):
+        """
+        Takes input from the penultimate layer of the model and uses the HierarchicalSoftmax layer in the end to compute
+        the logits.
+        :param x: <torch.tensor> output of the penultimate layer
+        :return: all_log_probs <torch.tensor>, last level log_probs <torch.tensor>
+        """
+        all_log_probs = torch.zeros((x.shape[0], self.labelmap.n_classes)).to(self.device)
+
+        for level_id, level_name in enumerate(self.labelmap.level_names):
+            # print(all_log_probs)
+            if level_id == 0:
+                # print(level_name)
+                # print("saving log probs for: {}:{}".format(self.level_start[0], self.level_stop[0]))
+                all_log_probs[:, self.level_start[0]:self.level_stop[0]] = torch.nn.functional.log_softmax(self.module_dict[level_name](x), dim=1)
+
+            # setup linear layer for current nodes which are children of level_id-1
+            else:
+                child_of_l_1 = getattr(self.labelmap, 'child_of_{}_ix'.format(self.labelmap.level_names[level_id-1]))
+                # print(child_of_l_1)
+                for parent_id in child_of_l_1:
+                    # print('child_of_{}_ix'.format(self.labelmap.level_names[level_id - 1]),
+                    #       '{}_{}'.format(level_name, parent_id))
+                    # print("saving log probs for: {1} -> {0}".format(self.level_start[level_id] + torch.tensor(child_of_l_1[parent_id]), torch.tensor(child_of_l_1[parent_id])))
+                    log_probs = torch.nn.functional.log_softmax(self.module_dict['{}_{}'.format(level_name, parent_id)](x), dim=1)
+                    # print("{0} + {1} = {2}".format(log_probs, all_log_probs[:, self.level_start[level_id-1] + parent_id].unsqueeze(1), log_probs + all_log_probs[:, self.level_start[level_id-1] + parent_id].unsqueeze(1)))
+                    all_log_probs[:, self.level_start[level_id] + torch.tensor(child_of_l_1[parent_id]).to(self.device)] = log_probs + all_log_probs[:, self.level_start[level_id-1] + parent_id].unsqueeze(1)
+
+        # return only leaf probs
+        # print(all_log_probs)
+        return all_log_probs, all_log_probs[:, self.level_start[-1]:self.level_stop[-1]]
+
+
+class HierarchicalSoftmaxLoss(torch.nn.Module):
+    def __init__(self, labelmap, level_weights=None):
+        torch.nn.Module.__init__(self)
+        self.labelmap = labelmap
+        self.criterion = torch.nn.NLLLoss()
+
+    def forward(self, outputs, labels, level_labels):
+        return self.criterion(outputs, level_labels[:, -1])
+
+
 if __name__ == '__main__':
     lmap = ETHECLabelMap()
     criterion = MultiLevelCELoss(labelmap=lmap, level_weights=[1, 1, 1, 1])
@@ -184,18 +256,28 @@ if __name__ == '__main__':
     #
     # print(criterion(outputs, None, level_labels))
 
-    print("=" * 30, "Masked CE", "=" * 30)
+    # print("=" * 30, "Masked CE", "=" * 30)
+    # torch.manual_seed(0)
+    #
+    # lmap = ETHECLabelMapMergedSmall()
+    # criterion = LastLevelCELoss(labelmap=lmap)
+    # print("Labelmap levels: {}".format(lmap.levels))
+    #
+    # outputs, level_labels = torch.rand((2, lmap.n_classes)), torch.tensor([[0, 0, 0, 0], [0, 0, 0, 0]])
+    # outputs[0, 0] = 1.0
+    #
+    # criterion = MaskedCELoss(labelmap=lmap)
+    #
+    # print(criterion(outputs, None, level_labels))
+
+    print("=" * 30, "Hierarchical softmax", "=" * 30)
     torch.manual_seed(0)
 
     lmap = ETHECLabelMapMergedSmall()
-    criterion = LastLevelCELoss(labelmap=lmap)
     print("Labelmap levels: {}".format(lmap.levels))
 
-    outputs, level_labels = torch.rand((2, lmap.n_classes)), torch.tensor([[0, 0, 0, 0], [0, 0, 0, 0]])
-    outputs[0, 0] = 1.0
-
-    criterion = MaskedCELoss(labelmap=lmap)
-
-    print(criterion(outputs, None, level_labels))
+    hsoftmax = HierarchicalSoftmax(labelmap=lmap, input_size=4, level_weights=None)
+    penult_layer = torch.tensor([[1, 2, 1, 2.0], [1, 10, -7, 10], [1, 9, 1, -2]])
+    print(hsoftmax(penult_layer))
 
 

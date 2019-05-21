@@ -2364,6 +2364,15 @@ class ETHECLabelMap:
                         in class_list]
         self.level_names = ['family', 'subfamily', 'genus', 'specific_epithet']
 
+        self.level_stop, self.level_start = [], []
+        for level_id, level_len in enumerate(self.levels):
+            if level_id == 0:
+                self.level_start.append(0)
+                self.level_stop.append(level_len)
+            else:
+                self.level_start.append(self.level_stop[level_id - 1])
+                self.level_stop.append(self.level_stop[level_id - 1] + level_len)
+
         self.convert_child_of()
 
     def convert_child_of(self):
@@ -2413,6 +2422,22 @@ class ETHECLabelMap:
             self.get_label_id('genus', genus),
             self.get_label_id('specific_epithet', specific_epithet)
         ])
+
+    def get_children_of(self, c_ix, level_id):
+        if level_id == 0:
+            # possible family
+            return [self.family[k] for k in self.family]
+        elif level_id == 1:
+            # possible_subfamily
+            return self.child_of_family_ix[c_ix]
+        elif level_id == 2:
+            # possible_genus
+            return self.child_of_subfamily_ix[c_ix]
+        elif level_id == 3:
+            # possible_genus_specific_epithet
+            return self.child_of_genus_ix[c_ix]
+        else:
+            return None
 
     def decode_children(self, level_labels):
         level_labels = level_labels.cpu().numpy()
@@ -2661,7 +2686,8 @@ class ETHECDB(torch.utils.data.Dataset):
             'leaf_label': self.labelmap.get_label_id('specific_epithet', sample['specific_epithet']),
             'level_labels': torch.from_numpy(self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
                                                                             sample['genus'],
-                                                                            sample['specific_epithet'])).long()
+                                                                            sample['specific_epithet'])).long(),
+            'path_to_image': path_to_image
         }
         return ret_sample
 
@@ -2727,7 +2753,8 @@ class ETHECDBMerged(ETHECDB):
             'level_labels': torch.from_numpy(self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
                                                                             sample['genus'],
                                                                             '{}_{}'.format(sample['genus'], sample[
-                                                                                'specific_epithet']))).long()
+                                                                                'specific_epithet']))).long(),
+            'path_to_image': path_to_image
         }
         return ret_sample
 

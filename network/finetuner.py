@@ -203,7 +203,10 @@ class CIFAR10(Experiment):
 
                 if isinstance(self.criterion, LastLevelCELoss) or isinstance(self.criterion, MaskedCELoss):
                     outputs = self.model(inputs)
-                    outputs, loss = self.criterion(outputs, labels, level_labels)
+                    if isinstance(self.criterion, MaskedCELoss):
+                        outputs, loss = self.criterion(outputs, labels, level_labels, phase)
+                    else:
+                        outputs, loss = self.criterion(outputs, labels, level_labels)
                 elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
                     outputs, final_level_log_probs = self.model(inputs)
                     loss = self.criterion(final_level_log_probs, labels, level_labels)
@@ -299,6 +302,39 @@ class CIFAR10(Experiment):
         elif self.optimizer_method == 'adam':
             self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
         self.load_best_model()
+
+    def inference(self, data_item):
+        self.model.eval()
+
+        # Iterate over data.
+        inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
+        inputs = inputs.to(self.device)
+        labels = labels.float().to(self.device)
+        level_labels = level_labels.to(self.device)
+
+        # forward
+        # track history if only in train
+        with torch.set_grad_enabled(False):
+            self.model = self.model.to(self.device)
+
+            if isinstance(self.criterion, LastLevelCELoss) or isinstance(self.criterion, MaskedCELoss):
+                outputs = self.model(inputs)
+                if isinstance(self.criterion, MaskedCELoss):
+                    outputs, loss = self.criterion(outputs, labels, level_labels, phase='test')
+                else:
+                    outputs, loss = self.criterion(outputs, labels, level_labels)
+            elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                outputs, final_level_log_probs = self.model(inputs)
+                loss = self.criterion(final_level_log_probs, labels, level_labels)
+            else:
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels, level_labels)
+
+            _, preds = torch.max(outputs, 1)
+
+        outputs, labels = outputs.cpu().detach(), labels.cpu().detach()
+        print(outputs, labels)
+        return outputs
 
 
 class labelmap_CIFAR100:

@@ -120,19 +120,38 @@ class MaskedCELoss(torch.nn.Module):
 
         print('==Using the following weights config for masked cross entropy loss: {}'.format(self.level_weights))
 
-    def forward(self, outputs, labels, level_labels):
-        outputs_new = -100000*torch.ones_like(outputs).to(self.device)
+    def forward(self, outputs, labels, level_labels, phase='train'):
+        outputs_new = -100000000*torch.ones_like(outputs).to(self.device)
         loss = 0.0
+        labels_at_eval = []
         for sample_id in range(outputs.shape[0]):
-            possible_children_dict, new_level_labels = self.labelmap.decode_children(level_labels[sample_id, :])
-            # print(possible_children_dict, new_level_labels)
+            possible_children_dict_orig, new_level_labels = self.labelmap.decode_children(level_labels[sample_id, :])
+            # print(possible_children_dict_orig, new_level_labels)
             # print(outputs)
-            for level_id, k in enumerate(possible_children_dict):
-                possible_children_dict[k] = [ix+self.level_start[level_id] for ix in possible_children_dict[k]]
+            possible_children_dict = {}
+            for level_id, k in enumerate(possible_children_dict_orig):
+                possible_children_dict[k] = [ix+self.level_start[level_id] for ix in possible_children_dict_orig[k]]
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]))
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0).shape, torch.tensor([new_level_labels[level_id]]).shape)
                 loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]).to(self.device))
-                outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
+                # if phase == 'train':
+                #     outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
+                # else:
+                if level_id == 0:
+                    predicted_class = torch.argmax(outputs[sample_id, possible_children_dict[k]])
+                    outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
+                    predicted_class_absolute = predicted_class.item()
+                else:
+                    children_of_prev_level_pred_relative = self.labelmap.get_children_of(predicted_class_absolute-self.level_start[level_id-1], level_id)
+                    children_of_prev_level_pred_absolute = [ix+self.level_start[level_id] for ix in children_of_prev_level_pred_relative]
+                    predicted_class = torch.argmax(outputs[sample_id, children_of_prev_level_pred_absolute])
+                    predicted_class_absolute = children_of_prev_level_pred_absolute[predicted_class]
+                    outputs_new[sample_id, children_of_prev_level_pred_absolute] = outputs[sample_id, children_of_prev_level_pred_absolute]
+                    # labels_at_eval.append(predicted_class)
+                    # outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
+
+
+
                 # if torch.argmax(outputs[sample_id, possible_children_dict[k]]) != new_level_labels[level_id]:
                 #     break
         return outputs_new, torch.mean(loss)

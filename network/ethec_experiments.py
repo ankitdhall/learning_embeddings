@@ -224,7 +224,7 @@ def ETHEC_train_model(arguments):
                                     n_epochs=arguments.n_epochs,
                                     feature_extracting=arguments.freeze_weights,
                                     use_pretrained=True,
-                                    load_wt=False,
+                                    load_wt=arguments.resume,
                                     model_name=arguments.model,
                                     optimizer_method=arguments.optimizer_method,
                                     use_grayscale=arguments.use_grayscale)

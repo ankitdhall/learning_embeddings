@@ -195,7 +195,8 @@ class Experiment:
 
     def load_model(self, epoch_to_load):
         checkpoint = torch.load(os.path.join(self.path_to_save_model, '{}.pth'.format(epoch_to_load)), map_location=self.device)
-        self.model.load_state_dict(checkpoint['model_state_dict']).to(self.device)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model = self.model.to(self.device)
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epoch = checkpoint['epoch']
         print('Successfully loaded model epoch {} from {}'.format(self.epoch, self.path_to_save_model))

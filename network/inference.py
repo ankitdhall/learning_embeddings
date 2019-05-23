@@ -27,7 +27,7 @@ import cv2
 import time
 
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from network.summarize import Summarize
 
@@ -187,7 +187,7 @@ class LIME:
 
         self.viz_these_samples_ix = data_ix
         if not data_ix:
-            self.viz_these_samples_ix = random.sample(list(range(len(self.test_set))), 30) # [231, 890] # 890
+            self.viz_these_samples_ix = list(range(len(self.test_set))) # [231, 890] # 890
 
         self.run_LIME()
 

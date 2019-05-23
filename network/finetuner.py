@@ -303,6 +303,12 @@ class CIFAR10(Experiment):
             self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
         self.load_best_model()
 
+    def set_optimizer(self):
+        if self.optimizer_method == 'sgd':
+            self.optimizer = optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9)
+        elif self.optimizer_method == 'adam':
+            self.optimizer = optim.Adam(self.params_to_update, lr=self.lr)
+
     def inference(self, data_item):
         self.model.eval()
 
@@ -333,7 +339,7 @@ class CIFAR10(Experiment):
             _, preds = torch.max(outputs, 1)
 
         outputs, labels = outputs.cpu().detach(), labels.cpu().detach()
-        print(outputs, labels)
+        # print(outputs, labels)
         return outputs
 
 

@@ -124,6 +124,8 @@ class MaskedCELoss(torch.nn.Module):
         outputs_new = -100000000*torch.ones_like(outputs).to(self.device)
         loss = 0.0
         labels_at_eval = []
+        # print('outputs shape in loss.py:', outputs.shape)
+        # print('level_labels shape in loss.py:', level_labels.shape)
         for sample_id in range(outputs.shape[0]):
             possible_children_dict_orig, new_level_labels = self.labelmap.decode_children(level_labels[sample_id, :])
             # print(possible_children_dict_orig, new_level_labels)

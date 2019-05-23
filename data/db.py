@@ -2404,6 +2404,11 @@ class ETHECLabelMap:
                     continue
                 self.child_of_genus_ix[self.genus[genus_name]].append(self.genus_specific_epithet[genus_specific_epithet_name])
 
+        self.family_ix_to_str = {self.family[k]: k for k in self.family}
+        self.subfamily_ix_to_str = {self.subfamily[k]: k for k in self.subfamily}
+        self.genus_ix_to_str = {self.genus[k]: k for k in self.genus}
+        self.genus_specific_epithet_ix_to_str = {self.genus_specific_epithet[k]: k for k in self.genus_specific_epithet}
+
     def get_one_hot(self, family, subfamily, genus, specific_epithet):
         retval = np.zeros(self.n_classes)
         retval[self.family[family]] = 1

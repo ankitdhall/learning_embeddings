@@ -227,7 +227,7 @@ class Inference:
             # else:
             #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.n_classes)
 
-        sample_ix = list(range(200))
+        sample_ix = list(range(len(self.test_set)))
         level_labels_array, representations = [], []
         testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(self.test_set, sample_ix),
                                                  batch_size=self.batch_size,
@@ -239,8 +239,9 @@ class Inference:
             for i in range(outputs[0][0].shape[0]):
                 # print(outputs[0][0].data[i, :].numpy())
                 # print(level_labels[i, :])
-                representations.append(outputs[0][0].data[i, :].numpy())
-                level_labels_array.append(level_labels[i, :].numpy())
+                representations.append(outputs[0][0].detach().data[i, :].cpu().numpy())
+                level_labels_array.append(level_labels[i, :].detach().cpu().numpy())
+            outputs = []
 
         print(np.array(representations))
         print(np.array(level_labels_array))

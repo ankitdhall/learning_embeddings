@@ -39,8 +39,8 @@ from skimage.segmentation import mark_boundaries
 import random
 
 
-class LIME:
-    def __init__(self, path_to_exp, image_dir=None, data_ix=None):
+class Inference:
+    def __init__(self, path_to_exp, mode, image_dir=None, data_ix=None):
         with open(os.path.join(path_to_exp, 'config_params.txt'), 'r') as file:
             arguments = json.loads(file.read())
 
@@ -184,12 +184,73 @@ class LIME:
         self.batch_size = batch_size
         self.n_workers = n_workers
         self.labelmap = labelmap
+        self.model_name=arguments['model']
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.viz_these_samples_ix = data_ix
         if not data_ix:
             self.viz_these_samples_ix = list(range(len(self.test_set))) # [231, 890] # 890
 
-        self.run_LIME()
+        if mode == 'lime':
+            self.run_LIME()
+        elif mode == 'tsne':
+            self.run_tsne()
+        else:
+            print('Invalid option: {}'.format(mode))
+
+    def run_tsne(self):
+        self.ETHEC_trainer.load_best_model()
+
+        outputs = []
+        def hook(module, input, output):
+            outputs.append(input)
+
+        # modify last layers based on the model being used
+        if self.model_name in ['alexnet', 'vgg']:
+            # num_features = self.ETHEC_trainer.model.classifier[6].in_features
+            # self.ETHEC_trainer.model.classifier = nn.Sequential(*list(self.ETHEC_trainer.model.classifier.children())[:-1])
+            # if isinstance(self.ETHEC_trainer.criterion, LastLevelCELoss):
+            #     self.ETHEC_trainer.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
+            # elif isinstance(self.ETHEC_trainer.criterion, HierarchicalSoftmaxLoss):
+            #     self.ETHEC_trainer.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
+            # else:
+            #     self.ETHEC_trainer.model.classifier[6] = nn.Linear(num_features, self.n_classes)
+            self.ETHEC_trainer.model.module.classifier[6].register_forward_hook(hook)
+        elif 'resnet' in self.model_name:
+            print(self.ETHEC_trainer.model)
+            self.ETHEC_trainer.model.module.fc.register_forward_hook(hook)
+            # num_features = self.ETHEC_trainer.model.fc.in_features
+            # if isinstance(self.ETHEC_trainer.criterion, LastLevelCELoss):
+            #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.levels[-1])
+            # elif isinstance(self.ETHEC_trainer.criterion, HierarchicalSoftmaxLoss):
+            #     self.ETHEC_trainer.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
+            # else:
+            #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.n_classes)
+
+        sample_ix = list(range(200))
+        level_labels_array, representations = [], []
+        testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(self.test_set, sample_ix),
+                                                 batch_size=self.batch_size,
+                                                 shuffle=False, num_workers=self.n_workers)
+
+        for index, data_item in enumerate(testloader):
+            inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
+            self.ETHEC_trainer.model(inputs.to(self.device))
+            for i in range(outputs[0][0].shape[0]):
+                # print(outputs[0][0].data[i, :].numpy())
+                # print(level_labels[i, :])
+                representations.append(outputs[0][0].data[i, :].numpy())
+                level_labels_array.append(level_labels[i, :].numpy())
+
+        print(np.array(representations))
+        print(np.array(level_labels_array))
+
+        path_to_embeddings = os.path.join(self.path_to_exp, 'embeddings')
+        if not os.path.exists(path_to_embeddings):
+            os.makedirs(path_to_embeddings)
+
+        np.save(os.path.join(path_to_embeddings, 'representations.npy'), np.array(representations))
+        np.save(os.path.join(path_to_embeddings, 'level_labels.npy'), np.array(level_labels_array))
 
     def run_LIME(self):
 
@@ -312,6 +373,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_exp", help='Location where experiment is stored.', type=str, required=True)
     parser.add_argument("--image_dir", help='Path to images.', type=str, default=None)
+    parser.add_argument("--mode", help='[lime, tsne]', type=str, required=True)
     args = parser.parse_args()
 
-    LIME(args.path_to_exp, args.image_dir)
+    Inference(args.path_to_exp, args.mode, args.image_dir)

@@ -227,33 +227,33 @@ class Inference:
             # else:
             #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.n_classes)
 
-	sample_ix = list(range(len(self.test_set)))
-	print(sample_ix)
-	level_labels_array, representations = [], []
-	testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(self.val_set, sample_ix),
-		                                 batch_size=1,
-		                                 shuffle=False, num_workers=0)
+        for set_name in ['train', 'test', 'val']:
+            chosen_set = getattr(self, '{}_set'.format(set_name))
+            sample_ix = list(range(len(chosen_set)))
+            print(sample_ix)
+            level_labels_array, representations = [], []
+            testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(chosen_set, sample_ix),
+                                                 batch_size=1,
+                                                 shuffle=False, num_workers=0)
 
-	for index, data_item in enumerate(testloader):
-	    inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
-	    self.ETHEC_trainer.model(inputs.to(self.device))
-	    print(level_labels.shape)
-	    level_labels_array.append(level_labels[0, :].detach().cpu().numpy())
-	    print(len(outputs))
-	    for j in range(len(outputs)):
-		# print(outputs[0][0].shape, outputs[1][0].shape)
-		for i in range(outputs[j][0].shape[0]):
-		    # print(outputs[0][0].data[i, :].numpy())
-		    # print(level_labels[i, :])
-		    representations.append(outputs[0][0].detach().data[i, :].cpu().numpy())
-	    outputs = []
+            for index, data_item in enumerate(testloader):
+                inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
+                self.ETHEC_trainer.model(inputs.to(self.device))
+                level_labels_array.append(level_labels[0, :].detach().cpu().numpy())
+                for j in range(len(outputs)):
+                    # print(outputs[0][0].shape, outputs[1][0].shape)
+                    for i in range(outputs[j][0].shape[0]):
+                        # print(outputs[0][0].data[i, :].numpy())
+                        # print(level_labels[i, :])
+                        representations.append(outputs[j][0].detach().data[i, :].cpu().numpy())
+                outputs = []
 
-	path_to_embeddings = os.path.join(self.path_to_exp, 'embeddings')
-	if not os.path.exists(path_to_embeddings):
-	    os.makedirs(path_to_embeddings)
+            path_to_embeddings = os.path.join(self.path_to_exp, 'embeddings')
+            if not os.path.exists(path_to_embeddings):
+                os.makedirs(path_to_embeddings)
 
-	np.save(os.path.join(path_to_embeddings, 'val_representations.npy'), np.array(representations))
-	np.save(os.path.join(path_to_embeddings, 'val_level_labels.npy'), np.array(level_labels_array))
+            np.save(os.path.join(path_to_embeddings, '{}_representations.npy'.format(set_name)), np.array(representations))
+            np.save(os.path.join(path_to_embeddings, '{}_level_labels.npy'.format(set_name)), np.array(level_labels_array))
 
     def run_LIME(self):
 

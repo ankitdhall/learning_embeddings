@@ -130,7 +130,7 @@ class Inference:
         batch_size = arguments['batch_size']
         n_workers = arguments['n_workers']
 
-        testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(test_set, list(range(0, 1))),
+        testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(test_set, [100]),
                                                  batch_size=batch_size,
                                                  shuffle=False, num_workers=n_workers)
 
@@ -195,8 +195,121 @@ class Inference:
             self.run_LIME()
         elif mode == 'tsne':
             self.run_tsne()
+        elif mode == 'adversarial':
+            self.run_adversarial()
         else:
             print('Invalid option: {}'.format(mode))
+
+    def run_adversarial(self):
+        tforms = transforms.Compose([  # transforms.ToPILImage(),
+            # transforms.Resize((input_size, input_size)),
+            transforms.CenterCrop(224)
+            # transforms.ToTensor()
+        ])
+        to_tensor_tform = transforms.Compose([
+            transforms.ToTensor()
+        ])
+
+        def get_image(path):
+            with open(os.path.abspath(path), 'rb') as f:
+                with Image.open(f) as img:
+                    return img.convert('RGB')
+
+        def get_input_tensors(img):
+            # unsqeeze converts single image to batch of 1
+            retval = tforms(img)
+            return retval #.unsqueeze(0)
+
+        self.ETHEC_trainer.load_best_model()
+
+        save_images_in = os.path.join(self.path_to_exp, 'analysis')
+        if not os.path.exists(save_images_in):
+            os.makedirs(os.path.join(self.path_to_exp, 'analysis'))
+
+        summarizer = Summarize(save_images_in)
+
+        self.viz_these_samples_ix = [100, 200, 300, 400, 500, 1000]
+        for sample_ix in self.viz_these_samples_ix:
+            testloader = torch.utils.data.DataLoader(torch.utils.data.Subset(self.test_set, [sample_ix]),
+                                                     batch_size=self.batch_size,
+                                                     shuffle=False, num_workers=self.n_workers)
+
+            for index, item in enumerate(testloader):
+                print(os.path.join(save_images_in, str(sample_ix)))
+                if not os.path.exists(os.path.join(save_images_in, item['path_to_image'][0].split('/')[-2])):
+                    os.makedirs(os.path.join(save_images_in, item['path_to_image'][0].split('/')[-2]))
+                print(item['path_to_image'])
+                print(item['level_labels'])
+
+                img = get_image(item['path_to_image'][0])
+                path_to_img = os.path.join(save_images_in, item['path_to_image'][0].split('/')[-2], '{}.jpg'.format(str(sample_ix)))
+                img.save(path_to_img)
+                print(item['level_labels'])
+                print('=' * 30 + 'Ground truth' + '=' * 30)
+                print(item['level_labels'][0][0].data.item(),
+                      self.labelmap.family_ix_to_str[item['level_labels'][0][0].data.item()])
+                print(item['level_labels'][0][1].data.item(),
+                      self.labelmap.subfamily_ix_to_str[item['level_labels'][0][1].data.item()])
+                print(item['level_labels'][0][2].data.item(),
+                      self.labelmap.genus_ix_to_str[item['level_labels'][0][2].data.item()])
+                print(item['level_labels'][0][3].data.item(),
+                      self.labelmap.genus_specific_epithet_ix_to_str[item['level_labels'][0][3].data.item()])
+
+                summarizer.make_heading('Data ID: {}'.format(sample_ix), heading_level=2)
+                summarizer.make_heading('Ground truth', heading_level=3)
+                summarizer.make_text('{}'.format(item['path_to_image']))
+                summarizer.make_image(location=path_to_img, alt_text='text')
+
+
+                summarizer.make_text(text='{} {}'.format(item['level_labels'][0][0].data.item(),
+                                                         self.labelmap.family_ix_to_str[
+                                                             item['level_labels'][0][0].data.item()]),
+                                     bullet=False)
+                summarizer.make_text(text='{} {}'.format(item['level_labels'][0][1].data.item(),
+                                                         self.labelmap.subfamily_ix_to_str[
+                                                             item['level_labels'][0][1].data.item()]),
+                                     bullet=False)
+                summarizer.make_text(text='{} {}'.format(item['level_labels'][0][2].data.item(),
+                                                         self.labelmap.genus_ix_to_str[
+                                                             item['level_labels'][0][2].data.item()]),
+                                     bullet=False)
+                summarizer.make_text(text='{} {}'.format(item['level_labels'][0][3].data.item(),
+                                                         self.labelmap.genus_specific_epithet_ix_to_str[
+                                                             item['level_labels'][0][3].data.item()]),
+                                     bullet=False)
+
+                summarizer.make_hrule()
+
+                logits = self.ETHEC_trainer.inference(item)
+
+                for level_id in range(4):
+                    probs = torch.nn.functional.softmax(
+                        logits[:, self.labelmap.level_start[level_id]:self.labelmap.level_stop[level_id]],
+                        dim=1)
+                    predicted_probs = probs.detach().cpu().numpy()
+                    ind = (-predicted_probs).argsort()[0][:5]
+                    print(ind)
+                    print(predicted_probs.shape)
+                    summarizer.make_heading('Level {}'.format(self.labelmap.level_names[level_id]), heading_level=3)
+                    x_labels, data = [], []
+                    for i in range(5):
+                        # summarizer.make_text('<span style="color:{}">Predicted: {} {}</span>'.format(
+                        #     'green' if ind[i] == item['level_labels'][0][level_id].data.item() else 'red',
+                        #     ind[i],
+                        #     getattr(self.labelmap, '{}_ix_to_str'.format(self.labelmap.level_names[level_id]))[ind[i]]),
+                        #     bullet=False)
+                        x_labels.append('<span style="color:{}">Predicted: {} {}</span>'.format(
+                            'green' if ind[i] == item['level_labels'][0][level_id].data.item() else 'red',
+                            ind[i],
+                            getattr(self.labelmap, '{}_ix_to_str'.format(self.labelmap.level_names[level_id]))[ind[i]]))
+                        data.append('{}'.format(predicted_probs[:, ind][0][i]))
+
+                    summarizer.make_table(data=[data], x_labels=x_labels)
+
+                    # summarizer.make_text('Predicted classes (ascending order): {}'.format(ind))
+                    # summarizer.make_text('Corresponding probabilities: {}'.format(predicted_probs[:, ind]))
+
+                    # print(probs.detach().cpu().numpy())
 
     def run_tsne(self):
         self.ETHEC_trainer.load_best_model()
@@ -207,25 +320,10 @@ class Inference:
 
         # modify last layers based on the model being used
         if self.model_name in ['alexnet', 'vgg']:
-            # num_features = self.ETHEC_trainer.model.classifier[6].in_features
-            # self.ETHEC_trainer.model.classifier = nn.Sequential(*list(self.ETHEC_trainer.model.classifier.children())[:-1])
-            # if isinstance(self.ETHEC_trainer.criterion, LastLevelCELoss):
-            #     self.ETHEC_trainer.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
-            # elif isinstance(self.ETHEC_trainer.criterion, HierarchicalSoftmaxLoss):
-            #     self.ETHEC_trainer.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            # else:
-            #     self.ETHEC_trainer.model.classifier[6] = nn.Linear(num_features, self.n_classes)
             self.ETHEC_trainer.model.module.classifier[6].register_forward_hook(hook)
         elif 'resnet' in self.model_name:
             print(self.ETHEC_trainer.model)
             self.ETHEC_trainer.model.module.fc.register_forward_hook(hook)
-            # num_features = self.ETHEC_trainer.model.fc.in_features
-            # if isinstance(self.ETHEC_trainer.criterion, LastLevelCELoss):
-            #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.levels[-1])
-            # elif isinstance(self.ETHEC_trainer.criterion, HierarchicalSoftmaxLoss):
-            #     self.ETHEC_trainer.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            # else:
-            #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.n_classes)
 
         for set_name in ['train', 'test', 'val']:
             chosen_set = getattr(self, '{}_set'.format(set_name))
@@ -241,10 +339,7 @@ class Inference:
                 self.ETHEC_trainer.model(inputs.to(self.device))
                 level_labels_array.append(level_labels[0, :].detach().cpu().numpy())
                 for j in range(len(outputs)):
-                    # print(outputs[0][0].shape, outputs[1][0].shape)
                     for i in range(outputs[j][0].shape[0]):
-                        # print(outputs[0][0].data[i, :].numpy())
-                        # print(level_labels[i, :])
                         representations.append(outputs[j][0].detach().data[i, :].cpu().numpy())
                 outputs = []
 
@@ -376,7 +471,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_exp", help='Location where experiment is stored.', type=str, required=True)
     parser.add_argument("--image_dir", help='Path to images.', type=str, default=None)
-    parser.add_argument("--mode", help='[lime, tsne]', type=str, required=True)
+    parser.add_argument("--mode", help='[lime, tsne, adversarial]', type=str, required=True)
     args = parser.parse_args()
 
     Inference(args.path_to_exp, args.mode, args.image_dir)
+
+    # if args.mode == 'adversarial':
+    #     Inference(args.path_to_exp, args.mode, '/home/ankit/learning_embeddings/exp/ethec_resnet50_lr_1e-5_1_1_1_1/adv_images')
+    # else:
+    #     Inference(args.path_to_exp, args.mode, args.image_dir)

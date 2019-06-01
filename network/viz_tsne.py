@@ -33,7 +33,7 @@ def plot_embedding3d(X, y, title=None):
 
     for i in range(X.shape[0]):
         ax.scatter(xs=X[i, 0], ys=X[i, 1], zs=X[i, 2], c=[cm(1. * y[i] / (1 + NUM_COLORS))], marker=marker_array[i],
-                   alpha=0.6, s=4)
+                   alpha=0.4, s=4)
 
     def init():
         return fig,
@@ -44,9 +44,9 @@ def plot_embedding3d(X, y, title=None):
 
     # Animate
     anim = animation.FuncAnimation(fig, animate, init_func=init,
-                                   frames=120, interval=20, blit=True)
+                                   frames=360, interval=20, blit=True)
     # Save
-    anim.save('{}.mp4'.format(title), fps=30, extra_args=['-vcodec', 'libx264'], bitrate=2000, dpi=600)
+    anim.save('{}.mp4'.format(title), fps=30, extra_args=['-vcodec', 'libx264'], bitrate=3000, dpi=500)
 
 # Scale and visualize the embedding vectors
 def plot_embedding(X, y, title=None):
@@ -98,7 +98,6 @@ def visualize_tsne(path_to_dir):
     for i in range(4):
         plot_embedding3d(X_embedded, level_labels[:, i], "t-SNE embedding for level {}".format(i))
         print('completed animation for level {}'.format(i))
-        break
 
 
 visualize_tsne('')

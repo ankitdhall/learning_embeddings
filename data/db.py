@@ -2364,6 +2364,9 @@ class ETHECLabelMap:
                         in class_list]
         self.level_names = ['family', 'subfamily', 'genus', 'specific_epithet']
 
+        self.convert_child_of()
+
+    def convert_child_of(self):
         self.level_stop, self.level_start = [], []
         for level_id, level_len in enumerate(self.levels):
             if level_id == 0:
@@ -2373,9 +2376,6 @@ class ETHECLabelMap:
                 self.level_start.append(self.level_stop[level_id - 1])
                 self.level_stop.append(self.level_stop[level_id - 1] + level_len)
 
-        self.convert_child_of()
-
-    def convert_child_of(self):
         self.child_of_family_ix, self.child_of_subfamily_ix, self.child_of_genus_ix = {}, {}, {}
         for family_name in self.child_of_family:
             if family_name not in self.family:
@@ -2717,7 +2717,7 @@ class ETHECDBMerged(ETHECDB):
     Creates a PyTorch dataset.
     """
 
-    def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
+    def __init__(self, path_to_json, path_to_images, labelmap, transform=None, with_images=True):
         """
         Constructor.
         :param path_to_json: <str> Path to .json from which to read database entries.
@@ -2726,6 +2726,7 @@ class ETHECDBMerged(ETHECDB):
         :param transform: <torchvision.transforms> Set of transforms to be applied to the entries in the database.
         """
         ETHECDB.__init__(self, path_to_json, path_to_images, labelmap, transform)
+        self.with_images = with_images
 
     def __getitem__(self, item):
         """
@@ -2736,17 +2737,20 @@ class ETHECDBMerged(ETHECDB):
         """
 
         sample = self.ETHEC.__getitem__(item)
-        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][
-                                                                                                11:21] + "R"
-        path_to_image = os.path.join(self.path_to_images, image_folder,
-                                     sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
-        img = cv2.imread(path_to_image)
-        if img is None:
-            print('This image is None: {} {}'.format(path_to_image, sample['token']))
+        if self.with_images:
+            image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][
+                                                                                                    11:21] + "R"
+            path_to_image = os.path.join(self.path_to_images, image_folder,
+                                         sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
+            img = cv2.imread(path_to_image)
+            if img is None:
+                print('This image is None: {} {}'.format(path_to_image, sample['token']))
 
-        img = np.array(img)
-        if self.transform:
-            img = self.transform(img)
+            img = np.array(img)
+            if self.transform:
+                img = self.transform(img)
+        else:
+            path_to_image, img = 0, 0
 
         ret_sample = {
             'image': img,

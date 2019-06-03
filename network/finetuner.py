@@ -126,25 +126,27 @@ class CIFAR10(Experiment):
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs,
                             eval_interval,
                             batch_size, experiment_dir, load_wt, evaluator)
+        self.model_name = model_name
 
+    def prepare_model(self):
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
 
         # modify last layers based on the model being used
-        if model_name in ['alexnet', 'vgg']:
+        if self.model_name in ['alexnet', 'vgg']:
             num_features = self.model.classifier[6].in_features
-            if isinstance(criterion, LastLevelCELoss):
+            if isinstance(self.criterion, LastLevelCELoss):
                 self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
-            elif isinstance(criterion, HierarchicalSoftmaxLoss):
+            elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
                 self.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
             else:
                 self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
-        elif 'resnet' in model_name:
+        elif 'resnet' in self.model_name:
             num_features = self.model.fc.in_features
-            if isinstance(criterion, LastLevelCELoss):
+            if isinstance(self.criterion, LastLevelCELoss):
                 self.model.fc = nn.Linear(num_features, self.levels[-1])
-            elif isinstance(criterion, HierarchicalSoftmaxLoss):
+            elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
                 self.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
             else:
                 self.model.fc = nn.Linear(num_features, self.n_classes)
@@ -161,7 +163,6 @@ class CIFAR10(Experiment):
 
         self.samples_split = {'train': self.n_train, 'val': self.n_val, 'test': self.n_test}
 
-    def prepare_model(self):
         self.params_to_update = self.model.parameters()
 
         if self.feature_extracting:

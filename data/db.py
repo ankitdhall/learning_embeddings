@@ -2773,7 +2773,7 @@ class ETHECDBMergedSmall(ETHECDBMerged):
     Creates a PyTorch dataset.
     """
 
-    def __init__(self, path_to_json, path_to_images, labelmap, transform=None):
+    def __init__(self, path_to_json, path_to_images, labelmap, transform=None, with_images=False):
         """
         Constructor.
         :param path_to_json: <str> Path to .json from which to read database entries.
@@ -2781,7 +2781,7 @@ class ETHECDBMergedSmall(ETHECDBMerged):
         :param labelmap: <ETHECLabelMap> Labelmap.
         :param transform: <torchvision.transforms> Set of transforms to be applied to the entries in the database.
         """
-        ETHECDBMerged.__init__(self, path_to_json, path_to_images, labelmap, transform)
+        ETHECDBMerged.__init__(self, path_to_json, path_to_images, labelmap, transform, with_images )
         if hasattr(labelmap, 'single_level'):
             self.ETHEC = ETHECSmall(self.path_to_json, labelmap.single_level)
         else:

@@ -514,28 +514,6 @@ class OrderEmbeddingLoss(torch.nn.Module):
             neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
             loss += torch.sum(neg_term)
 
-            # reverse_G = nx.reverse(G)
-            # nodes_in_graph = set(list(G))
-            #
-            # e_for_u_v_positive = self.positive_pair(predicted_from_embeddings, predicted_to_embeddings)
-            # loss += torch.mean(e_for_u_v_positive)
-            # for pass_ix in range(neg_to_pos_ratio):
-            #     negative_from, negative_to = torch.zeros_like(inputs_from), torch.zeros_like(inputs_to)
-            #     for sample_id in range(inputs_from.shape[0]):
-            #         if (sample_id+pass_ix) % 2 == 0:
-            #             list_of_edges_from_ui = [v for u, v in list(G.edges(inputs_from[sample_id].item()))]
-            #             corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_from_ui)))
-            #             negative_from[sample_id], negative_to[sample_id] = inputs_from[sample_id], corrupted_ix
-            #         else:
-            #             list_of_edges_to_vi = [v for u, v in list(reverse_G.edges(inputs_to[sample_id].item()))]
-            #             corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_to_vi)))
-            #             negative_from[sample_id], negative_to[sample_id] = corrupted_ix, inputs_to[sample_id]
-            #
-            #     negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
-            #     neg_term, current_e_for_u_v = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
-            #     e_for_u_v_negative = torch.cat((e_for_u_v_negative, current_e_for_u_v))
-            #     loss += torch.mean(neg_term)
-
         return predicted_from_embeddings, predicted_to_embeddings, loss, e_for_u_v_positive, e_for_u_v_negative
 
 

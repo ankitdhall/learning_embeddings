@@ -16,6 +16,7 @@ from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, Ma
 
 from PIL import Image
 import numpy as np
+import time
 
 import copy
 import argparse
@@ -44,14 +45,21 @@ class ETHECHierarchy(torch.utils.data.Dataset):
     Creates a PyTorch dataset for order-embeddings, without images.
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, graph_tc, has_negative, neg_to_pos_ratio=1):
         """
         Constructor.
         :param graph: <networkx.DiGraph> Graph to be used.
         """
         self.G = graph
+        self.G_tc = graph_tc
         self.num_edges = graph.size()
+        self.has_negative = has_negative
+        self.neg_to_pos_ratio = neg_to_pos_ratio
         self.edge_list = [e for e in graph.edges()]
+        self.status = [1]*len(self.edge_list)
+        self.negative_from, self.negative_to = None, None
+        if self.has_negative:
+            self.create_negative_pairs()
 
     def __getitem__(self, item):
         """
@@ -60,23 +68,46 @@ class ETHECHierarchy(torch.utils.data.Dataset):
         :return: <dict> Consumable object (see schema.md)
                 {'from': <int>, 'to': <int>}
         """
-        return {'from': self.edge_list[item][0], 'to': self.edge_list[item][1]}
+        return {'from': self.edge_list[item][0], 'to': self.edge_list[item][1], 'status': self.status[item]}
 
     def __len__(self):
         """
         Return number of entries in the database.
         :return: <int> length of database
         """
-        return self.num_edges
+        return len(self.status)
 
-    def are_connected(self, from_ix, to_ix):
-        """
-        Check if an edge exists in the graph
-        :param to_ix: <int>
-        :param from_ix: <int>
-        :return: True if (from_ix, to_ix) exists in self.G
-        """
-        self.G.has_edge(from_ix, to_ix)
+    def create_negative_pairs(self):
+        random.seed(0)
+        reverse_G = nx.reverse(self.G_tc)
+        nodes_in_graph = set(list(self.G_tc))
+        negative_from = torch.zeros((2*self.neg_to_pos_ratio*self.num_edges), dtype=torch.long)
+        negative_to = torch.zeros((2*self.neg_to_pos_ratio*self.num_edges), dtype=torch.long)
+
+        for sample_id in range(self.num_edges):
+            for pass_ix in range(self.neg_to_pos_ratio):
+                positive_pair = self.__getitem__(sample_id)
+                inputs_from, inputs_to, status = positive_pair['from'], positive_pair['to'], positive_pair['status']
+                if status != 1:
+                    print('Status is NOT 1!')
+
+                list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(inputs_from))]
+                corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_from_ui)))
+                negative_from[2*self.neg_to_pos_ratio*sample_id+pass_ix] = inputs_from
+                negative_to[2*self.neg_to_pos_ratio*sample_id+pass_ix] = corrupted_ix
+
+                self.edge_list.append((inputs_from, corrupted_ix))
+                self.status.append(0)
+
+                list_of_edges_to_vi = [v for u, v in list(reverse_G.edges(inputs_to))]
+                corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_to_vi)))
+                negative_from[2*self.neg_to_pos_ratio*sample_id+pass_ix+self.neg_to_pos_ratio] = corrupted_ix
+                negative_to[2*self.neg_to_pos_ratio*sample_id+pass_ix+self.neg_to_pos_ratio] = inputs_to
+
+                self.edge_list.append((corrupted_ix, inputs_to))
+                self.status.append(0)
+
+        self.negative_from, self.negative_to = negative_from, negative_to
 
 
 class Embedder(nn.Module):
@@ -99,25 +130,38 @@ class EmbeddingMetrics:
         self.phase = phase
 
     def calculate_metrics(self):
-        if self.e_for_u_v_negative is not None or self.phase != 'test':
+        if self.phase == 'val':
             possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
-            best_acc, best_threshold = 0.0, 0.0
+            best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
             for t_id in range(possible_thresholds.shape[0]):
-                correct_positives = np.sum(self.e_for_u_v_positive <= possible_thresholds[t_id])
-                correct_negatives = np.sum(self.e_for_u_v_negative > possible_thresholds[t_id])
+                correct_positives = torch.sum(self.e_for_u_v_positive <= possible_thresholds[t_id]).item()
+                correct_negatives = torch.sum(self.e_for_u_v_negative > possible_thresholds[t_id]).item()
                 accuracy = (correct_positives+correct_negatives)/(self.e_for_u_v_positive.shape[0]+self.e_for_u_v_negative.shape[0])
-                if accuracy > best_acc:
-                    best_acc = accuracy
+                precision = correct_positives/(correct_positives+(self.e_for_u_v_negative.shape[0]-correct_negatives))
+                recall = correct_positives/self.e_for_u_v_positive.shape[0]
+                if precision+recall == 0:
+                    f1_score = 0.0
+                else:
+                    f1_score = (2*precision*recall)/(precision+recall)
+                if f1_score > best_score:
+                    best_accuracy = accuracy
+                    best_score = f1_score
                     best_threshold = possible_thresholds[t_id]
-            if self.phase == 'val':
-                return best_acc, best_threshold
-            elif self.phase == 'train':
-                return best_acc, self.threshold
-        else:
-            correct_positives = np.sum(self.e_for_u_v_positive <= self.threshold)
-            accuracy = correct_positives / self.e_for_u_v_positive.shape[0]
-            return accuracy, self.threshold
 
+            return best_score, best_threshold, best_accuracy
+
+        else:
+            correct_positives = torch.sum(self.e_for_u_v_positive <= self.threshold).item()
+            correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
+            accuracy = (correct_positives + correct_negatives) / (
+                        self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
+            precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
+            recall = correct_positives / self.e_for_u_v_positive.shape[0]
+            if precision + recall == 0:
+                f1_score = 0.0
+            else:
+                f1_score = (2 * precision * recall) / (precision + recall)
+            return f1_score, self.threshold, accuracy
 
 
 class OrderEmbedding(CIFAR10):
@@ -125,6 +169,10 @@ class OrderEmbedding(CIFAR10):
                  batch_size,
                  evaluator,
                  experiment_name,
+                 embedding_dim,
+                 neg_to_pos_ratio,
+                 proportion_of_nb_edges_in_train,
+                 lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10,
                  eval_interval=2,
@@ -148,11 +196,14 @@ class OrderEmbedding(CIFAR10):
         self.batch_size = batch_size
         self.feature_extracting = feature_extracting
         self.optimizer_method = optimizer_method
-        self.optimal_threshold = 0.0
+        self.lr_step = lr_step
 
-        self.embedding_dim = 10
+        self.optimal_threshold = 1.0
+        self.embedding_dim = embedding_dim # 10
+        self.neg_to_pos_ratio = neg_to_pos_ratio # 5
+        self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
 
-        self.model = Embedder(embedding_dim=10, labelmap=labelmap)
+        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap)
         self.labelmap = labelmap
 
         self.G, self.G_train, self.G_val, self.G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph(), nx.DiGraph()
@@ -165,7 +216,7 @@ class OrderEmbedding(CIFAR10):
 
         self.G_tc = nx.transitive_closure(self.G)
         self.create_splits()
-        self.neg_to_pos_ratio = 2
+
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -180,35 +231,66 @@ class OrderEmbedding(CIFAR10):
             print("Fine-tuning")
 
     def create_splits(self):
+        random.seed(0)
+        # prepare train graph
+        # bare-bones graph without transitive edges
+        self.G_train = copy.deepcopy(self.G)
+
         # prepare test and val sub-graphs
+        print('Has {} edges in original graph'.format(self.G.size()))
+        print('Has {} edges in transitive closure'.format(self.G_tc.size()))
+
+        copy_of_G_tc = copy.deepcopy(self.G_tc)
+        edge_in_g = [e for e in self.G.edges]
+        for edge_e in edge_in_g:
+            copy_of_G_tc.remove_edge(edge_e[0], edge_e[1])
+
         total_number_of_edges = self.G_tc.size()
-        print('Has {} edges in transitive closure'.format(total_number_of_edges))
-        edges_for_test_val = int(0.05*total_number_of_edges)
+        total_number_of_nb_edges = copy_of_G_tc.size()
+        n_edges_to_add_to_train = int(total_number_of_nb_edges*self.proportion_of_nb_edges_in_train)
+        edges_for_test_val = int(0.05*total_number_of_nb_edges)
+        print('Has {} non-basic edges. {} for val and test.'.format(total_number_of_nb_edges, edges_for_test_val))
+        non_basic_edges = self.G_tc.size()-self.G.size()
+
+
 
         # create val graph
-        remove_edges = random.sample(range(total_number_of_edges), k=edges_for_test_val)
-        edges_in_tc = [e for e in self.G_tc.edges()]
+        total_number_of_nb_edges = copy_of_G_tc.size()
+        remove_edges = random.sample(range(total_number_of_nb_edges), k=edges_for_test_val)
+        edges_in_tc = [e for e in copy_of_G_tc.edges()]
         for edge_ix in remove_edges:
             self.G_val.add_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
         for edge_ix in remove_edges:
-            self.G_tc.remove_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
+            copy_of_G_tc.remove_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
 
         # create test graph
-        total_number_of_edges = self.G_tc.size()
-        remove_edges = random.sample(range(total_number_of_edges), k=edges_for_test_val)
-        edges_in_tc = [e for e in self.G_tc.edges()]
+        total_number_of_nb_edges = copy_of_G_tc.size()
+        remove_edges = random.sample(range(total_number_of_nb_edges), k=edges_for_test_val)
+        edges_in_tc = [e for e in copy_of_G_tc.edges()]
         for edge_ix in remove_edges:
             self.G_test.add_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
         for edge_ix in remove_edges:
-            self.G_tc.remove_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
+            copy_of_G_tc.remove_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
 
-        print('Edges in train: {}, val: {}, test: {}'.format(self.G_tc.size(), self.G_val.size(), self.G_test.size()))
-        self.G_train = self.G_tc
+        print('Edges in train: {}, val: {}, test: {}'.format(self.G_train.size(), self.G_val.size(), self.G_test.size()))
+
+        # if need to add non-basic edges, add them to G_train
+        total_number_of_nb_edges = copy_of_G_tc.size()
+        remove_edges = random.sample(range(total_number_of_nb_edges), k=n_edges_to_add_to_train)
+        edges_in_tc = [e for e in copy_of_G_tc.edges()]
+        for edge_ix in remove_edges:
+            self.G_train.add_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
+        for edge_ix in remove_edges:
+            copy_of_G_tc.remove_edge(edges_in_tc[edge_ix][0], edges_in_tc[edge_ix][1])
+
+        print('Added {:.2f}% of non-basic edges = {}'.format(self.proportion_of_nb_edges_in_train, n_edges_to_add_to_train))
+        print('Edges in train: {}, val: {}, test: {}'.format(self.G_train.size(), self.G_val.size(), self.G_test.size()))
+        print('Edges in transitive closure: {}'.format(self.G_tc.size()))
 
         # create dataloaders
-        train_set = ETHECHierarchy(self.G_train)
-        val_set = ETHECHierarchy(self.G_val)
-        test_set = ETHECHierarchy(self.G_test)
+        train_set = ETHECHierarchy(self.G_train, self.G_tc, has_negative=False)
+        val_set = ETHECHierarchy(self.G_val, self.G_tc, has_negative=True, neg_to_pos_ratio=self.neg_to_pos_ratio)
+        test_set = ETHECHierarchy(self.G_test, self.G_tc, has_negative=True, neg_to_pos_ratio=self.neg_to_pos_ratio)
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=self.batch_size,
                                                   num_workers=16,
@@ -225,6 +307,43 @@ class OrderEmbedding(CIFAR10):
         self.graphs = {'train': self.G_train, 'val': self.G_val, 'test': self.G_test}
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
+    def run_model(self, optimizer):
+        self.optimizer = optimizer
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
+
+        if self.load_wt:
+            self.find_existing_weights()
+
+        self.best_model_wts = copy.deepcopy(self.model.state_dict())
+        self.best_score = 0.0
+
+        since = time.time()
+
+        for self.epoch in range(self.epoch, self.n_epochs):
+            print('=' * 10)
+            print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
+            print('=' * 10)
+
+            self.pass_samples(phase='train')
+            if self.epoch % self.eval_interval == 0:
+                if self.epoch % 10 == 0:
+                    self.eval.enable_plotting()
+                self.pass_samples(phase='val')
+                self.pass_samples(phase='test')
+                self.eval.disable_plotting()
+
+            scheduler.step()
+
+        time_elapsed = time.time() - since
+        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+        print('Best val score: {:4f}'.format(self.best_score))
+
+        # load best model weights
+        self.model.load_state_dict(self.best_model_wts)
+
+        self.writer.close()
+        return self.model
+
     def pass_samples(self, phase, save_to_tensorboard=True):
         if phase == 'train':
             self.model.train()
@@ -235,14 +354,16 @@ class OrderEmbedding(CIFAR10):
 
         predicted_from_embeddings = np.zeros((self.dataset_length[phase], self.embedding_dim))
         predicted_to_embeddings = np.zeros((self.dataset_length[phase], self.embedding_dim))
-        e_positive, e_negative = np.zeros((self.dataset_length[phase])), np.zeros((self.neg_to_pos_ratio*self.dataset_length[phase]))
-        correct_labels = np.zeros((self.dataset_length[phase], self.n_classes))
+        e_positive, e_negative = torch.tensor([]), torch.tensor([])
+        pair_status = np.zeros((self.dataset_length[phase]))
+        # e_positive, e_negative = np.zeros((self.dataset_length[phase])), np.zeros((2*self.neg_to_pos_ratio*self.dataset_length[phase]))
 
         # Iterate over data.
         for index, data_item in enumerate(self.dataloaders[phase]):
-            inputs_from, inputs_to = data_item['from'], data_item['to']
+            inputs_from, inputs_to, status = data_item['from'], data_item['to'], data_item['status']
             inputs_from = inputs_from.to(self.device)
             inputs_to = inputs_to.to(self.device)
+            status = status.to(self.device)
 
             # zero the parameter gradients
             self.optimizer.zero_grad()
@@ -251,9 +372,8 @@ class OrderEmbedding(CIFAR10):
             # track history if only in train
             with torch.set_grad_enabled(phase == 'train'):
                 self.model = self.model.to(self.device)
-
                 outputs_from, outputs_to, loss, e_for_u_v_positive, e_for_u_v_negative =\
-                    self.criterion(self.model, inputs_from, inputs_to, phase, self.graphs[phase], self.neg_to_pos_ratio)
+                    self.criterion(self.model, inputs_from, inputs_to, status, phase, self.graphs[phase], self.neg_to_pos_ratio)
 
                 # backward + optimize only if in training phase
                 if phase == 'train':
@@ -269,35 +389,35 @@ class OrderEmbedding(CIFAR10):
                                                              self.dataset_length[phase]), :] = outputs_from.data
             predicted_to_embeddings[self.batch_size * index:min(self.batch_size * (index + 1),
                                                                   self.dataset_length[phase]), :] = outputs_to.data
-            e_positive[self.batch_size * index:min(self.batch_size * (index + 1),
-                                                   self.dataset_length[phase])] = e_for_u_v_positive.data
-            if phase != 'test':
-                e_negative[self.neg_to_pos_ratio * self.batch_size * index:min(self.neg_to_pos_ratio*self.batch_size * (index + 1),
-                                                       self.neg_to_pos_ratio*self.dataset_length[phase])] = e_for_u_v_negative.data
-            else:
-                e_negative = None
+            e_positive = torch.cat((e_positive, e_for_u_v_positive))
+            e_negative = torch.cat((e_negative, e_for_u_v_negative))
 
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 
-        accuracy, threshold = metrics.calculate_metrics()
+        f1_score, threshold, accuracy = metrics.calculate_metrics()
         if phase == 'val':
             self.optimal_threshold = threshold
-        epoch_loss = running_loss / self.dataset_length[phase]
+
+        if phase == 'train':
+            epoch_loss = running_loss / (self.dataset_length[phase]*(2*self.neg_to_pos_ratio+1))
+        else:
+            epoch_loss = running_loss / self.dataset_length[phase]
 
         if save_to_tensorboard:
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
+            self.writer.add_scalar('{}_f1_score'.format(phase), f1_score, self.epoch)
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
         # print('{} Loss: {:.4f} Score: {:.4f}'.format(phase, epoch_loss, micro_f1))
-        print('{} Loss: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, accuracy))
+        print('{} Loss: {:.4f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, f1_score, accuracy))
 
         # deep copy the model
         if phase == 'val':
             if self.epoch % 10 == 0:
                 self.save_model(epoch_loss)
-            if accuracy > self.best_score:
-                self.best_score = accuracy
+            if f1_score > self.best_score:
+                self.best_score = f1_score
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
                 self.save_model(epoch_loss, filename='best_model')
 
@@ -344,35 +464,77 @@ class OrderEmbeddingLoss(torch.nn.Module):
         # print('npair shape {}'.format(torch.clamp(self.alpha-self.E_operator(x, y), min=0.0).shape))
         return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
 
-    def forward(self, model, inputs_from, inputs_to, phase, G, neg_to_pos_ratio):
+    def forward(self, model, inputs_from, inputs_to, status, phase, G, neg_to_pos_ratio):
         loss = 0.0
         e_for_u_v_positive, e_for_u_v_negative = torch.tensor([]), torch.tensor([])
         predicted_from_embeddings = model(inputs_from)
         predicted_to_embeddings = model(inputs_to)
 
-        reverse_G = nx.reverse(G)
+        if phase != 'train':
+            # loss for positive pairs
+            positive_indices = (status == 1).nonzero().squeeze(dim=1)
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
+                                                    predicted_to_embeddings[positive_indices])
+            loss += torch.sum(e_for_u_v_positive)
 
-        nodes_in_graph = set(list(G))
+            # loss for negative pairs
+            negative_indices = (status == 0).nonzero().squeeze(dim=1)
+            neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
+                                                             predicted_to_embeddings[negative_indices])
+            loss += torch.sum(neg_term)
 
-        e_for_u_v_positive = self.positive_pair(predicted_from_embeddings, predicted_to_embeddings)
-        loss += torch.mean(e_for_u_v_positive)
-        if phase != 'test':
-            for _ in range(neg_to_pos_ratio):
-                negative_from, negative_to = torch.zeros_like(inputs_from), torch.zeros_like(inputs_to)
-                for sample_id in range(inputs_from.shape[0]):
-                    if sample_id % 2 == 0:
-                        list_of_edges_from_ui = [v for u, v in list(G.edges(inputs_from[sample_id].item()))]
-                        corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_from_ui)))
-                        negative_from[sample_id], negative_to[sample_id] = inputs_from[sample_id], corrupted_ix
-                    else:
-                        list_of_edges_to_vi = [v for u, v in list(reverse_G.edges(inputs_to[sample_id].item()))]
-                        corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_to_vi)))
-                        negative_from[sample_id], negative_to[sample_id] = corrupted_ix, inputs_to[sample_id]
+        else:
+            # loss for positive pairs
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings, predicted_to_embeddings)
+            loss += torch.sum(e_for_u_v_positive)
 
-                negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
-                neg_term, current_e_for_u_v = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
-                e_for_u_v_negative = torch.cat((e_for_u_v_negative, current_e_for_u_v))
-                loss += torch.mean(neg_term)
+            # loss for negative pairs
+            reverse_G = nx.reverse(G)
+            nodes_in_graph = set(list(G))
+            num_edges = G.size()
+            negative_from = torch.zeros((2 * neg_to_pos_ratio * num_edges), dtype=torch.long)
+            negative_to = torch.zeros((2 * neg_to_pos_ratio * num_edges), dtype=torch.long)
+
+            for sample_id in range(inputs_from.shape[0]):
+                sample_inputs_from, sample_inputs_to = inputs_from[sample_id], inputs_to[sample_id]
+                for pass_ix in range(neg_to_pos_ratio):
+
+                    list_of_edges_from_ui = [v for u, v in list(G.edges(sample_inputs_from.item()))]
+                    corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_from_ui)))
+                    negative_from[2 * neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
+                    negative_to[2 * neg_to_pos_ratio * sample_id + pass_ix] = corrupted_ix
+
+                    list_of_edges_to_vi = [v for u, v in list(reverse_G.edges(sample_inputs_to.item()))]
+                    corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_to_vi)))
+                    negative_from[
+                        2 * neg_to_pos_ratio * sample_id + pass_ix + neg_to_pos_ratio] = corrupted_ix
+                    negative_to[2 * neg_to_pos_ratio * sample_id + pass_ix + neg_to_pos_ratio] = sample_inputs_to
+
+            negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
+            neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
+            loss += torch.sum(neg_term)
+
+            # reverse_G = nx.reverse(G)
+            # nodes_in_graph = set(list(G))
+            #
+            # e_for_u_v_positive = self.positive_pair(predicted_from_embeddings, predicted_to_embeddings)
+            # loss += torch.mean(e_for_u_v_positive)
+            # for pass_ix in range(neg_to_pos_ratio):
+            #     negative_from, negative_to = torch.zeros_like(inputs_from), torch.zeros_like(inputs_to)
+            #     for sample_id in range(inputs_from.shape[0]):
+            #         if (sample_id+pass_ix) % 2 == 0:
+            #             list_of_edges_from_ui = [v for u, v in list(G.edges(inputs_from[sample_id].item()))]
+            #             corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_from_ui)))
+            #             negative_from[sample_id], negative_to[sample_id] = inputs_from[sample_id], corrupted_ix
+            #         else:
+            #             list_of_edges_to_vi = [v for u, v in list(reverse_G.edges(inputs_to[sample_id].item()))]
+            #             corrupted_ix = random.choice(list(nodes_in_graph - set(list_of_edges_to_vi)))
+            #             negative_from[sample_id], negative_to[sample_id] = corrupted_ix, inputs_to[sample_id]
+            #
+            #     negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
+            #     neg_term, current_e_for_u_v = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
+            #     e_for_u_v_negative = torch.cat((e_for_u_v_negative, current_e_for_u_v))
+            #     loss += torch.mean(neg_term)
 
         return predicted_from_embeddings, predicted_to_embeddings, loss, e_for_u_v_positive, e_for_u_v_negative
 
@@ -428,13 +590,13 @@ def order_embedding_train_model(arguments):
     if not arguments.merged:
         train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
                             path_to_images=arguments.image_dir,
-                            labelmap=labelmap, transform=train_data_transforms)
+                            labelmap=labelmap, transform=train_data_transforms, with_images=False)
         val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
                           path_to_images=arguments.image_dir,
-                          labelmap=labelmap, transform=val_test_data_transforms)
+                          labelmap=labelmap, transform=val_test_data_transforms, with_images=False)
         test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
                            path_to_images=arguments.image_dir,
-                           labelmap=labelmap, transform=val_test_data_transforms)
+                           labelmap=labelmap, transform=val_test_data_transforms, with_images=False)
     elif not arguments.debug:
         train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
                                   path_to_images=arguments.image_dir,
@@ -449,13 +611,13 @@ def order_embedding_train_model(arguments):
         labelmap = ETHECLabelMapMergedSmall(single_level=False)
         train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
                                        path_to_images=arguments.image_dir,
-                                       labelmap=labelmap, transform=train_data_transforms)
+                                       labelmap=labelmap, transform=train_data_transforms, with_images=False)
         val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
                                      path_to_images=arguments.image_dir,
-                                     labelmap=labelmap, transform=val_test_data_transforms)
+                                     labelmap=labelmap, transform=val_test_data_transforms, with_images=False)
         test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
                                       path_to_images=arguments.image_dir,
-                                      labelmap=labelmap, transform=val_test_data_transforms)
+                                      labelmap=labelmap, transform=val_test_data_transforms, with_images=False)
 
     print('Dataset has following splits: train: {}, val: {}, test: {}'.format(len(train_set), len(val_set),
                                                                               len(test_set)))
@@ -522,6 +684,9 @@ def order_embedding_train_model(arguments):
                         batch_size=batch_size, evaluator=eval_type,
                         experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
                         experiment_dir=arguments.experiment_dir,
+                        embedding_dim=arguments.embedding_dim,
+                        neg_to_pos_ratio=arguments.neg_to_pos_ratio,
+                        proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges,
                         eval_interval=arguments.eval_interval,
                         n_epochs=arguments.n_epochs,
                         feature_extracting=arguments.freeze_weights,
@@ -529,7 +694,8 @@ def order_embedding_train_model(arguments):
                         load_wt=arguments.resume,
                         model_name=arguments.model,
                         optimizer_method=arguments.optimizer_method,
-                        use_grayscale=arguments.use_grayscale)
+                        use_grayscale=arguments.use_grayscale,
+                        lr_step=arguments.lr_step)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()
@@ -549,12 +715,15 @@ if __name__ == '__main__':
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
+    parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
+    parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int, default=5)
+    parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.0)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
     parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
     parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
                         type=str, default='inv')
-    parser.add_argument("--model", help='NN model to use.', type=str, required=True)
+    parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')
     parser.add_argument("--loss",
                         help='Loss function to use. [multi_label, multi_level, last_level, masked_loss, hsoftmax]',
                         type=str, required=True)
@@ -565,6 +734,7 @@ if __name__ == '__main__':
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)
     parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
+    parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
     args = parser.parse_args()
 
     order_embedding_train_model(args)

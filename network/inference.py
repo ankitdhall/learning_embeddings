@@ -40,7 +40,7 @@ import random
 
 
 class Inference:
-    def __init__(self, path_to_exp, mode, image_dir=None, data_ix=None):
+    def __init__(self, path_to_exp, mode, image_dir=None, data_ix=None, perform_inference=True):
         with open(os.path.join(path_to_exp, 'config_params.txt'), 'r') as file:
             arguments = json.loads(file.read())
 
@@ -175,7 +175,7 @@ class Inference:
                                         model_name=arguments['model'],
                                         optimizer_method=arguments['optimizer_method'],
                                         use_grayscale=arguments['use_grayscale'])
-        ETHEC_trainer.prepare_model()
+        ETHEC_trainer.prepare_model(loading=True)
         ETHEC_trainer.set_optimizer()
 
         self.ETHEC_trainer = ETHEC_trainer
@@ -191,12 +191,17 @@ class Inference:
         if not data_ix:
             self.viz_these_samples_ix = list(range(len(self.test_set))) # [231, 890] # 890
 
-        if mode == 'lime':
-            self.run_LIME()
-        elif mode == 'tsne':
-            self.run_tsne()
-        else:
-            print('Invalid option: {}'.format(mode))
+        if perform_inference:
+            if mode == 'lime':
+                self.run_LIME()
+            elif mode == 'tsne':
+                self.run_tsne()
+            else:
+                print('Invalid option: {}'.format(mode))
+
+    def get_model(self):
+        self.ETHEC_trainer.load_best_model()
+        return self.ETHEC_trainer.model
 
     def run_tsne(self):
         self.ETHEC_trainer.load_best_model()
@@ -207,25 +212,10 @@ class Inference:
 
         # modify last layers based on the model being used
         if self.model_name in ['alexnet', 'vgg']:
-            # num_features = self.ETHEC_trainer.model.classifier[6].in_features
-            # self.ETHEC_trainer.model.classifier = nn.Sequential(*list(self.ETHEC_trainer.model.classifier.children())[:-1])
-            # if isinstance(self.ETHEC_trainer.criterion, LastLevelCELoss):
-            #     self.ETHEC_trainer.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
-            # elif isinstance(self.ETHEC_trainer.criterion, HierarchicalSoftmaxLoss):
-            #     self.ETHEC_trainer.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            # else:
-            #     self.ETHEC_trainer.model.classifier[6] = nn.Linear(num_features, self.n_classes)
             self.ETHEC_trainer.model.module.classifier[6].register_forward_hook(hook)
         elif 'resnet' in self.model_name:
             print(self.ETHEC_trainer.model)
             self.ETHEC_trainer.model.module.fc.register_forward_hook(hook)
-            # num_features = self.ETHEC_trainer.model.fc.in_features
-            # if isinstance(self.ETHEC_trainer.criterion, LastLevelCELoss):
-            #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.levels[-1])
-            # elif isinstance(self.ETHEC_trainer.criterion, HierarchicalSoftmaxLoss):
-            #     self.ETHEC_trainer.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            # else:
-            #     self.ETHEC_trainer.model.fc = nn.Linear(num_features, self.n_classes)
 
         for set_name in ['train', 'test', 'val']:
             chosen_set = getattr(self, '{}_set'.format(set_name))

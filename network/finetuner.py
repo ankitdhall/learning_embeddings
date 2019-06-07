@@ -109,6 +109,7 @@ class CIFAR10(Experiment):
         self.feature_extracting = feature_extracting
         self.optimal_thresholds = np.zeros(self.n_classes)
         self.optimizer_method = optimizer_method
+        self.labelmap = labelmap
 
         if model_name == 'alexnet':
             model = models.alexnet(pretrained=use_pretrained)
@@ -128,28 +129,46 @@ class CIFAR10(Experiment):
                             batch_size, experiment_dir, load_wt, evaluator)
         self.model_name = model_name
 
-    def prepare_model(self):
+    def prepare_model(self, loading=False):
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
 
         # modify last layers based on the model being used
-        if self.model_name in ['alexnet', 'vgg']:
-            num_features = self.model.classifier[6].in_features
-            if isinstance(self.criterion, LastLevelCELoss):
-                self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
-            elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
-                self.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            else:
-                self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
-        elif 'resnet' in self.model_name:
-            num_features = self.model.fc.in_features
-            if isinstance(self.criterion, LastLevelCELoss):
-                self.model.fc = nn.Linear(num_features, self.levels[-1])
-            elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
-                self.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            else:
-                self.model.fc = nn.Linear(num_features, self.n_classes)
+        if not loading:
+            if self.model_name in ['alexnet', 'vgg']:
+                num_features = self.model.classifier[6].in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.classifier[6] = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
+            elif 'resnet' in self.model_name:
+                num_features = self.model.fc.in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.fc = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.fc = nn.Linear(num_features, self.n_classes)
+        else:
+            if self.model_name in ['alexnet', 'vgg']:
+                num_features = self.model.module.classifier[6].in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.classifier[6] = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.classifier[6] = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.classifier[6] = nn.Linear(num_features, self.n_classes)
+            elif 'resnet' in self.model_name:
+                num_features = self.model.module.fc.in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.fc = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.fc = nn.Linear(num_features, self.n_classes)
 
         self.n_train, self.n_val, self.n_test = torch.zeros(self.n_classes), torch.zeros(self.n_classes), \
                                                 torch.zeros(self.n_classes)

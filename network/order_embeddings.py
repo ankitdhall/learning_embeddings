@@ -229,6 +229,9 @@ class OrderEmbedding(CIFAR10):
         self.criterion.set_graph_tc(self.G_tc)
         self.create_splits()
 
+        nx.draw_networkx(self.G, arrows=True)
+        plt.show()
+
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -364,17 +367,12 @@ class OrderEmbedding(CIFAR10):
 
         running_loss = 0.0
 
-        # predicted_from_embeddings = np.zeros((self.dataset_length[phase], self.embedding_dim))
-        # predicted_to_embeddings = np.zeros((self.dataset_length[phase], self.embedding_dim))
         predicted_from_embeddings, predicted_to_embeddings = torch.tensor([]), torch.tensor([])
         e_positive, e_negative = torch.tensor([]), torch.tensor([])
 
         # Iterate over data.
         for index, data_item in enumerate(self.dataloaders[phase]):
             inputs_from, inputs_to, status = data_item['from'], data_item['to'], data_item['status']
-            # inputs_from = inputs_from.to(self.device)
-            # inputs_to = inputs_to.to(self.device)
-            # status = status.to(self.device)
 
             # zero the parameter gradients
             self.optimizer.zero_grad()
@@ -396,10 +394,6 @@ class OrderEmbedding(CIFAR10):
 
             outputs_from, outputs_to = outputs_from.cpu().detach(), outputs_to.cpu().detach()
 
-            # predicted_from_embeddings[self.batch_size * index:min(self.batch_size * (index + 1),
-            #                                                  self.dataset_length[phase]), :] = outputs_from.data
-            # predicted_to_embeddings[self.batch_size * index:min(self.batch_size * (index + 1),
-            #                                                       self.dataset_length[phase]), :] = outputs_to.data
             predicted_from_embeddings = torch.cat((predicted_from_embeddings, outputs_from.data))
             predicted_to_embeddings = torch.cat((predicted_to_embeddings, outputs_to.data))
             e_positive = torch.cat((e_positive, e_for_u_v_positive.data))
@@ -419,7 +413,6 @@ class OrderEmbedding(CIFAR10):
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
-        # print('{} Loss: {:.4f} Score: {:.4f}'.format(phase, epoch_loss, micro_f1))
         print('{} Loss: {:.4f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, f1_score, accuracy))
 
         # deep copy the model
@@ -473,16 +466,12 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
     @staticmethod
     def E_operator(x, y):
-        # print('xshape {} y shape {}'.format(x.shape, y.shape))
-        # print('eop {}'.format(torch.sum(torch.clamp(y-x, min=0.0)**2, dim=1).shape))
         return torch.sum(torch.clamp(y-x, min=0.0)**2, dim=1)
 
     def positive_pair(self, x, y):
-        # print('ppair shape {}'.format(self.E_operator(x, y).shape))
         return self.E_operator(x, y)
 
     def negative_pair(self, x, y):
-        # print('npair shape {}'.format(torch.clamp(self.alpha-self.E_operator(x, y), min=0.0).shape))
         return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
 
     def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
@@ -568,8 +557,6 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
 
     @staticmethod
     def d_fn(x, y):
-        # print('xshape {} y shape {}'.format(x.shape, y.shape))
-        # print('eop {}'.format(torch.sum(torch.clamp(y-x, min=0.0)**2, dim=1).shape))
         return torch.sum((y-x)**2, dim=1)
 
     def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
@@ -578,13 +565,10 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
         predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
         predicted_to_embeddings_all = torch.tensor([]) # model(inputs_to)
 
-        # print('inputs from all: {} {} {}'.format(inputs_from, inputs_to, status))
-
         if phase != 'train':
             inputs_from, inputs_to, status = torch.tensor(inputs_from), torch.tensor(inputs_to), torch.tensor(status)
             predicted_from_embeddings = model(inputs_from)
             predicted_to_embeddings = model(inputs_to)
-            # print('shapes of emb: {} {}'.format(predicted_from_embeddings.shape, predicted_to_embeddings.shape))
 
             # loss for positive pairs
             positive_indices = (status == 1).nonzero().squeeze(dim=1)
@@ -596,22 +580,14 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
 
             # loss for negative pairs
             negative_indices = (status == 0).nonzero().squeeze(dim=1)
-            # print('neg indices: {}'.format(negative_indices))
             d_for_u_v_negative = self.d_fn(predicted_from_embeddings[negative_indices],
                                            predicted_to_embeddings[negative_indices])
 
             d_for_u_v_negative_all = torch.cat((d_for_u_v_negative_all, d_for_u_v_negative))
-
-            # print(d_for_u_v_positive.shape, d_for_u_v_negative.shape, d_u_u.shape)
-            # print(d_for_u_v_positive.shape, torch.sum(torch.exp(-d_for_u_v_negative), dim=0).shape,
-            #       torch.exp(d_u_u).shape)
             loss += d_for_u_v_positive + torch.log(torch.sum(torch.exp(-d_for_u_v_negative), dim=0) + torch.exp(-d_u_u))
 
         else:
-            # print(len(inputs_from), len(inputs_to), len(status), neg_to_pos_ratio)
             for batch_id in range(len(inputs_from)):
-                # print('inputs_from: {} inputs_to: {}, status: {}'.format(inputs_from[batch_id].shape, inputs_to[batch_id].shape, status[batch_id].shape))
-                # print('inputs_from: {} inputs_to: {}, status: {}'.format(inputs_from[batch_id], inputs_to[batch_id], status[batch_id]))
 
                 predicted_from_embeddings = model(inputs_from[batch_id])
                 predicted_to_embeddings = model(inputs_to[batch_id])
@@ -620,9 +596,6 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
 
                 # loss for positive pairs
                 positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
-                # print('found {} +ve samples = {} {}'.format(positive_indices.shape, inputs_from[batch_id][positive_indices], inputs_to[batch_id][positive_indices]))
-                # print('finding distance between {} {}'.format(predicted_from_embeddings[positive_indices],
-                #                                               predicted_to_embeddings[positive_indices]))
                 d_for_u_v_positive = self.d_fn(predicted_from_embeddings[positive_indices],
                                                predicted_to_embeddings[positive_indices])
                 d_u_u = self.d_fn(predicted_from_embeddings[positive_indices],
@@ -648,8 +621,6 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
                         negative_from[pass_ix + neg_to_pos_ratio] = corrupted_ix
                         negative_to[pass_ix + neg_to_pos_ratio] = sample_inputs_to
 
-                    # print('found negative indices {} {}'.format(negative_from, negative_to))
-                    # print('finding distance between {} {}'.format(negative_from.shape, negative_to.shape))
                     negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
                     d_for_u_v_negative = self.d_fn(negative_from_embeddings,
                                                    negative_to_embeddings)
@@ -657,10 +628,6 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
                     d_for_u_v_negative_all = torch.cat((d_for_u_v_negative_all, d_for_u_v_negative))
 
                     # add the positive and negative terms
-                    # print(d_for_u_v_positive[sample_id].shape, d_for_u_v_negative.shape, d_u_u[sample_id].shape)
-                    # print(d_for_u_v_positive[sample_id], d_for_u_v_negative, d_u_u[sample_id])
-                    # print(d_for_u_v_positive[sample_id], torch.sum(d_for_u_v_negative, dim=0), d_u_u[sample_id])
-                    # print(d_for_u_v_positive[sample_id] + torch.sum(torch.log(torch.sum(d_for_u_v_negative, dim=0) + d_u_u[sample_id])))
                     loss += d_for_u_v_positive[sample_id] + torch.log(torch.sum(torch.exp(-torch.cat((d_for_u_v_negative, d_u_u[sample_id].unsqueeze(dim=0)))), dim=0))
 
         return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, d_for_u_v_positive_all, d_for_u_v_negative_all
@@ -688,18 +655,12 @@ def order_embedding_train_model(arguments):
 
     train_data_transforms = transforms.Compose([transforms.ToPILImage(),
                                                 transforms.Resize((input_size, input_size)),
-                                                # RandomCrop((input_size, input_size)),
                                                 transforms.RandomHorizontalFlip(),
-                                                # ColorJitter(brightness=0.2, contrast=0.2),
                                                 transforms.ToTensor(),
-                                                # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                #                      std=(66.7762, 59.2524, 51.5077))
                                                 ])
     val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
                                                    transforms.Resize((input_size, input_size)),
                                                    transforms.ToTensor(),
-                                                   # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
-                                                   #                      std=(66.7762, 59.2524, 51.5077))
                                                   ])
     if arguments.use_grayscale:
         train_data_transforms = transforms.Compose([transforms.ToPILImage(),

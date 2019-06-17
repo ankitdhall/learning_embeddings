@@ -715,38 +715,20 @@ def order_embedding_train_model(arguments):
 
     if arguments.debug:
         print("== Running in DEBUG mode!")
-        trainloader = torch.utils.data.DataLoader(train_set,
-                                                  batch_size=batch_size,
-                                                  num_workers=n_workers,
-                                                  shuffle=True if arguments.class_weights else False,
-                                                  sampler=None if arguments.class_weights else WeightedResampler(
-                                                      train_set, weight_strategy=arguments.weight_strategy))
+    trainloader = torch.utils.data.DataLoader(train_set,
+                                              batch_size=batch_size,
+                                              num_workers=n_workers,
+                                              shuffle=True if arguments.class_weights else False,
+                                              sampler=None if arguments.class_weights else WeightedResampler(
+                                                  train_set, weight_strategy=arguments.weight_strategy))
+    valloader = torch.utils.data.DataLoader(val_set,
+                                            batch_size=batch_size,
+                                            shuffle=False, num_workers=n_workers)
+    testloader = torch.utils.data.DataLoader(test_set,
+                                             batch_size=batch_size,
+                                             shuffle=False, num_workers=n_workers)
 
-        valloader = torch.utils.data.DataLoader(val_set,
-                                                batch_size=batch_size,
-                                                shuffle=False, num_workers=n_workers)
-
-        testloader = torch.utils.data.DataLoader(test_set,
-                                                 batch_size=batch_size,
-                                                 shuffle=False, num_workers=n_workers)
-
-        data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
-
-    else:
-        trainloader = torch.utils.data.DataLoader(train_set,
-                                                  batch_size=batch_size,
-                                                  num_workers=n_workers,
-                                                  shuffle=True if arguments.class_weights else False,
-                                                  sampler=None if arguments.class_weights else WeightedResampler(
-                                                      train_set, weight_strategy=arguments.weight_strategy))
-        valloader = torch.utils.data.DataLoader(val_set,
-                                                batch_size=batch_size,
-                                                shuffle=False, num_workers=n_workers)
-        testloader = torch.utils.data.DataLoader(test_set,
-                                                 batch_size=batch_size,
-                                                 shuffle=False, num_workers=n_workers)
-
-        data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
+    data_loaders = {'train': trainloader, 'val': valloader, 'test': testloader}
 
     weight = None
     if arguments.class_weights:

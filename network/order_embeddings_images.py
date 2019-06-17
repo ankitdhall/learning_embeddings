@@ -17,6 +17,7 @@ from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, Ma
 from PIL import Image
 import numpy as np
 import time
+from tqdm import tqdm
 
 import copy
 import argparse
@@ -25,6 +26,7 @@ import git
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from data.db import ETHECLabelMap, ETHECLabelMapMergedSmall
 
 from network.finetuner import CIFAR10
@@ -49,6 +51,29 @@ class Identity(nn.Module):
         return x
 
 
+class FeatNet(nn.Module):
+    """
+    Fully connected NN to learn features on top of image features in the joint embedding space.
+    """
+    def __init__(self, input_dim=2048, output_dim=10):
+        """
+        Constructor to prepare layers for the embedding.
+        """
+        super(FeatNet, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 1024)
+        self.fc2 = nn.Linear(1024, 128)
+        self.fc3 = nn.Linear(128, output_dim)
+
+    def forward(self, x):
+        """
+        Forward pass through the model.
+        """
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = torch.abs(self.fc3(x))
+        return x
+
+
 class ImageEmb:
     def __init__(self, path_to_exp='../exp/ethec_resnet50_lr_1e-5_1_1_1_1/',
                  image_dir='/media/ankit/DataPartition/IMAGO_build_test_resized'):
@@ -69,20 +94,40 @@ class ImageEmb:
                                                        transforms.ToTensor(),
                                                        ])
         labelmap = ETHECLabelMapMergedSmall()
+        train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
+                                       path_to_images=self.image_dir,
+                                       labelmap=labelmap, transform=val_test_data_transforms)
+        val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
+                                     path_to_images=self.image_dir,
+                                     labelmap=labelmap, transform=val_test_data_transforms)
         test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
                                       path_to_images=self.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
+        trainloader = torch.utils.data.DataLoader(train_set,
+                                                 batch_size=1,
+                                                 shuffle=False, num_workers=0)
+        valloader = torch.utils.data.DataLoader(val_set,
+                                                 batch_size=1,
+                                                 shuffle=False, num_workers=0)
         testloader = torch.utils.data.DataLoader(test_set,
                                                  batch_size=1,
                                                  shuffle=False, num_workers=0)
         self.model.module.fc = Identity()
 
-        print('{} items in testloader'.format(len(testloader)))
-        for index, data_item in enumerate(testloader):
-            print(index, data_item)
-            outputs = self.model(data_item['image'])
-            print(outputs)
-            break
+        path_to_save_emb = '../database/ETHEC/embeddings'
+        if not os.path.exists(path_to_save_emb):
+            os.makedirs(path_to_save_emb)
+
+        for loader, loader_name in zip([trainloader, valloader, testloader], ['train', 'val', 'test']):
+            embeddings = {}
+            print('{} items in {} loader'.format(len(loader), loader_name))
+            for index, data_item in enumerate(tqdm(loader)):
+                outputs = self.model(data_item['image']).detach()
+                embeddings[data_item['image_filename'][0]] = outputs[0].numpy()
+            print(embeddings)
+            with open(os.path.join(path_to_save_emb, '{}.json'.format(loader_name)), 'w') as fp:
+                json.dump(embeddings, fp)
+
 
 ie_model = ImageEmb()
 ie_model.load_model()

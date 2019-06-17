@@ -2754,6 +2754,7 @@ class ETHECDBMerged(ETHECDB):
 
         ret_sample = {
             'image': img,
+            'image_filename': sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'],
             'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
                                                                  '{}_{}'.format(sample['genus'],
                                                                                 sample['specific_epithet']))).float(),

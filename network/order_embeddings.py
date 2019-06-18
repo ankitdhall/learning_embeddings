@@ -446,10 +446,11 @@ class OrderEmbedding(CIFAR10):
 
 
 class OrderEmbeddingLoss(torch.nn.Module):
-    def __init__(self, labelmap, alpha=1.0):
+    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
+        self.neg_to_pos_ratio = neg_to_pos_ratio
         self.alpha = alpha
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -511,23 +512,23 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
                 # loss for negative pairs
 
-                negative_from = torch.zeros((2 * neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
-                negative_to = torch.zeros((2 * neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
+                negative_from = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
+                negative_to = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
 
                 for sample_id in range(inputs_from[batch_id].shape[0]):
                     sample_inputs_from, sample_inputs_to = inputs_from[batch_id][sample_id], inputs_to[batch_id][sample_id]
-                    for pass_ix in range(neg_to_pos_ratio):
+                    for pass_ix in range(self.neg_to_pos_ratio):
 
                         list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
                         corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_from_ui)))
-                        negative_from[2 * neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
-                        negative_to[2 * neg_to_pos_ratio * sample_id + pass_ix] = corrupted_ix
+                        negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
+                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = corrupted_ix
 
                         list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to.item()))]
                         corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_to_vi)))
                         negative_from[
-                            2 * neg_to_pos_ratio * sample_id + pass_ix + neg_to_pos_ratio] = corrupted_ix
-                        negative_to[2 * neg_to_pos_ratio * sample_id + pass_ix + neg_to_pos_ratio] = sample_inputs_to
+                            2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
+                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
                 negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
                 neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
@@ -538,11 +539,12 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
 
 class SimpleEuclideanEmbLoss(torch.nn.Module):
-    def __init__(self, labelmap):
+    def __init__(self, labelmap, neg_to_pos_ratio):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.neg_to_pos_ratio = neg_to_pos_ratio
 
         self.G_tc = None
         self.reverse_G = None
@@ -559,7 +561,7 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
     def d_fn(x, y):
         return torch.sum((y-x)**2, dim=1)
 
-    def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
+    def forward(self, model, inputs_from, inputs_to, status, phase):
         loss = 0.0
         d_for_u_v_positive_all, d_for_u_v_negative_all = torch.tensor([]), torch.tensor([])
         predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
@@ -605,11 +607,11 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
 
                 # loss for negative pair
                 for sample_id in range(inputs_from[batch_id].shape[0]):
-                    negative_from = torch.zeros((2 * neg_to_pos_ratio), dtype=torch.long)
-                    negative_to = torch.zeros((2 * neg_to_pos_ratio), dtype=torch.long)
+                    negative_from = torch.zeros((2 * self.neg_to_pos_ratio), dtype=torch.long)
+                    negative_to = torch.zeros((2 * self.neg_to_pos_ratio), dtype=torch.long)
 
                     sample_inputs_from, sample_inputs_to = inputs_from[batch_id][sample_id], inputs_to[batch_id][sample_id]
-                    for pass_ix in range(neg_to_pos_ratio):
+                    for pass_ix in range(self.neg_to_pos_ratio):
 
                         list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
                         corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_from_ui)))
@@ -618,8 +620,8 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
 
                         list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to.item()))]
                         corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_to_vi)))
-                        negative_from[pass_ix + neg_to_pos_ratio] = corrupted_ix
-                        negative_to[pass_ix + neg_to_pos_ratio] = sample_inputs_to
+                        negative_from[pass_ix + self.neg_to_pos_ratio] = corrupted_ix
+                        negative_to[pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
                     negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
                     d_for_u_v_negative = self.d_fn(negative_from_embeddings,
@@ -743,10 +745,10 @@ def order_embedding_train_model(arguments):
                                                      labelmap)
 
     use_criterion = None
-    if arguments.loss == 'embedding_loss':
-        use_criterion = OrderEmbeddingLoss(labelmap=labelmap)
+    if arguments.loss == 'order_emb_loss':
+        use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
     elif arguments.loss == 'euc_emb_loss':
-        use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap)
+        use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
     else:
         print("== Invalid --loss argument")
 
@@ -797,7 +799,7 @@ if __name__ == '__main__':
                         type=str, default='inv')
     parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')
     parser.add_argument("--loss",
-                        help='Loss function to use. [multi_label, multi_level, last_level, masked_loss, hsoftmax]',
+                        help='Loss function to use. [order_emb_loss, euc_emb_loss]',
                         type=str, required=True)
     parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
     parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',

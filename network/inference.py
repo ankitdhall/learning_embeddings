@@ -200,11 +200,11 @@ class Inference:
                 print('Invalid option: {}'.format(mode))
 
     def get_model(self):
-        self.ETHEC_trainer.load_best_model()
+        self.ETHEC_trainer.load_best_model(only_load=True)
         return self.ETHEC_trainer.model
 
     def run_tsne(self):
-        self.ETHEC_trainer.load_best_model()
+        self.ETHEC_trainer.load_best_model(only_load=True)
 
         outputs = []
         def hook(module, input, output):

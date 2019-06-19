@@ -208,11 +208,14 @@ class Experiment:
         else:
             self.load_model(epoch_to_load=weights[-2].split('.')[0])
 
-    def load_best_model(self):
-        self.load_model(epoch_to_load='best_model')
-        self.eval.enable_plotting()
-        self.pass_samples(phase='test', save_to_tensorboard=False)
-        self.eval.disable_plotting()
+    def load_best_model(self, only_load=False):
+        if only_load:
+            self.load_model(epoch_to_load='best_model')
+        else:
+            self.load_model(epoch_to_load='best_model')
+            self.eval.enable_plotting()
+            self.pass_samples(phase='test', save_to_tensorboard=False)
+            self.eval.disable_plotting()
 
 
 class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):

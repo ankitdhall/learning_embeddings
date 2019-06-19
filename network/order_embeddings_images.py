@@ -56,12 +56,13 @@ class Identity(nn.Module):
 class ImageEmb:
     def __init__(self, path_to_exp='../exp/ethec_resnet50_lr_1e-5_1_1_1_1/',
                  image_dir='/media/ankit/DataPartition/IMAGO_build_test_resized',
-                 path_to_db='../database/ETHEC/'):
+                 path_to_db='../database/ETHEC/', debug=False):
         self.path_to_exp = path_to_exp
         self.image_dir = image_dir
         self.path_to_db = path_to_db
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
+        self.debug = debug
 
     def load_model(self):
         """
@@ -81,16 +82,28 @@ class ImageEmb:
                                                        transforms.Resize((input_size, input_size)),
                                                        transforms.ToTensor(),
                                                        ])
-        labelmap = ETHECLabelMapMergedSmall()
-        train_set = ETHECDBMergedSmall(path_to_json=os.path.join(self.path_to_db, 'train.json'),
-                                       path_to_images=self.image_dir,
-                                       labelmap=labelmap, transform=val_test_data_transforms)
-        val_set = ETHECDBMergedSmall(path_to_json=os.path.join(self.path_to_db, 'val.json'),
-                                     path_to_images=self.image_dir,
-                                     labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDBMergedSmall(path_to_json=os.path.join(self.path_to_db, 'test.json'),
+        if self.debug:
+            labelmap = ETHECLabelMapMergedSmall()
+            train_set = ETHECDBMergedSmall(path_to_json=os.path.join(self.path_to_db, 'train.json'),
+                                           path_to_images=self.image_dir,
+                                           labelmap=labelmap, transform=val_test_data_transforms)
+            val_set = ETHECDBMergedSmall(path_to_json=os.path.join(self.path_to_db, 'val.json'),
+                                         path_to_images=self.image_dir,
+                                         labelmap=labelmap, transform=val_test_data_transforms)
+            test_set = ETHECDBMergedSmall(path_to_json=os.path.join(self.path_to_db, 'test.json'),
+                                          path_to_images=self.image_dir,
+                                          labelmap=labelmap, transform=val_test_data_transforms)
+        else:
+            labelmap = ETHECLabelMapMerged()
+            train_set = ETHECDBMerged(path_to_json=os.path.join(self.path_to_db, 'train.json'),
                                       path_to_images=self.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
+            val_set = ETHECDBMerged(path_to_json=os.path.join(self.path_to_db, 'val.json'),
+                                    path_to_images=self.image_dir,
+                                    labelmap=labelmap, transform=val_test_data_transforms)
+            test_set = ETHECDBMerged(path_to_json=os.path.join(self.path_to_db, 'test.json'),
+                                     path_to_images=self.image_dir,
+                                     labelmap=labelmap, transform=val_test_data_transforms)
         trainloader = torch.utils.data.DataLoader(train_set,
                                                  batch_size=1,
                                                  shuffle=False, num_workers=0)
@@ -884,40 +897,44 @@ def order_embedding_labels_with_images_train_model(arguments):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
-    parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
-    parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
-    # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
-    parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
-    parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
-    parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
-    parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
-    parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
-    parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
-    parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
-    parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int, default=5)
-    # parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.0)
-    parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
-    parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
-    parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
-    # parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
-    #                     type=str, default='inv')
-    parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')
-    parser.add_argument("--loss",
-                        help='Loss function to use. [order_emb_loss, euc_emb_loss]',
-                        type=str, required=True)
-    parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
-    # parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',
-    #                     action='store_true')
-    parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
-    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
-                        required=True)
-    # parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
-    parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
-    args = parser.parse_args()
+    generate_emb = True
+    if generate_emb:
+        ImageEmb().load_generate_and_save()
+    else:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
+        parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
+        parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
+        # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
+        parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
+        parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
+        parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
+        parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
+        parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
+        parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
+        parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
+        parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int, default=5)
+        # parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.0)
+        parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
+        parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
+        parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
+        # parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
+        #                     type=str, default='inv')
+        parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')
+        parser.add_argument("--loss",
+                            help='Loss function to use. [order_emb_loss, euc_emb_loss]',
+                            type=str, required=True)
+        parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
+        # parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',
+        #                     action='store_true')
+        parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+        parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
+                            required=True)
+        # parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
+        parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
+        args = parser.parse_args()
 
-    order_embedding_labels_with_images_train_model(args)
+        order_embedding_labels_with_images_train_model(args)
 
 
 # debug = True

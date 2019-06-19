@@ -123,7 +123,7 @@ class ImageEmb:
             embeddings = {}
             print('{} items in {} loader'.format(len(loader), loader_name))
             for index, data_item in enumerate(tqdm(loader)):
-                outputs = self.model(data_item['image']).detach()
+                outputs = self.model(data_item['image']).detach().cpu()
                 embeddings[data_item['image_filename'][0]] = outputs[0].numpy().tolist()
             np.save(os.path.join(path_to_save_emb, '{}.npy'.format(loader_name)), embeddings)
 
@@ -561,6 +561,7 @@ class EmbeddingLabelsWithImages:
                  experiment_name,
                  embedding_dim,
                  neg_to_pos_ratio,
+                 image_fc7,
                  lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10,
@@ -620,9 +621,6 @@ class EmbeddingLabelsWithImages:
         self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap)
 
         # load precomputed features as look-up table
-        image_fc7 = np.load('../database/ETHEC/ETHECSmall_embeddings/train.npy')[()]
-        image_fc7.update(np.load('../database/ETHEC/ETHECSmall_embeddings/val.npy')[()])
-        image_fc7.update(np.load('../database/ETHEC/ETHECSmall_embeddings/test.npy')[()])
         self.img_feat_net = FeatNet(feature_dict=image_fc7, output_dim=self.embedding_dim)
 
         # TODO
@@ -675,12 +673,12 @@ class EmbeddingLabelsWithImages:
                                                   shuffle=True)
         valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=1,
-                                                num_workers=0,
-                                                shuffle=True)
+                                                num_workers=16,
+                                                shuffle=False)
         testloader = torch.utils.data.DataLoader(test_set,
                                                  batch_size=1,
-                                                 num_workers=0,
-                                                 shuffle=True)
+                                                 num_workers=16,
+                                                 shuffle=False)
 
         self.dataloaders = {'train': trainloader, 'val': valloader, 'test': testloader}
         self.dataset_length = {'train': len(train_set), 'val': len(val_set), 'test': len(test_set)}
@@ -872,12 +870,22 @@ def order_embedding_labels_with_images_train_model(arguments):
     else:
         print("== Invalid --loss argument")
 
+    if arguments.debug:
+        image_fc7 = np.load('../database/ETHEC/ETHECSmall_embeddings/train.npy')[()]
+        image_fc7.update(np.load('../database/ETHEC/ETHECSmall_embeddings/val.npy')[()])
+        image_fc7.update(np.load('../database/ETHEC/ETHECSmall_embeddings/test.npy')[()])
+    else:
+        image_fc7 = np.load('../database/ETHEC/ETHEC_embeddings/train.npy')[()]
+        image_fc7.update(np.load('../database/ETHEC/ETHEC_embeddings/val.npy')[()])
+        image_fc7.update(np.load('../database/ETHEC/ETHEC_embeddings/test.npy')[()])
+
     oelwi = EmbeddingLabelsWithImages(graph_dict=graph_dict, labelmap=labelmap,
                                       criterion=use_criterion,
                                       lr=arguments.lr,
                                       batch_size=batch_size,
                                       experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
                                       experiment_dir=arguments.experiment_dir,
+                                      image_fc7=image_fc7,
                                       embedding_dim=arguments.embedding_dim,
                                       neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                                       eval_interval=arguments.eval_interval,
@@ -897,7 +905,7 @@ def order_embedding_labels_with_images_train_model(arguments):
 
 
 if __name__ == '__main__':
-    generate_emb = True
+    generate_emb = False
     if generate_emb:
         ImageEmb().load_generate_and_save()
     else:

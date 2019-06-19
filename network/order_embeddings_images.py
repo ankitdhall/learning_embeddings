@@ -41,7 +41,7 @@ import matplotlib
 matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 
-from network.order_embeddings import OrderEmbedding, OrderEmbeddingLoss, SimpleEuclideanEmbLoss, Embedder, EmbeddingMetrics
+from network.order_embeddings import OrderEmbedding, OrderEmbeddingLoss, SimpleEuclideanEmbLoss, Embedder, EmbeddingMetrics, ETHECHierarchy
 from network.inference import Inference
 
 
@@ -555,6 +555,109 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
         return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 
 
+class ValidateGraphRepresentation:
+    def __init__(self, debug=True,
+                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/oe_rm_50/weights/best_model_model.pth'):
+        torch.manual_seed(0)
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        labelmap = ETHECLabelMapMerged()
+        if debug:
+            labelmap = ETHECLabelMapMergedSmall()
+
+        dataloaders = create_imageless_dataloaders(debug=debug)
+
+        G = nx.DiGraph()
+        for index, data_item in enumerate(dataloaders['train']):
+            inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
+            for level_id in range(len(labelmap.levels)-1):
+                for sample_id in range(level_labels.shape[0]):
+                    G.add_edge(level_labels[sample_id, level_id].item()+labelmap.level_start[level_id],
+                               level_labels[sample_id, level_id+1].item()+labelmap.level_start[level_id+1])
+
+        self.G = G
+        self.G_tc = nx.transitive_closure(self.G)
+        self.labelmap = labelmap
+
+        dataset = ETHECHierarchy(self.G, self.G_tc, has_negative=False)
+        self.dataloader = torch.utils.data.DataLoader(dataset,
+                                                      batch_size=1,
+                                                      num_workers=0,
+                                                      shuffle=True)
+
+        self.model = Embedder(embedding_dim=10, labelmap=labelmap)
+
+        # this is reset when loading the model
+        self.optimal_threshold = 1.0
+
+        self.load_model(weights_to_load)
+
+        # run validation
+        self.validate()
+
+    def load_model(self, weights_to_load):
+        checkpoint = torch.load(weights_to_load,
+                                map_location=self.device)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model = self.model.to(self.device)
+        self.epoch = checkpoint['epoch']
+        self.optimal_threshold = checkpoint['optimal_threshold']
+        print('Using optimal threshold = {}'.format(self.optimal_threshold))
+        print('Successfully loaded model and img_feat_net epoch {} from {}'.format(self.epoch, weights_to_load))
+
+    def validate(self):
+        criterion = OrderEmbeddingLoss(self.labelmap, neg_to_pos_ratio=None)
+        criterion.set_graph_tc(self.G_tc)
+
+        phase = 'test'
+
+        self.model.eval()
+
+        running_loss = 0.0
+
+        predicted_from_embeddings, predicted_to_embeddings = torch.tensor([]), torch.tensor([])
+        e_positive, e_negative = torch.tensor([]), torch.tensor([])
+
+        # Iterate over data.
+        for index, data_item in enumerate(self.dataloader):
+            inputs_from, inputs_to, status = data_item['from'], data_item['to'], data_item['status']
+
+
+            # forward
+            # track history if only in train
+            with torch.set_grad_enabled(phase == 'train'):
+                self.model = self.model.to(self.device)
+                outputs_from, outputs_to, loss, e_for_u_v_positive, e_for_u_v_negative = \
+                    criterion(self.model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio=None)
+
+
+            # statistics
+            running_loss += loss.item()
+
+            outputs_from, outputs_to = outputs_from.cpu().detach(), outputs_to.cpu().detach()
+
+            predicted_from_embeddings = torch.cat((predicted_from_embeddings, outputs_from.data))
+            predicted_to_embeddings = torch.cat((predicted_to_embeddings, outputs_to.data))
+            e_positive = torch.cat((e_positive, e_for_u_v_positive.data))
+            e_negative = torch.cat((e_negative, e_for_u_v_negative.data))
+
+        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
+
+        f1_score, threshold, accuracy = metrics.calculate_metrics()
+        if phase == 'val':
+            self.optimal_threshold = threshold
+
+        epoch_loss = running_loss / len(self.dataloader.dataset)
+
+        print('{}_loss: {}'.format(phase, epoch_loss))
+        print('{}_f1_score: {}'.format(phase, f1_score))
+        print('{}_accuracy: {}'.format(phase, accuracy))
+        print('{}_thresh: {}'.format(phase, self.optimal_threshold))
+
+        print('{} Loss: {:.4f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, f1_score, accuracy))
+
+
 class EmbeddingLabelsWithImages:
     def __init__(self, graph_dict, labelmap, criterion, lr,
                  batch_size,
@@ -905,9 +1008,10 @@ def order_embedding_labels_with_images_train_model(arguments):
 
 
 if __name__ == '__main__':
-    generate_emb = False
+    generate_emb = True
     if generate_emb:
-        ImageEmb().load_generate_and_save()
+        # ImageEmb().load_generate_and_save()
+        ValidateGraphRepresentation()
     else:
         parser = argparse.ArgumentParser()
         parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')

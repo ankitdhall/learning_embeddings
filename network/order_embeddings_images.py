@@ -482,12 +482,12 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
 
     def forward(self, model, img_feat_net, inputs_from, inputs_to, status, phase):
         loss = 0.0
-        e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]), torch.tensor([])
-        predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
-        predicted_to_embeddings_all = torch.tensor([]) # model(inputs_to)
+        e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
+        predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
+        predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
 
         if phase != 'train':
-            predicted_from_embeddings = model(torch.tensor(inputs_from))
+            predicted_from_embeddings = model(torch.tensor(inputs_from).to(self.device))
             predicted_to_embeddings = img_feat_net(inputs_to)
             predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
             predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
@@ -513,7 +513,7 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
 
         else:
             for batch_id in range(len(inputs_from)):
-                predicted_from_embeddings = model(inputs_from[batch_id])
+                predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
                 predicted_to_embeddings = img_feat_net(inputs_to[batch_id])
                 predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
                 predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
@@ -545,7 +545,7 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
                             2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
                         negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                negative_from_embeddings, negative_to_embeddings = model(negative_from), img_feat_net(negative_to)
+                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), img_feat_net(negative_to)
                 neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
                 # loss += torch.sum(neg_term)
                 e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
@@ -618,10 +618,10 @@ class EmbeddingLabelsWithImages:
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
 
         # prepare models (embedding module and image feature extractor)
-        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap)
+        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap).to(self.device)
 
         # load precomputed features as look-up table
-        self.img_feat_net = FeatNet(feature_dict=image_fc7, output_dim=self.embedding_dim)
+        self.img_feat_net = FeatNet(feature_dict=image_fc7, output_dim=self.embedding_dim).to(self.device)
 
         # TODO
         # self.G_tc = nx.transitive_closure(self.G)
@@ -758,8 +758,8 @@ class EmbeddingLabelsWithImages:
 
             predicted_from_embeddings = torch.cat((predicted_from_embeddings, outputs_from.data))
             predicted_to_embeddings = torch.cat((predicted_to_embeddings, outputs_to.data))
-            e_positive = torch.cat((e_positive, e_for_u_v_positive.data))
-            e_negative = torch.cat((e_negative, e_for_u_v_negative.data))
+            e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().data))
+            e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().data))
 
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 

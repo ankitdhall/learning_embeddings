@@ -142,9 +142,8 @@ class FeatNet(nn.Module):
         Constructor to prepare layers for the embedding.
         """
         super(FeatNet, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 1024)
-        self.fc2 = nn.Linear(1024, 128)
-        self.fc3 = nn.Linear(128, output_dim)
+        self.fc1 = nn.Linear(input_dim, 128)
+        self.fc2 = nn.Linear(128, output_dim)
 
         self.feature_dict = feature_dict
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -169,8 +168,7 @@ class FeatNet(nn.Module):
 
         x = img_feat.to(self.device)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = torch.abs(self.fc3(x))
+        x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
         return x
 
 
@@ -382,34 +380,48 @@ class OrderEmbeddingWithImagesLoss(OrderEmbeddingLoss):
         predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
         predicted_to_embeddings_all = torch.tensor([]) # model(inputs_to)
 
-        for batch_id in range(len(inputs_from)):
-            predicted_from_embeddings = model(inputs_from[batch_id])
-            predicted_to_embeddings = img_feat_net(inputs_to[batch_id])
+        if phase != 'train':
+            predicted_from_embeddings = model(torch.tensor(inputs_from).to(self.device))
+            predicted_to_embeddings = img_feat_net(inputs_to)
             predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
             predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
-            if phase != 'train':
+            # loss for positive pairs
+            positive_indices = (torch.tensor(status) == 1).nonzero().squeeze(dim=1)
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
+                                                    predicted_to_embeddings[positive_indices])
+            # loss += torch.sum(e_for_u_v_positive)
+            e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+
+            # loss for negative pairs
+            negative_indices = (torch.tensor(status) == 0).nonzero().squeeze(dim=1)
+            neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
+                                                              predicted_to_embeddings[negative_indices])
+            loss += torch.sum(neg_term)
+            e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+        else:
+            for batch_id in range(len(inputs_from)):
+                # print('Processing batch_id {}'.format(batch_id))
+                # print('from {} to {}'.format(inputs_from[batch_id], inputs_to[batch_id]))
+
+                predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
+                predicted_to_embeddings = img_feat_net(inputs_to[batch_id])
+                predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
+                predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
+
                 # loss for positive pairs
                 positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
                 e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
                                                         predicted_to_embeddings[positive_indices])
+
                 loss += torch.sum(e_for_u_v_positive)
+
                 e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
 
-                # loss for negative pairs
-                negative_indices = (status[batch_id] == 0).nonzero().squeeze(dim=1)
-                neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
-                                                                 predicted_to_embeddings[negative_indices])
-                loss += torch.sum(neg_term)
-                e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
-
-            else:
-                # loss for positive pairs
-                positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
-                e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
-                                                        predicted_to_embeddings[positive_indices])
-                loss += torch.sum(e_for_u_v_positive)
-                e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+                # print('E+ {}'.format(e_for_u_v_positive))
+                # print('E+ {}'.format(e_for_u_v_positive.shape))
+                # print('Loss from +ve samples = {}'.format(torch.sum(e_for_u_v_positive)))
 
                 # loss for negative pairs
 
@@ -435,6 +447,10 @@ class OrderEmbeddingWithImagesLoss(OrderEmbeddingLoss):
                 neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
                 loss += torch.sum(neg_term)
                 e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+                # print('E- {}'.format(e_for_u_v_negative))
+                # print('E- {}'.format(e_for_u_v_negative.shape))
+                # print('Loss from -ve samples = {}'.format(torch.sum(neg_term)))
 
         return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 
@@ -556,8 +572,9 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
 
 
 class ValidateGraphRepresentation:
-    def __init__(self, debug=True,
-                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/oe_rm_50/weights/best_model_model.pth'):
+    def __init__(self, debug=False,
+                 # weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/oe_rm_50/weights/best_model_model.pth'):
+                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/full_1e-4_from_cluster/best_model_model.pth'):
         torch.manual_seed(0)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -665,6 +682,7 @@ class EmbeddingLabelsWithImages:
                  embedding_dim,
                  neg_to_pos_ratio,
                  image_fc7,
+                 alpha,
                  lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10,
@@ -716,7 +734,7 @@ class EmbeddingLabelsWithImages:
         # embedding specific stuff
         self.graph_dict = graph_dict
 
-        self.optimal_threshold = 1.0
+        self.optimal_threshold = alpha
         self.embedding_dim = embedding_dim # 10
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
 
@@ -833,8 +851,10 @@ class EmbeddingLabelsWithImages:
         predicted_from_embeddings, predicted_to_embeddings = torch.tensor([]), torch.tensor([])
         e_positive, e_negative = torch.tensor([]), torch.tensor([])
 
+        index = 0
+
         # Iterate over data.
-        for index, data_item in enumerate(self.dataloaders[phase]):
+        for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
             inputs_from, inputs_to, status = data_item['from'], data_item['to'], data_item['status']
 
             # zero the parameter gradients
@@ -867,10 +887,13 @@ class EmbeddingLabelsWithImages:
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 
         f1_score, threshold, accuracy = metrics.calculate_metrics()
-        if phase == 'val':
-            self.optimal_threshold = threshold
+        # if phase == 'val':
+        #     self.optimal_threshold = threshold
 
-        epoch_loss = running_loss / self.dataset_length[phase]
+        if phase == 'train':
+            epoch_loss = running_loss / ((index+1)*self.batch_size*self.neg_to_pos_ratio*2)
+        else:
+            epoch_loss = running_loss / ((index+1)*self.neg_to_pos_ratio*2)
 
         if save_to_tensorboard:
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
@@ -948,6 +971,8 @@ def order_embedding_labels_with_images_train_model(arguments):
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(arguments), indent=4)))
 
+    alpha = arguments.alpha
+
     labelmap = None
     if arguments.merged:
         labelmap = ETHECLabelMapMerged()
@@ -965,8 +990,8 @@ def order_embedding_labels_with_images_train_model(arguments):
 
     use_criterion = None
     if arguments.loss == 'order_emb_loss':
-        # use_criterion = OrderEmbeddingWithImagesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
-        use_criterion = OrderEmbeddingWithImagesLossvCaption(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
+        # use_criterion = OrderEmbeddingWithImagesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=alpha)
+        use_criterion = OrderEmbeddingWithImagesLossvCaption(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=alpha)
     elif arguments.loss == 'euc_emb_loss':
         print('Not implemented!')
         # use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap)
@@ -989,6 +1014,7 @@ def order_embedding_labels_with_images_train_model(arguments):
                                       experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
                                       experiment_dir=arguments.experiment_dir,
                                       image_fc7=image_fc7,
+                                      alpha=alpha,
                                       embedding_dim=arguments.embedding_dim,
                                       neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                                       eval_interval=arguments.eval_interval,
@@ -1008,7 +1034,7 @@ def order_embedding_labels_with_images_train_model(arguments):
 
 
 if __name__ == '__main__':
-    generate_emb = True
+    generate_emb = False
     if generate_emb:
         # ImageEmb().load_generate_and_save()
         ValidateGraphRepresentation()
@@ -1016,6 +1042,7 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser()
         parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
         parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
+        parser.add_argument("--alpha", help='Margin for the loss.', type=float, default=0.05)
         parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
         # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
         parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)

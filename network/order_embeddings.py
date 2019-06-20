@@ -22,6 +22,7 @@ import copy
 import argparse
 import json
 import git
+from tqdm import tqdm
 
 import torch
 from torch import nn
@@ -130,7 +131,7 @@ class Embedder(nn.Module):
 
     def forward(self, inputs):
         embeds = self.embeddings(inputs)#.view((1, -1))
-        return torch.abs(embeds)
+        return torch.abs(F.normalize(embeds, p=2, dim=1))
 
 
 class EmbeddingMetrics:
@@ -166,7 +167,12 @@ class EmbeddingMetrics:
             correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
             accuracy = (correct_positives + correct_negatives) / (
                         self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
-            precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
+
+            if correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives) == 0:
+                print('Encountered NaN for precision!')
+                precision = 0.0
+            else:
+                precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
             recall = correct_positives / self.e_for_u_v_positive.shape[0]
             if precision + recall == 0:
                 f1_score = 0.0
@@ -371,7 +377,7 @@ class OrderEmbedding(CIFAR10):
         e_positive, e_negative = torch.tensor([]), torch.tensor([])
 
         # Iterate over data.
-        for index, data_item in enumerate(self.dataloaders[phase]):
+        for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
             inputs_from, inputs_to, status = data_item['from'], data_item['to'], data_item['status']
 
             # zero the parameter gradients
@@ -402,8 +408,8 @@ class OrderEmbedding(CIFAR10):
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 
         f1_score, threshold, accuracy = metrics.calculate_metrics()
-        if phase == 'val':
-            self.optimal_threshold = threshold
+        # if phase == 'val':
+        #     self.optimal_threshold = threshold
 
         epoch_loss = running_loss / self.dataset_length[phase]
 
@@ -467,7 +473,11 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
     @staticmethod
     def E_operator(x, y):
-        return torch.sum(torch.clamp(y-x, min=0.0)**2, dim=1)
+        # print('x', x)
+        # print('y', y)
+        # print('x-y', x-y)
+        # input()
+        return torch.sum(torch.clamp(x-y, min=0.0)**2, dim=1)
 
     def positive_pair(self, x, y):
         return self.E_operator(x, y)
@@ -476,6 +486,7 @@ class OrderEmbeddingLoss(torch.nn.Module):
         return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
 
     def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
+        # print(status)
         loss = 0.0
         e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]), torch.tensor([])
         predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
@@ -510,6 +521,10 @@ class OrderEmbeddingLoss(torch.nn.Module):
                 loss += torch.sum(e_for_u_v_positive)
                 e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
 
+                # print('E+ {}'.format(e_for_u_v_positive))
+                # print('E+ {}'.format(e_for_u_v_positive.shape))
+                # print('Loss from +ve samples = {}'.format(torch.sum(e_for_u_v_positive)))
+
                 # loss for negative pairs
 
                 negative_from = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
@@ -534,6 +549,10 @@ class OrderEmbeddingLoss(torch.nn.Module):
                 neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
                 loss += torch.sum(neg_term)
                 e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+                # print('E- {}'.format(e_for_u_v_negative))
+                # print('E- {}'.format(e_for_u_v_negative.shape))
+                # print('Loss from -ve samples = {}'.format(torch.sum(neg_term)))
 
         return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 

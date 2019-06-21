@@ -137,7 +137,7 @@ class FeatNet(nn.Module):
     """
     Fully connected NN to learn features on top of image features in the joint embedding space.
     """
-    def __init__(self, feature_dict, input_dim=2048, output_dim=10):
+    def __init__(self, input_dim=2048, output_dim=10):
         """
         Constructor to prepare layers for the embedding.
         """
@@ -145,28 +145,12 @@ class FeatNet(nn.Module):
         self.fc1 = nn.Linear(input_dim, 128)
         self.fc2 = nn.Linear(128, output_dim)
 
-        self.feature_dict = feature_dict
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(self, x):
         """
         Forward pass through the model.
         """
-        # print(x)
-        img_feat = None
-        for filename in x:
-            if img_feat is None:
-                if type(filename) == tuple:
-                    img_feat = torch.tensor(self.feature_dict[filename[0]]).unsqueeze(0)
-                else:
-                    img_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
-            else:
-                if type(filename) == tuple:
-                    img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename[0]]).unsqueeze(0)), dim=0)
-                else:
-                    img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename]).unsqueeze(0)), dim=0)
-
-        x = img_feat.to(self.device)
         x = F.relu(self.fc1(x))
         x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
         return x
@@ -456,11 +440,28 @@ class OrderEmbeddingWithImagesLoss(OrderEmbeddingLoss):
 
 
 class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
-    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0):
+    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha=1.0):
         OrderEmbeddingLoss.__init__(self, labelmap, neg_to_pos_ratio, alpha)
 
         self.image_nodes_in_graph = set()
         self.non_image_nodes_in_graph = set()
+
+        self.feature_dict = feature_dict
+
+    def get_img_features(self, x):
+        img_feat = None
+        for filename in x:
+            if img_feat is None:
+                if type(filename) == tuple:
+                    img_feat = torch.tensor(self.feature_dict[filename[0]]).unsqueeze(0)
+                else:
+                    img_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+            else:
+                if type(filename) == tuple:
+                    img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename[0]]).unsqueeze(0)), dim=0)
+                else:
+                    img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename]).unsqueeze(0)), dim=0)
+        return img_feat
 
     def set_graph_tc(self, graph_tc):
         """
@@ -504,7 +505,7 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
 
         if phase != 'train':
             predicted_from_embeddings = model(torch.tensor(inputs_from).to(self.device))
-            predicted_to_embeddings = img_feat_net(inputs_to)
+            predicted_to_embeddings = img_feat_net(self.get_img_features(inputs_to).to(self.device))
             predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
             predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
@@ -530,7 +531,7 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
         else:
             for batch_id in range(len(inputs_from)):
                 predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
-                predicted_to_embeddings = img_feat_net(inputs_to[batch_id])
+                predicted_to_embeddings = img_feat_net(self.get_img_features(inputs_to[batch_id]).to(self.device))
                 predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
                 predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
@@ -561,7 +562,7 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
                             2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
                         negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), img_feat_net(negative_to)
+                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), img_feat_net(self.get_img_features(negative_to).to(self.device))
                 neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
                 # loss += torch.sum(neg_term)
                 e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
@@ -742,7 +743,7 @@ class EmbeddingLabelsWithImages:
         self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap).to(self.device)
 
         # load precomputed features as look-up table
-        self.img_feat_net = FeatNet(feature_dict=image_fc7, output_dim=self.embedding_dim).to(self.device)
+        self.img_feat_net = FeatNet(output_dim=self.embedding_dim).to(self.device)
 
         # TODO
         # self.G_tc = nx.transitive_closure(self.G)
@@ -794,7 +795,7 @@ class EmbeddingLabelsWithImages:
                                             neg_to_pos_ratio=self.neg_to_pos_ratio)
 
         # create dataloaders
-        trainloader = torch.utils.data.DataLoader(train_set, #torch.utils.data.Subset(train_set, [0, 1]),
+        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, [0, 1, 2, 3]),
                                                   batch_size=self.batch_size,
                                                   num_workers=16,
                                                   shuffle=True)
@@ -1001,7 +1002,7 @@ class EmbeddingLabelsWithImages:
 
         images_to_ix = {image_name: ix for ix, image_name in enumerate(images_in_graph)}
 
-        img_rep = self.img_feat_net(images_in_graph)
+        img_rep = self.img_feat_net(self.criterion.get_img_features(images_in_graph).to(self.device))
         img_rep = img_rep.cpu().detach()
 
         label_rep = self.model(torch.tensor(labels_in_graph).to(self.device))
@@ -1193,16 +1194,6 @@ def order_embedding_labels_with_images_train_model(arguments):
     if arguments.debug:
         print("== Running in DEBUG mode!")
 
-    use_criterion = None
-    if arguments.loss == 'order_emb_loss':
-        # use_criterion = OrderEmbeddingWithImagesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=alpha)
-        use_criterion = OrderEmbeddingWithImagesLossvCaption(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=alpha)
-    elif arguments.loss == 'euc_emb_loss':
-        print('Not implemented!')
-        # use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap)
-    else:
-        print("== Invalid --loss argument")
-
     if arguments.debug:
         image_fc7 = np.load('../database/ETHEC/ETHECSmall_embeddings/train.npy')[()]
         image_fc7.update(np.load('../database/ETHEC/ETHECSmall_embeddings/val.npy')[()])
@@ -1211,6 +1202,19 @@ def order_embedding_labels_with_images_train_model(arguments):
         image_fc7 = np.load('../database/ETHEC/ETHEC_embeddings/train.npy')[()]
         image_fc7.update(np.load('../database/ETHEC/ETHEC_embeddings/val.npy')[()])
         image_fc7.update(np.load('../database/ETHEC/ETHEC_embeddings/test.npy')[()])
+
+    use_criterion = None
+    if arguments.loss == 'order_emb_loss':
+        # use_criterion = OrderEmbeddingWithImagesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=alpha)
+        use_criterion = OrderEmbeddingWithImagesLossvCaption(labelmap=labelmap,
+                                                             neg_to_pos_ratio=arguments.neg_to_pos_ratio,
+                                                             feature_dict=image_fc7,
+                                                             alpha=alpha)
+    elif arguments.loss == 'euc_emb_loss':
+        print('Not implemented!')
+        # use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap)
+    else:
+        print("== Invalid --loss argument")
 
     oelwi = EmbeddingLabelsWithImages(graph_dict=graph_dict, labelmap=labelmap,
                                       criterion=use_criterion,

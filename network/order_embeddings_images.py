@@ -795,7 +795,7 @@ class EmbeddingLabelsWithImages:
                                             neg_to_pos_ratio=self.neg_to_pos_ratio)
 
         # create dataloaders
-        trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(train_set, [0, 1, 2, 3]),
+        trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=self.batch_size,
                                                   num_workers=16,
                                                   shuffle=True)

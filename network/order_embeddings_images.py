@@ -764,6 +764,9 @@ class EmbeddingLabelsWithImages:
         self.prepare_model()
         # self.set_optimizer()
 
+        self.model = nn.DataParallel(self.model)
+        self.img_feat_net = nn.DataParallel(self.img_feat_net)
+
     @staticmethod
     def make_dir_if_non_existent(directory):
         if not os.path.exists(directory):

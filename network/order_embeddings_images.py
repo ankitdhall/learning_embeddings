@@ -746,6 +746,9 @@ class EmbeddingLabelsWithImages:
 
         # TODO
         # self.G_tc = nx.transitive_closure(self.G)
+
+        # set this graph to use for generating corrupt pairs on the fly
+        # so this graph should correspond to the transitive closure corresponding to the train graph
         self.criterion.set_graph_tc(self.graph_dict['G_train_tc'])
         # self.create_splits()
         #
@@ -788,7 +791,7 @@ class EmbeddingLabelsWithImages:
                                             neg_to_pos_ratio=self.neg_to_pos_ratio)
 
         # create dataloaders
-        trainloader = torch.utils.data.DataLoader(train_set,
+        trainloader = torch.utils.data.DataLoader(train_set, #torch.utils.data.Subset(train_set, [0, 1]),
                                                   batch_size=self.batch_size,
                                                   num_workers=16,
                                                   shuffle=True)
@@ -884,6 +887,8 @@ class EmbeddingLabelsWithImages:
             e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().data))
             e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().data))
 
+        classification_metrics = self.calculate_classification_metrics(phase)
+
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 
         f1_score, threshold, accuracy = metrics.calculate_metrics()
@@ -900,6 +905,18 @@ class EmbeddingLabelsWithImages:
             self.writer.add_scalar('{}_f1_score'.format(phase), f1_score, self.epoch)
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
+
+            # add classification metrics
+            for metric_name in classification_metrics:
+                if type(classification_metrics[metric_name]) != dict:
+                    self.writer.add_scalar('{}_classification_{}'.format(phase, metric_name),
+                                           classification_metrics[metric_name], self.epoch)
+                else:
+                    for level_id in range(len(self.labelmap.levels)):
+                        for key in classification_metrics['level_metrics'][level_id]:
+                            self.writer.add_scalar('{}_classification_level_{}_{}'.format(phase, level_id, key),
+                                                   classification_metrics['level_metrics'][level_id][key], self.epoch)
+
 
         print('{} Loss: {:.4f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, f1_score, accuracy))
 
@@ -957,6 +974,191 @@ class EmbeddingLabelsWithImages:
     def load_best_model(self):
         self.load_model(epoch_to_load='best_model')
         self.pass_samples(phase='test', save_to_tensorboard=False)
+
+    def calculate_classification_metrics(self, phase, k=[1, 3, 5]):
+        calculated_metrics = {}
+
+        G_tc = self.graph_dict['G_{}_tc'.format(phase)]
+        G = self.graph_dict['G_{}'.format(phase)]
+        G_rev = nx.reverse(G)
+        nodes_in_graph = list(G)
+        images_in_graph = [node for node in nodes_in_graph if type(node) == str]
+        labels_in_graph = [node for node in nodes_in_graph if type(node) == int]
+        labels_in_graph.sort()
+
+        predictions = {'tp': {}, 'fp': {}, 'tn': {}, 'fn': {}, 'precision': {}, 'recall': {}, 'f1': {}, 'accuracy': {}}
+        hit_at_k = {k_val: {} for k_val in k}
+        for label_ix in labels_in_graph:
+            predictions['tp'][label_ix] = 0
+            predictions['fp'][label_ix] = 0
+            predictions['tn'][label_ix] = 0
+            predictions['fn'][label_ix] = 0
+            for k_val in k:
+                hit_at_k[k_val][label_ix] = 0
+
+        images_to_ix = {image_name: ix for ix, image_name in enumerate(images_in_graph)}
+
+        img_rep = self.img_feat_net(images_in_graph)
+        img_rep = img_rep.cpu().detach()
+
+        label_rep = self.model(torch.tensor(labels_in_graph).to(self.device))
+        label_rep = label_rep.cpu().detach()
+
+        for image_name in images_in_graph:
+            img_ix = images_to_ix[image_name]
+            img_emb = img_rep[img_ix, :]
+
+            image_is_a_member_of = [v for u, v in list(G_rev.edges(image_name))]
+            image_is_a_member_of.sort()
+
+            img_emb = img_emb.unsqueeze(0)
+            img_emb = img_emb.repeat(1, label_rep.shape[0]).view(-1, img_emb.shape[1])
+            e = self.criterion.E_operator(label_rep, img_emb)
+
+            for level_id in range(len(self.labelmap.levels)):
+                # print(self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id])
+                values, indices = torch.topk(e[self.labelmap.level_start[level_id]:self.labelmap.level_stop[level_id]],
+                                             k=max(k), largest=False)
+
+                # add offset to get the correct indices
+                indices = indices + self.labelmap.level_start[level_id]
+
+                for k_val in k:
+                    if image_is_a_member_of[level_id] in indices[:k_val]:
+                        hit_at_k[k_val][image_is_a_member_of[level_id]] += 1
+
+                if image_is_a_member_of[level_id] == indices[0].item():
+                    predictions['tp'][image_is_a_member_of[level_id]] += 1
+                    for not_a_mem_of_ix in range(self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]):
+                        if not_a_mem_of_ix != image_is_a_member_of[level_id]:
+                            predictions['tn'][not_a_mem_of_ix] += 1
+                else:
+                    predictions['fp'][indices[0].item()] += 1
+                    predictions['fn'][image_is_a_member_of[level_id]] += 1
+
+        # aggregate stats for each label
+        total_cmat = {'tp': 0, 'fp': 0, 'tn': 0, 'fn': 0}
+        overall_hit_at_k = {k_val: 0 for k_val in k}
+
+        for label_ix in labels_in_graph:
+            for k_val in k:
+                overall_hit_at_k[k_val] += hit_at_k[k_val][label_ix]
+
+            for perf_met in ['tp', 'fp', 'tn', 'fn']:
+                total_cmat[perf_met] += predictions[perf_met][label_ix]
+
+            predictions['accuracy'][label_ix] = (predictions['tp'][label_ix] + predictions['tn'][label_ix]) / (
+                        predictions['tp'][label_ix] +
+                        predictions['tn'][label_ix] +
+                        predictions['fp'][label_ix] +
+                        predictions['fn'][label_ix])
+            if predictions['tp'][label_ix] + predictions['fp'][label_ix] == 0.0:
+                predictions['precision'][label_ix] = 0.0
+            else:
+                predictions['precision'][label_ix] = predictions['tp'][label_ix] / (
+                            predictions['tp'][label_ix] + predictions['fp'][label_ix])
+
+            if predictions['tp'][label_ix] + predictions['fn'][label_ix] == 0.0:
+                predictions['recall'][label_ix] = 0.0
+            else:
+                predictions['recall'][label_ix] = predictions['tp'][label_ix] / (
+                            predictions['tp'][label_ix] + predictions['fn'][label_ix])
+
+            if predictions['precision'][label_ix] + predictions['recall'][label_ix] == 0:
+                predictions['f1'][label_ix] = 0.0
+            else:
+                predictions['f1'][label_ix] = (2 * predictions['precision'][label_ix] * predictions['recall'][
+                    label_ix]) / (predictions['precision'][label_ix] + predictions['recall'][label_ix])
+
+        # calculate micro metrics
+        accuracy = (total_cmat['tp']+total_cmat['tn'])/(total_cmat['tp']+total_cmat['tn']+total_cmat['fp']+total_cmat['fn'])
+        precision = total_cmat['tp']/(total_cmat['tp']+total_cmat['fp'])
+        recall = total_cmat['tp']/(total_cmat['tp']+total_cmat['fn'])
+        if precision + recall == 0:
+            f1_score = 0.0
+        else:
+            f1_score = (2 * precision * recall) / (precision + recall)
+
+        calculated_metrics['accuracy'] = accuracy
+        calculated_metrics['m-precision'] = precision
+        calculated_metrics['m-recall'] = recall
+        calculated_metrics['m-f1'] = f1_score
+
+        # calculate hit@k
+        for k_val in k:
+            overall_hit_at_k[k_val] = overall_hit_at_k[k_val]/(len(self.labelmap.levels)*len(images_in_graph))
+            calculated_metrics['hit@{}'.format(k_val)] = overall_hit_at_k[k_val]
+        
+        # calculate macro metrics
+        macro_precision, macro_recall, macro_f1 = 0.0, 0.0, 0.0
+        for label_ix in labels_in_graph:
+            macro_precision += predictions['precision'][label_ix]
+            macro_recall += predictions['recall'][label_ix]
+            macro_f1 += predictions['f1'][label_ix]
+
+        macro_precision /= len(labels_in_graph)
+        macro_recall /= len(labels_in_graph)
+        macro_f1 /= len(labels_in_graph)
+
+        calculated_metrics['M-precision'] = macro_precision
+        calculated_metrics['M-recall'] = macro_recall
+        calculated_metrics['M-f1'] = macro_f1
+
+        calculated_metrics['level_metrics'] = {}
+
+        # print('='*30, 'Level metrics', '='*30)
+        for level_id in range(len(self.labelmap.levels)):
+            calculated_metrics['level_metrics'][level_id] = {}
+
+            start, stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+            tp, tn, fp, fn, level_macro_f1 = 0, 0, 0, 0, 0.0
+            level_hit_at_k = {k_val: 0 for k_val in k}
+            for label_ix in range(start, stop):
+                tp += predictions['tp'][label_ix]
+                tn += predictions['tn'][label_ix]
+                fp += predictions['fp'][label_ix]
+                fn += predictions['fn'][label_ix]
+                level_macro_f1 += predictions['f1'][label_ix]
+                for k_val in k:
+                    level_hit_at_k[k_val] += hit_at_k[k_val][label_ix]
+
+            # calculate hit@k for each level
+            hit_at_k_string = ''
+            for k_val in k:
+                level_hit_at_k[k_val] /= len(images_in_graph)
+                hit_at_k_string += 'Overall Hit@{}: {:.4f}, '.format(k_val, level_hit_at_k[k_val])
+                calculated_metrics['level_metrics'][level_id]['hit@{}'.format(k_val)] = level_hit_at_k[k_val]
+            # print(hit_at_k_string)
+
+            # calculate micro metrics
+            level_macro_f1 /= (stop-start+1)
+            level_accuracy = (tp + tn) / (tp + tn + fp + fn)
+            level_precision = tp / (tp + fp)
+            level_recall = tp / (tp + fn)
+            if level_precision + level_recall == 0:
+                level_f1_score = 0.0
+            else:
+                level_f1_score = (2 * level_precision * level_recall) / (level_precision + level_recall)
+
+            calculated_metrics['level_metrics'][level_id]['m-precision'] = level_precision
+            calculated_metrics['level_metrics'][level_id]['m-recall'] = level_recall
+            calculated_metrics['level_metrics'][level_id]['m-f1'] = level_f1_score
+            calculated_metrics['level_metrics'][level_id]['M-f1'] = level_macro_f1
+            calculated_metrics['level_metrics'][level_id]['accuracy'] = level_accuracy
+            # print('Level {} Accuracy: {:.4f}, m-Precision: {:.4f}, m-Recall: {:.4f}, m-F1: {:.4f}, M-F1: {:.4f}'.format(level_id, level_accuracy, level_precision, level_recall, level_f1_score, level_macro_f1))
+
+        print('=' * 30, 'Overall metrics', '=' * 30)
+        print('Overall Classification Accuracy: {:.4f}'.format(accuracy))
+        print('m-Precision: {:.4f}, m-Recall: {:.4f}, m-F1: {:.4f}'.format(precision, recall, f1_score))
+        print('M-Precision: {:.4f}, M-Recall: {:.4f}, M-F1: {:.4f}'.format(macro_precision, macro_recall, macro_f1))
+        hit_at_k_string = ''
+        for k_val in k:
+            hit_at_k_string += 'Overall Hit@{}: {:.4f}, '.format(k_val, overall_hit_at_k[k_val])
+        print(hit_at_k_string)
+
+        print('=' * 70)
+
+        return calculated_metrics
 
 
 def order_embedding_labels_with_images_train_model(arguments):

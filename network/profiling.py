@@ -62,6 +62,7 @@ def ethec_emb():
     parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
     parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
+    parser.add_argument("--alpha", help='Margin for the loss.', type=float, default=0.05)
     # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
@@ -91,7 +92,7 @@ def ethec_emb():
     # parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
 
-    cmd = """--n_epochs 5 --experiment_name oe_rm_50 --experiment_dir ../exp/ethec_debug/oelwi_debug --set_mode train --image_dir /media/ankit/DataPartition/IMAGO_build_test_resized --eval_interval 1 --merged --batch_size 10 --optimizer adam --lr 0.001 --model alexnet --loss order_emb_loss --embedding_dim 10 --neg_to_pos_ratio 5 --debug"""
+    cmd = """--n_epochs 5 --experiment_name oe_rm_50 --experiment_dir ../exp/ethec_debug/oelwi_debug --set_mode train --image_dir /media/ankit/DataPartition/IMAGO_build_test_resized --eval_interval 1 --merged --batch_size 10 --optimizer adam --lr 0.01 --model alexnet --loss order_emb_loss --embedding_dim 10 --neg_to_pos_ratio 5 --alpha 0.05 --debug"""
     args = parser.parse_args(cmd.split(' '))
 
     order_embedding_labels_with_images_train_model(args)

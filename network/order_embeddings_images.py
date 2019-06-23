@@ -837,12 +837,18 @@ class EmbeddingLabelsWithImages:
             print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
             print('=' * 10)
 
+            epoch_start_time = time.time()
             self.pass_samples(phase='train')
             if self.epoch % self.eval_interval == 0:
                 self.pass_samples(phase='val')
                 self.pass_samples(phase='test')
 
             scheduler.step()
+
+            epoch_time = time.time() - epoch_start_time
+            print('Epoch time {:.0f}m {:.0f}s'.format(epoch_time // 60, epoch_time % 60))
+
+            self.writer.add_scalar('epoch_time', epoch_time, self.epoch)
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))

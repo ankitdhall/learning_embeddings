@@ -143,8 +143,7 @@ class FeatNet(nn.Module):
         """
         super(FeatNet, self).__init__()
         self.fc1 = nn.Linear(input_dim, 512)
-        self.fc2 = nn.Linear(512, 128)
-        self.fc3 = nn.Linear(128, output_dim)
+        self.fc2 = nn.Linear(512, output_dim)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -153,8 +152,7 @@ class FeatNet(nn.Module):
         Forward pass through the model.
         """
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = torch.abs(F.normalize(self.fc3(x), p=2, dim=1))
+        x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
         return x
 
 

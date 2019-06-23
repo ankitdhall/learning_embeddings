@@ -122,16 +122,23 @@ class ETHECHierarchy(torch.utils.data.Dataset):
 
 
 class Embedder(nn.Module):
-    def __init__(self, embedding_dim, labelmap):
+    def __init__(self, embedding_dim, labelmap, normalize):
         super(Embedder, self).__init__()
         self.labelmap = labelmap
         self.embedding_dim = embedding_dim
-        self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim)
+        self.normalize = normalize
+        if self.normalize == 'max_norm':
+            self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim, max_norm=1.0)
+        else:
+            self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim)
         print('Embeds {} objects'.format(self.labelmap.n_classes))
 
     def forward(self, inputs):
         embeds = self.embeddings(inputs)#.view((1, -1))
-        return torch.abs(F.normalize(embeds, p=2, dim=1))
+        if self.normalize == 'unit_norm':
+            return torch.abs(F.normalize(embeds, p=2, dim=1))
+        else:
+            return torch.abs(embeds)
 
 
 class EmbeddingMetrics:
@@ -182,23 +189,10 @@ class EmbeddingMetrics:
 
 
 class OrderEmbedding(CIFAR10):
-    def __init__(self, data_loaders, labelmap, criterion, lr,
-                 batch_size,
-                 evaluator,
-                 experiment_name,
-                 embedding_dim,
-                 neg_to_pos_ratio,
-                 proportion_of_nb_edges_in_train,
-                 lr_step=[],
-                 experiment_dir='../exp/',
-                 n_epochs=10,
-                 eval_interval=2,
-                 feature_extracting=True,
-                 use_pretrained=True,
-                 load_wt=False,
-                 model_name=None,
-                 optimizer_method='adam',
-                 use_grayscale=False):
+    def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
+                 neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[], experiment_dir='../exp/',
+                 n_epochs=10, eval_interval=2, feature_extracting=True, use_pretrained=True, load_wt=False,
+                 model_name=None, optimizer_method='adam', use_grayscale=False):
         torch.manual_seed(0)
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained, load_wt,
@@ -215,12 +209,13 @@ class OrderEmbedding(CIFAR10):
         self.optimizer_method = optimizer_method
         self.lr_step = lr_step
 
-        self.optimal_threshold = 1.0
+        self.optimal_threshold = alpha
         self.embedding_dim = embedding_dim # 10
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
         self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
+        self.normalize = normalize
 
-        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap)
+        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize)
         self.labelmap = labelmap
 
         self.G, self.G_train, self.G_val, self.G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph(), nx.DiGraph()
@@ -580,7 +575,7 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
     def d_fn(x, y):
         return torch.sum((y-x)**2, dim=1)
 
-    def forward(self, model, inputs_from, inputs_to, status, phase):
+    def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
         loss = 0.0
         d_for_u_v_positive_all, d_for_u_v_negative_all = torch.tensor([]), torch.tensor([])
         predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
@@ -771,24 +766,14 @@ def order_embedding_train_model(arguments):
     else:
         print("== Invalid --loss argument")
 
-    oe = OrderEmbedding(data_loaders=data_loaders, labelmap=labelmap,
-                        criterion=use_criterion,
-                        lr=arguments.lr,
-                        batch_size=batch_size, evaluator=eval_type,
-                        experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
-                        experiment_dir=arguments.experiment_dir,
-                        embedding_dim=arguments.embedding_dim,
-                        neg_to_pos_ratio=arguments.neg_to_pos_ratio,
-                        proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges,
-                        eval_interval=arguments.eval_interval,
-                        n_epochs=arguments.n_epochs,
-                        feature_extracting=arguments.freeze_weights,
-                        use_pretrained=True,
-                        load_wt=arguments.resume,
-                        model_name=arguments.model,
-                        optimizer_method=arguments.optimizer_method,
-                        use_grayscale=arguments.use_grayscale,
-                        lr_step=arguments.lr_step)
+    oe = OrderEmbedding(data_loaders=data_loaders, labelmap=labelmap, criterion=use_criterion, lr=arguments.lr,
+                        batch_size=batch_size, evaluator=eval_type, experiment_name=arguments.experiment_name,
+                        embedding_dim=arguments.embedding_dim, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=arguments.alpha,
+                        proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges, lr_step=arguments.lr_step,
+                        experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, normalize=arguments.normalize,
+                        eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
+                        use_pretrained=True, load_wt=arguments.resume, model_name=arguments.model,
+                        optimizer_method=arguments.optimizer_method, use_grayscale=arguments.use_grayscale)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()
@@ -803,6 +788,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
     parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
+    parser.add_argument("--normalize", help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
@@ -810,6 +796,7 @@ if __name__ == '__main__':
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
     parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
     parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int, default=5)
+    parser.add_argument("--alpha", help='Margin alpha.', type=float, default=0.05)
     parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.0)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')

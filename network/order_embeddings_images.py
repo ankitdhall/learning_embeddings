@@ -137,13 +137,15 @@ class FeatNet(nn.Module):
     """
     Fully connected NN to learn features on top of image features in the joint embedding space.
     """
-    def __init__(self, input_dim=2048, output_dim=10):
+    def __init__(self, normalize, input_dim=2048, output_dim=10):
         """
         Constructor to prepare layers for the embedding.
         """
         super(FeatNet, self).__init__()
         self.fc1 = nn.Linear(input_dim, 512)
         self.fc2 = nn.Linear(512, output_dim)
+
+        self.normalize = normalize
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -152,7 +154,12 @@ class FeatNet(nn.Module):
         Forward pass through the model.
         """
         x = F.relu(self.fc1(x))
-        x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
+        if self.normalize == 'unit_norm':
+            x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
+        elif self.normalize == 'max_norm':
+            x = torch.abs(self.fc2(x))
+            norm_x = torch.norm(x, p=2, dim=1)
+            x[norm_x > 1.0] = F.normalize(x[norm_x > 1.0], p=2, dim=1)
         return x
 
 
@@ -683,6 +690,7 @@ class EmbeddingLabelsWithImages:
                  embedding_dim,
                  neg_to_pos_ratio,
                  image_fc7,
+                 normalize,
                  alpha,
                  lr_step=[],
                  experiment_dir='../exp/',
@@ -738,12 +746,13 @@ class EmbeddingLabelsWithImages:
         self.optimal_threshold = alpha
         self.embedding_dim = embedding_dim # 10
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
+        self.normalize = normalize
 
         # prepare models (embedding module and image feature extractor)
-        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap).to(self.device)
+        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize).to(self.device)
 
         # load precomputed features as look-up table
-        self.img_feat_net = FeatNet(output_dim=self.embedding_dim).to(self.device)
+        self.img_feat_net = FeatNet(output_dim=self.embedding_dim, normalize=self.normalize).to(self.device)
 
         # TODO
         # self.G_tc = nx.transitive_closure(self.G)
@@ -1224,6 +1233,7 @@ def order_embedding_labels_with_images_train_model(arguments):
                                       experiment_dir=arguments.experiment_dir,
                                       image_fc7=image_fc7,
                                       alpha=alpha,
+                                      normalize=arguments.normalize,
                                       embedding_dim=arguments.embedding_dim,
                                       neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                                       eval_interval=arguments.eval_interval,
@@ -1253,6 +1263,9 @@ if __name__ == '__main__':
         parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
         parser.add_argument("--alpha", help='Margin for the loss.', type=float, default=0.05)
         parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
+        parser.add_argument("--normalize",
+                            help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].',
+                            type=str, required=True)
         # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
         parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
         parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)

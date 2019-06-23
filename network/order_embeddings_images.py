@@ -155,13 +155,27 @@ class FeatNet(nn.Module):
         """
         x = F.relu(self.fc1(x))
         if self.normalize == 'unit_norm':
+            original_shape = x.shape
+            x = x.view(-1, original_shape[-1])
             x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
+            x = x.view(original_shape)
         elif self.normalize == 'max_norm':
             x = torch.abs(self.fc2(x))
+            original_shape = x.shape
+            x = x.view(-1, original_shape[-1])
             norm_x = torch.norm(x, p=2, dim=1)
             x[norm_x > 1.0] = F.normalize(x[norm_x > 1.0], p=2, dim=1)
+            x = x.view(original_shape)
         return x
 
+
+def my_collate(data):
+    from_data, to_data, status_data = [], [], []
+    for data_item in data:
+        from_data.append(data_item['from'])
+        to_data.append(data_item['to'])
+        status_data.append(data_item['status'])
+    return {'from': torch.tensor(from_data), 'to': to_data, 'status': torch.tensor(status_data)}
 
 class ETHECHierarchyWithImages(torch.utils.data.Dataset):
     """
@@ -456,19 +470,25 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
         self.feature_dict = feature_dict
 
     def get_img_features(self, x):
-        img_feat = None
-        for filename in x:
-            if img_feat is None:
-                if type(filename) == tuple:
-                    img_feat = torch.tensor(self.feature_dict[filename[0]]).unsqueeze(0)
-                else:
-                    img_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+        retval = torch.tensor([])
+        unsqueeze_once_more = False
+        for sublist in x:
+            img_feat = None
+
+            if type(sublist) == str:
+                unsqueeze_once_more = True
+                retval = torch.cat((retval, torch.tensor(self.feature_dict[sublist]).unsqueeze(0)), dim=0)
             else:
-                if type(filename) == tuple:
-                    img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename[0]]).unsqueeze(0)), dim=0)
-                else:
-                    img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename]).unsqueeze(0)), dim=0)
-        return img_feat
+                for filename in sublist:
+                    if img_feat is None:
+                        img_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+                    else:
+                        img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename]).unsqueeze(0)), dim=0)
+
+                retval = torch.cat((retval, img_feat.unsqueeze(0)), dim=0)
+        if unsqueeze_once_more:
+            retval = retval.unsqueeze(0)
+        return retval
 
     def set_graph_tc(self, graph_tc):
         """
@@ -491,92 +511,77 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
         return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
 
     def get_image_label_loss(self, e_for_u_v_positive, e_for_u_v_negative):
-        # print(e_for_u_v_positive.shape, e_for_u_v_negative.shape)
-        loss_term = 0.0
         s_for_u_v_positive = -e_for_u_v_positive
         s_for_u_v_negative = -e_for_u_v_negative
-        for sample_id in range(s_for_u_v_positive.shape[0]):
-            for corrupted_ix in range(self.neg_to_pos_ratio*2):
-                # print(self.alpha, s_for_u_v_positive[sample_id], s_for_u_v_negative[sample_id*2*self.neg_to_pos_ratio+corrupted_ix])
-                S = self.alpha - s_for_u_v_positive[sample_id] + s_for_u_v_negative[sample_id*2*self.neg_to_pos_ratio+corrupted_ix]
-                # print(S)
-                S = torch.sum(torch.clamp(S, min=0.0))
-                loss_term += S
-        return loss_term
+
+        neg_shape = s_for_u_v_negative.shape
+        s_for_u_v_positive = s_for_u_v_positive.repeat(neg_shape[1]).view(neg_shape[1], neg_shape[0]).transpose(0, 1)
+
+        S = self.alpha - s_for_u_v_positive + s_for_u_v_negative
+        S = torch.sum(torch.clamp(S, min=0.0), dim=1)
+        return S
 
     def forward(self, model, img_feat_net, inputs_from, inputs_to, status, phase):
         loss = 0.0
         e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
-        predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
-        predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
+        # predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
+        # predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
 
         if phase != 'train':
-            predicted_from_embeddings = model(torch.tensor(inputs_from).to(self.device))
+            predicted_from_embeddings = model(inputs_from.to(self.device))
             predicted_to_embeddings = img_feat_net(self.get_img_features(inputs_to).to(self.device))
-            predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
-            predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
+
+            # predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
+            # predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
             # loss for positive pairs
-            positive_indices = (torch.tensor(status) == 1).nonzero().squeeze(dim=1)
-            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
-                                                    predicted_to_embeddings[positive_indices])
-            # loss += torch.sum(e_for_u_v_positive)
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[:, 0, :],
+                                                    predicted_to_embeddings[:, 0, :])
+
             e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
 
             # loss for negative pairs
-            negative_indices = (torch.tensor(status) == 0).nonzero().squeeze(dim=1)
-            neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
-                                                              predicted_to_embeddings[negative_indices])
-            # loss += torch.sum(neg_term)
+            neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[:, 1:, :],
+                                                              predicted_to_embeddings[:, 1:, :])
+
             e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
 
-            # print(e_for_u_v_positive.shape, e_for_u_v_negative.shape)
-            # print(e_for_u_v_positive, e_for_u_v_negative)
-
-            loss += self.get_image_label_loss(e_for_u_v_positive, e_for_u_v_negative)
+            loss += torch.sum(self.get_image_label_loss(e_for_u_v_positive, e_for_u_v_negative))
 
         else:
-            for batch_id in range(len(inputs_from)):
-                predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
-                predicted_to_embeddings = img_feat_net(self.get_img_features(inputs_to[batch_id]).to(self.device))
-                predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
-                predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
+            predicted_from_embeddings_pos = model(inputs_from.to(self.device))
+            predicted_to_embeddings_pos = img_feat_net(self.get_img_features(inputs_to).to(self.device))
+            e_for_u_v_positive_all = self.positive_pair(predicted_from_embeddings_pos,
+                                                        predicted_to_embeddings_pos)
 
-                # loss for positive pairs
-                positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
-                e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
-                                                        predicted_to_embeddings[positive_indices])
-                # loss += torch.sum(e_for_u_v_positive)
-                e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+            negative_from = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from.shape[0]), dtype=torch.long)
+            negative_to = [None] * (2 * self.neg_to_pos_ratio * inputs_from.shape[0])
 
+            for batch_id in range(inputs_from.shape[0]):
                 # loss for negative pairs
-
-                negative_from = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
-                negative_to = [None]*(2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0])
-
                 for sample_id in range(inputs_from[batch_id].shape[0]):
                     sample_inputs_from, sample_inputs_to = inputs_from[batch_id][sample_id], inputs_to[batch_id][sample_id]
                     for pass_ix in range(self.neg_to_pos_ratio):
 
                         list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
                         corrupted_ix = random.choice(list(self.image_nodes_in_graph - set(list_of_edges_from_ui)))
-                        negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
-                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = corrupted_ix
+                        negative_from[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = sample_inputs_from
+                        negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = corrupted_ix
 
                         list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to))]
                         corrupted_ix = random.choice(list(self.non_image_nodes_in_graph - set(list_of_edges_to_vi)))
                         negative_from[
-                            2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
-                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
+                            2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
+                        negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), img_feat_net(self.get_img_features(negative_to).to(self.device))
-                neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
-                # loss += torch.sum(neg_term)
-                e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+            negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), img_feat_net(self.get_img_features(negative_to).to(self.device))
 
-                loss += self.get_image_label_loss(e_for_u_v_positive, e_for_u_v_negative)
+            neg_term, e_for_u_v_negative_all = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
+            e_for_u_v_negative_all = e_for_u_v_negative_all.view(inputs_from.shape[0], 2 * self.neg_to_pos_ratio, -1)
 
-        return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
+            loss += torch.sum(self.get_image_label_loss(torch.squeeze(e_for_u_v_positive_all), torch.squeeze(e_for_u_v_negative_all)))
+
+        return loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 
 
 class ValidateGraphRepresentation:
@@ -806,14 +811,14 @@ class EmbeddingLabelsWithImages:
         # create dataloaders
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=self.batch_size,
-                                                  num_workers=16,
+                                                  num_workers=16, collate_fn=my_collate,
                                                   shuffle=True)
         valloader = torch.utils.data.DataLoader(val_set,
-                                                batch_size=1,
+                                                batch_size=self.batch_size, collate_fn=my_collate,
                                                 num_workers=16,
                                                 shuffle=False)
-        testloader = torch.utils.data.DataLoader(test_set,
-                                                 batch_size=1,
+        testloader = torch.utils.data.DataLoader(test_set, collate_fn=my_collate,
+                                                 batch_size=self.batch_size,
                                                  num_workers=16,
                                                  shuffle=False)
 
@@ -870,7 +875,7 @@ class EmbeddingLabelsWithImages:
 
         running_loss = 0.0
 
-        predicted_from_embeddings, predicted_to_embeddings = torch.tensor([]), torch.tensor([])
+        # predicted_from_embeddings, predicted_to_embeddings = torch.tensor([]), torch.tensor([])
         e_positive, e_negative = torch.tensor([]), torch.tensor([])
 
         index = 0
@@ -878,6 +883,10 @@ class EmbeddingLabelsWithImages:
         # Iterate over data.
         for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
             inputs_from, inputs_to, status = data_item['from'], data_item['to'], data_item['status']
+
+            # print('from:', inputs_from)
+            # print('to: ', inputs_to)
+            # print('status: ', status)
 
             # zero the parameter gradients
             self.optimizer.zero_grad()
@@ -888,7 +897,7 @@ class EmbeddingLabelsWithImages:
                 self.model = self.model.to(self.device)
                 self.img_feat_net = self.img_feat_net.to(self.device)
 
-                outputs_from, outputs_to, loss, e_for_u_v_positive, e_for_u_v_negative =\
+                loss, e_for_u_v_positive, e_for_u_v_negative =\
                     self.criterion(self.model, self.img_feat_net, inputs_from, inputs_to, status, phase)
 
                 # backward + optimize only if in training phase
@@ -899,10 +908,10 @@ class EmbeddingLabelsWithImages:
             # statistics
             running_loss += loss.item()
 
-            outputs_from, outputs_to = outputs_from.cpu().detach(), outputs_to.cpu().detach()
-
-            predicted_from_embeddings = torch.cat((predicted_from_embeddings, outputs_from.data))
-            predicted_to_embeddings = torch.cat((predicted_to_embeddings, outputs_to.data))
+            # outputs_from, outputs_to = outputs_from.cpu().detach(), outputs_to.cpu().detach()
+            #
+            # predicted_from_embeddings = torch.cat((predicted_from_embeddings, outputs_from.data))
+            # predicted_to_embeddings = torch.cat((predicted_to_embeddings, outputs_to.data))
             e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().data))
             e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().data))
 
@@ -1021,22 +1030,21 @@ class EmbeddingLabelsWithImages:
         img_rep = img_rep.cpu().detach()
 
         label_rep = self.model(torch.tensor(labels_in_graph).to(self.device))
-        label_rep = label_rep.cpu().detach()
+        label_rep = label_rep.cpu().detach().unsqueeze(0)
 
         for image_name in images_in_graph:
             img_ix = images_to_ix[image_name]
-            img_emb = img_rep[img_ix, :]
+            img_emb = img_rep[:, img_ix, :]
 
             image_is_a_member_of = [v for u, v in list(G_rev.edges(image_name))]
             image_is_a_member_of.sort()
 
-            img_emb = img_emb.unsqueeze(0)
-            img_emb = img_emb.repeat(1, label_rep.shape[0]).view(-1, img_emb.shape[1])
+            img_emb = img_emb.repeat(1, label_rep.shape[1]).view(-1, label_rep.shape[1], img_emb.shape[1])
             e = self.criterion.E_operator(label_rep, img_emb)
 
             for level_id in range(len(self.labelmap.levels)):
                 # print(self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id])
-                values, indices = torch.topk(e[self.labelmap.level_start[level_id]:self.labelmap.level_stop[level_id]],
+                values, indices = torch.topk(e[0, self.labelmap.level_start[level_id]:self.labelmap.level_stop[level_id]],
                                              k=max(k), largest=False)
 
                 # add offset to get the correct indices

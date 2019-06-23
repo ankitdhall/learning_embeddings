@@ -143,49 +143,49 @@ class Embedder(nn.Module):
 
 class EmbeddingMetrics:
     def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase):
-        self.e_for_u_v_positive = e_for_u_v_positive
-        self.e_for_u_v_negative = e_for_u_v_negative
+        self.e_for_u_v_positive = e_for_u_v_positive.view(-1)
+        self.e_for_u_v_negative = e_for_u_v_negative.view(-1)
         self.threshold = threshold
         self.phase = phase
 
     def calculate_metrics(self):
-        if self.phase == 'val':
-            possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
-            best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
-            for t_id in range(possible_thresholds.shape[0]):
-                correct_positives = torch.sum(self.e_for_u_v_positive <= possible_thresholds[t_id]).item()
-                correct_negatives = torch.sum(self.e_for_u_v_negative > possible_thresholds[t_id]).item()
-                accuracy = (correct_positives+correct_negatives)/(self.e_for_u_v_positive.shape[0]+self.e_for_u_v_negative.shape[0])
-                precision = correct_positives/(correct_positives+(self.e_for_u_v_negative.shape[0]-correct_negatives))
-                recall = correct_positives/self.e_for_u_v_positive.shape[0]
-                if precision+recall == 0:
-                    f1_score = 0.0
-                else:
-                    f1_score = (2*precision*recall)/(precision+recall)
-                if f1_score > best_score:
-                    best_accuracy = accuracy
-                    best_score = f1_score
-                    best_threshold = possible_thresholds[t_id]
+        # if self.phase == 'val':
+        #     possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
+        #     best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
+        #     for t_id in range(possible_thresholds.shape[0]):
+        #         correct_positives = torch.sum(self.e_for_u_v_positive <= possible_thresholds[t_id]).item()
+        #         correct_negatives = torch.sum(self.e_for_u_v_negative > possible_thresholds[t_id]).item()
+        #         accuracy = (correct_positives+correct_negatives)/(self.e_for_u_v_positive.shape[0]+self.e_for_u_v_negative.shape[0])
+        #         precision = correct_positives/(correct_positives+(self.e_for_u_v_negative.shape[0]-correct_negatives))
+        #         recall = correct_positives/self.e_for_u_v_positive.shape[0]
+        #         if precision+recall == 0:
+        #             f1_score = 0.0
+        #         else:
+        #             f1_score = (2*precision*recall)/(precision+recall)
+        #         if f1_score > best_score:
+        #             best_accuracy = accuracy
+        #             best_score = f1_score
+        #             best_threshold = possible_thresholds[t_id]
+        #
+        #     return best_score, best_threshold, best_accuracy
+        #
+        # else:
+        correct_positives = torch.sum(self.e_for_u_v_positive <= self.threshold).item()
+        correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
+        accuracy = (correct_positives + correct_negatives) / (
+                    self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
 
-            return best_score, best_threshold, best_accuracy
-
+        if correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives) == 0:
+            print('Encountered NaN for precision!')
+            precision = 0.0
         else:
-            correct_positives = torch.sum(self.e_for_u_v_positive <= self.threshold).item()
-            correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
-            accuracy = (correct_positives + correct_negatives) / (
-                        self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
-
-            if correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives) == 0:
-                print('Encountered NaN for precision!')
-                precision = 0.0
-            else:
-                precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
-            recall = correct_positives / self.e_for_u_v_positive.shape[0]
-            if precision + recall == 0:
-                f1_score = 0.0
-            else:
-                f1_score = (2 * precision * recall) / (precision + recall)
-            return f1_score, self.threshold, accuracy
+            precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
+        recall = correct_positives / self.e_for_u_v_positive.shape[0]
+        if precision + recall == 0:
+            f1_score = 0.0
+        else:
+            f1_score = (2 * precision * recall) / (precision + recall)
+        return f1_score, self.threshold, accuracy
 
 
 class OrderEmbedding(CIFAR10):
@@ -472,7 +472,11 @@ class OrderEmbeddingLoss(torch.nn.Module):
         # print('y', y)
         # print('x-y', x-y)
         # input()
-        return torch.sum(torch.clamp(x-y, min=0.0)**2, dim=1)
+        original_shape = x.shape
+        x = x.contiguous().view(-1, original_shape[-1])
+        y = y.contiguous().view(-1, original_shape[-1])
+
+        return torch.sum(torch.clamp(x-y, min=0.0)**2, dim=1).view(original_shape[:-1])
 
     def positive_pair(self, x, y):
         return self.E_operator(x, y)

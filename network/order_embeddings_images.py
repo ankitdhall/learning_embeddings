@@ -12,6 +12,7 @@ import os
 from network.experiment import Experiment, WeightedResampler
 from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
 from network.finetuner import CIFAR10
+from network.summarize import Summarize
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
 from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
@@ -535,7 +536,7 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
     def forward(self, model, img_feat_net, inputs_from, inputs_to, status, phase):
         loss = 0.0
         e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
-        
+
         if phase != 'train':
             predicted_from_embeddings = model(inputs_from.to(self.device))
             predicted_to_embeddings = img_feat_net(self.get_img_features(inputs_to).to(self.device))
@@ -940,23 +941,48 @@ class EmbeddingLabelsWithImages:
         else:
             epoch_loss = running_loss / ((index+1)*self.neg_to_pos_ratio*2)
 
+        path_to_save_summary = os.path.join(self.log_dir, 'stats',
+                                            ('best_' if not save_to_tensorboard else '') +phase + str(self.epoch))
+        self.make_dir_if_non_existent(path_to_save_summary)
+        self.summarizer = Summarize(path_to_save_summary)
+
+
+        self.summarizer.make_heading('Embeddings Metrics Summary - Epoch {} {}'.format(self.epoch, phase), 1)
+        self.summarizer.make_table([[epoch_loss, f1_score, accuracy, self.optimal_threshold]],
+                                   x_labels=['Loss', 'f1-score', 'accuracy', 'threshold (alpha)'])
+
         if save_to_tensorboard:
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
             self.writer.add_scalar('{}_f1_score'.format(phase), f1_score, self.epoch)
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
-            # add classification metrics
-            for metric_name in classification_metrics:
-                if type(classification_metrics[metric_name]) != dict:
+        # add classification metrics
+        self.summarizer.make_heading('Classification Summary - Epoch {} {}'.format(self.epoch, phase), 1)
+        level_wise_y_labels, level_wise_x_labels, level_wise_data = [], [], []
+        for metric_name in classification_metrics:
+            if type(classification_metrics[metric_name]) != dict:
+                if save_to_tensorboard:
                     self.writer.add_scalar('{}_classification_{}'.format(phase, metric_name),
                                            classification_metrics[metric_name], self.epoch)
-                else:
-                    for level_id in range(len(self.labelmap.levels)):
-                        for key in classification_metrics['level_metrics'][level_id]:
+                self.summarizer.make_text(text='{}_classification_{}: {}'.format(phase, metric_name, classification_metrics[metric_name]),
+                                          bullet=False)
+            else:
+                for level_id in range(len(self.labelmap.levels)):
+                    level_wise_y_labels.append(self.labelmap.level_names[level_id])
+                    level_row = []
+                    level_wise_x_labels = []
+                    for key in classification_metrics['level_metrics'][level_id]:
+                        if save_to_tensorboard:
                             self.writer.add_scalar('{}_classification_level_{}_{}'.format(phase, level_id, key),
                                                    classification_metrics['level_metrics'][level_id][key], self.epoch)
 
+                        level_row.append(classification_metrics['level_metrics'][level_id][key])
+                        level_wise_x_labels.append(key)
+                    level_wise_data.append(level_row)
+
+        self.summarizer.make_heading('Level-wise Classification Summary - Epoch {} {}'.format(self.epoch, phase), 1)
+        self.summarizer.make_table(data=level_wise_data, x_labels=level_wise_x_labels, y_labels=level_wise_y_labels)
 
         print('{} Loss: {:.4f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, f1_score, accuracy))
 

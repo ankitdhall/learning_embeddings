@@ -462,11 +462,13 @@ class OrderEmbeddingWithImagesLoss(OrderEmbeddingLoss):
 
 
 class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
-    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha=1.0):
+    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha):
         OrderEmbeddingLoss.__init__(self, labelmap, neg_to_pos_ratio, alpha)
 
         self.image_nodes_in_graph = set()
         self.non_image_nodes_in_graph = set()
+
+        self.list_of_edges_from_ui, self.list_of_edges_to_vi = {}, {}
 
         self.feature_dict = feature_dict
 
@@ -533,15 +535,10 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
     def forward(self, model, img_feat_net, inputs_from, inputs_to, status, phase):
         loss = 0.0
         e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
-        # predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
-        # predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
-
+        
         if phase != 'train':
             predicted_from_embeddings = model(inputs_from.to(self.device))
             predicted_to_embeddings = img_feat_net(self.get_img_features(inputs_to).to(self.device))
-
-            # predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
-            # predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
             # loss for positive pairs
             e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[:, 0, :],
@@ -572,13 +569,19 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
                     sample_inputs_from, sample_inputs_to = inputs_from[batch_id][sample_id], inputs_to[batch_id][sample_id]
                     for pass_ix in range(self.neg_to_pos_ratio):
 
-                        list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
-                        corrupted_ix = random.choice(list(self.image_nodes_in_graph - set(list_of_edges_from_ui)))
+                        if sample_inputs_from.item() not in self.list_of_edges_from_ui:
+                            list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
+                            self.list_of_edges_from_ui[sample_inputs_from.item()] = list(self.image_nodes_in_graph - set(list_of_edges_from_ui))
+
+                        corrupted_ix = random.choice(self.list_of_edges_from_ui[sample_inputs_from.item()])
                         negative_from[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = sample_inputs_from
                         negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = corrupted_ix
 
-                        list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to))]
-                        corrupted_ix = random.choice(list(self.non_image_nodes_in_graph - set(list_of_edges_to_vi)))
+                        if sample_inputs_to not in self.list_of_edges_to_vi:
+                            list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to))]
+                            self.list_of_edges_to_vi[sample_inputs_to] = list(self.non_image_nodes_in_graph - set(list_of_edges_to_vi))
+
+                        corrupted_ix = random.choice(self.list_of_edges_to_vi[sample_inputs_to])
                         negative_from[
                             2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
                         negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to

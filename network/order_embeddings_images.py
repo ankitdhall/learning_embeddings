@@ -155,9 +155,10 @@ class FeatNet(nn.Module):
         """
         x = F.relu(self.fc1(x))
         if self.normalize == 'unit_norm':
+            x = torch.abs(self.fc2(x))
             original_shape = x.shape
             x = x.view(-1, original_shape[-1])
-            x = torch.abs(F.normalize(self.fc2(x), p=2, dim=1))
+            x = F.normalize(x, p=2, dim=1)
             x = x.view(original_shape)
         elif self.normalize == 'max_norm':
             x = torch.abs(self.fc2(x))

@@ -470,21 +470,29 @@ class OrderEmbeddingWithImagesLossvCaption(OrderEmbeddingLoss):
         self.feature_dict = feature_dict
 
     def get_img_features(self, x):
-        retval = torch.tensor([])
+        retval = None
         unsqueeze_once_more = False
-        for sublist in x:
-            img_feat = None
-
+        for sublist_id, sublist in enumerate(x):
             if type(sublist) == str:
                 unsqueeze_once_more = True
-                retval = torch.cat((retval, torch.tensor(self.feature_dict[sublist]).unsqueeze(0)), dim=0)
+                if retval is None:
+                    img_emb_feat = torch.tensor(self.feature_dict[sublist]).unsqueeze(0)
+                    retval = torch.zeros((len(x), img_emb_feat.shape[-1]))
+                    retval[sublist_id, :] = img_emb_feat
+                else:
+                    retval[sublist_id, :] = torch.tensor(self.feature_dict[sublist]).unsqueeze(0)
             else:
-                for filename in sublist:
+                img_feat = None
+                for file_id, filename in enumerate(sublist):
                     if img_feat is None:
-                        img_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+                        img_emb_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+                        img_feat = torch.zeros((len(sublist), img_emb_feat.shape[-1]))
+                        img_feat[file_id, :] = img_emb_feat
                     else:
-                        img_feat = torch.cat((img_feat, torch.tensor(self.feature_dict[filename]).unsqueeze(0)), dim=0)
+                        img_feat[file_id, :] = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
 
+                if retval is None:
+                    retval = torch.tensor([])
                 retval = torch.cat((retval, img_feat.unsqueeze(0)), dim=0)
         if unsqueeze_once_more:
             retval = retval.unsqueeze(0)

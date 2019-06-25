@@ -168,6 +168,8 @@ class FeatNet(nn.Module):
             norm_x = torch.norm(x, p=2, dim=1)
             x[norm_x > 1.0] = F.normalize(x[norm_x > 1.0], p=2, dim=1)
             x = x.view(original_shape)
+        else:
+            x = torch.abs(self.fc2(x))
         return x
 
 

@@ -230,8 +230,8 @@ class OrderEmbedding(CIFAR10):
         self.criterion.set_graph_tc(self.G_tc)
         self.create_splits()
 
-        nx.draw_networkx(self.G, arrows=True)
-        plt.show()
+        # nx.draw_networkx(self.G, arrows=True)
+        # plt.show()
 
 
     def prepare_model(self):
@@ -468,10 +468,6 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
     @staticmethod
     def E_operator(x, y):
-        # print('x', x)
-        # print('y', y)
-        # print('x-y', x-y)
-        # input()
         original_shape = x.shape
         x = x.contiguous().view(-1, original_shape[-1])
         y = y.contiguous().view(-1, original_shape[-1])

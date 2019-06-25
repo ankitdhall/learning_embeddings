@@ -397,8 +397,8 @@ class OrderEmbedding(CIFAR10):
 
             predicted_from_embeddings = torch.cat((predicted_from_embeddings, outputs_from.data))
             predicted_to_embeddings = torch.cat((predicted_to_embeddings, outputs_to.data))
-            e_positive = torch.cat((e_positive, e_for_u_v_positive.data))
-            e_negative = torch.cat((e_negative, e_for_u_v_negative.data))
+            e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().detach().data))
+            e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().detach().data))
 
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 
@@ -483,13 +483,13 @@ class OrderEmbeddingLoss(torch.nn.Module):
     def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
         # print(status)
         loss = 0.0
-        e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]), torch.tensor([])
-        predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
-        predicted_to_embeddings_all = torch.tensor([]) # model(inputs_to)
+        e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
+        predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
+        predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
 
         for batch_id in range(len(inputs_from)):
-            predicted_from_embeddings = model(inputs_from[batch_id])
-            predicted_to_embeddings = model(inputs_to[batch_id])
+            predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
+            predicted_to_embeddings = model(inputs_to[batch_id].to(self.device))
             predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
             predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
@@ -540,7 +540,7 @@ class OrderEmbeddingLoss(torch.nn.Module):
                             2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
                         negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
+                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), model(negative_to.to(self.device))
                 neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
                 loss += torch.sum(neg_term)
                 e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))

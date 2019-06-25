@@ -577,14 +577,14 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
 
     def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
         loss = 0.0
-        d_for_u_v_positive_all, d_for_u_v_negative_all = torch.tensor([]), torch.tensor([])
-        predicted_from_embeddings_all = torch.tensor([]) # model(inputs_from)
-        predicted_to_embeddings_all = torch.tensor([]) # model(inputs_to)
+        d_for_u_v_positive_all, d_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
+        predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
+        predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
 
         if phase != 'train':
             inputs_from, inputs_to, status = torch.tensor(inputs_from), torch.tensor(inputs_to), torch.tensor(status)
-            predicted_from_embeddings = model(inputs_from)
-            predicted_to_embeddings = model(inputs_to)
+            predicted_from_embeddings = model(inputs_from.to(self.device))
+            predicted_to_embeddings = model(inputs_to.to(self.device))
 
             # loss for positive pairs
             positive_indices = (status == 1).nonzero().squeeze(dim=1)
@@ -605,8 +605,8 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
         else:
             for batch_id in range(len(inputs_from)):
 
-                predicted_from_embeddings = model(inputs_from[batch_id])
-                predicted_to_embeddings = model(inputs_to[batch_id])
+                predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
+                predicted_to_embeddings = model(inputs_to[batch_id].to(self.device))
                 predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
                 predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
@@ -637,7 +637,7 @@ class SimpleEuclideanEmbLoss(torch.nn.Module):
                         negative_from[pass_ix + self.neg_to_pos_ratio] = corrupted_ix
                         negative_to[pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                    negative_from_embeddings, negative_to_embeddings = model(negative_from), model(negative_to)
+                    negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), model(negative_to.to(self.device))
                     d_for_u_v_negative = self.d_fn(negative_from_embeddings,
                                                    negative_to_embeddings)
 

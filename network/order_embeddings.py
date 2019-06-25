@@ -142,55 +142,57 @@ class Embedder(nn.Module):
 
 
 class EmbeddingMetrics:
-    def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase):
+    def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase, has_fixed_alpha):
         self.e_for_u_v_positive = e_for_u_v_positive.view(-1)
         self.e_for_u_v_negative = e_for_u_v_negative.view(-1)
         self.threshold = threshold
         self.phase = phase
+        self.has_fixed_alpha = has_fixed_alpha
 
     def calculate_metrics(self):
-        # if self.phase == 'val':
-        #     possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
-        #     best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
-        #     for t_id in range(possible_thresholds.shape[0]):
-        #         correct_positives = torch.sum(self.e_for_u_v_positive <= possible_thresholds[t_id]).item()
-        #         correct_negatives = torch.sum(self.e_for_u_v_negative > possible_thresholds[t_id]).item()
-        #         accuracy = (correct_positives+correct_negatives)/(self.e_for_u_v_positive.shape[0]+self.e_for_u_v_negative.shape[0])
-        #         precision = correct_positives/(correct_positives+(self.e_for_u_v_negative.shape[0]-correct_negatives))
-        #         recall = correct_positives/self.e_for_u_v_positive.shape[0]
-        #         if precision+recall == 0:
-        #             f1_score = 0.0
-        #         else:
-        #             f1_score = (2*precision*recall)/(precision+recall)
-        #         if f1_score > best_score:
-        #             best_accuracy = accuracy
-        #             best_score = f1_score
-        #             best_threshold = possible_thresholds[t_id]
-        #
-        #     return best_score, best_threshold, best_accuracy
-        #
-        # else:
-        correct_positives = torch.sum(self.e_for_u_v_positive <= self.threshold).item()
-        correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
-        accuracy = (correct_positives + correct_negatives) / (
-                    self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
+        if not self.has_fixed_alpha and self.phase == 'val':
+            possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
+            best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
+            for t_id in range(possible_thresholds.shape[0]):
+                correct_positives = torch.sum(self.e_for_u_v_positive <= possible_thresholds[t_id]).item()
+                correct_negatives = torch.sum(self.e_for_u_v_negative > possible_thresholds[t_id]).item()
+                accuracy = (correct_positives+correct_negatives)/(self.e_for_u_v_positive.shape[0]+self.e_for_u_v_negative.shape[0])
+                precision = correct_positives/(correct_positives+(self.e_for_u_v_negative.shape[0]-correct_negatives))
+                recall = correct_positives/self.e_for_u_v_positive.shape[0]
+                if precision+recall == 0:
+                    f1_score = 0.0
+                else:
+                    f1_score = (2*precision*recall)/(precision+recall)
+                if f1_score > best_score:
+                    best_accuracy = accuracy
+                    best_score = f1_score
+                    best_threshold = possible_thresholds[t_id]
 
-        if correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives) == 0:
-            print('Encountered NaN for precision!')
-            precision = 0.0
+            return best_score, best_threshold, best_accuracy
+
         else:
-            precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
-        recall = correct_positives / self.e_for_u_v_positive.shape[0]
-        if precision + recall == 0:
-            f1_score = 0.0
-        else:
-            f1_score = (2 * precision * recall) / (precision + recall)
-        return f1_score, self.threshold, accuracy
+            correct_positives = torch.sum(self.e_for_u_v_positive <= self.threshold).item()
+            correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
+            accuracy = (correct_positives + correct_negatives) / (
+                        self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
+
+            if correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives) == 0:
+                print('Encountered NaN for precision!')
+                precision = 0.0
+            else:
+                precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
+            recall = correct_positives / self.e_for_u_v_positive.shape[0]
+            if precision + recall == 0:
+                f1_score = 0.0
+            else:
+                f1_score = (2 * precision * recall) / (precision + recall)
+            return f1_score, self.threshold, accuracy
 
 
 class OrderEmbedding(CIFAR10):
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
-                 neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[], experiment_dir='../exp/',
+                 neg_to_pos_ratio, alpha, has_fixed_alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[],
+                 experiment_dir='../exp/',
                  n_epochs=10, eval_interval=2, feature_extracting=True, use_pretrained=True, load_wt=False,
                  model_name=None, optimizer_method='adam', use_grayscale=False):
         torch.manual_seed(0)
@@ -210,6 +212,7 @@ class OrderEmbedding(CIFAR10):
         self.lr_step = lr_step
 
         self.optimal_threshold = alpha
+        self.has_fixed_alpha = has_fixed_alpha
         self.embedding_dim = embedding_dim # 10
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
         self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
@@ -400,11 +403,11 @@ class OrderEmbedding(CIFAR10):
             e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().detach().data))
             e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().detach().data))
 
-        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
+        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase, self.has_fixed_alpha)
 
         f1_score, threshold, accuracy = metrics.calculate_metrics()
-        # if phase == 'val':
-        #     self.optimal_threshold = threshold
+        if not self.has_fixed_alpha and phase == 'val':
+            self.optimal_threshold = threshold
 
         epoch_loss = running_loss / self.dataset_length[phase]
 
@@ -773,7 +776,8 @@ def order_embedding_train_model(arguments):
                         experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, normalize=arguments.normalize,
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
                         use_pretrained=True, load_wt=arguments.resume, model_name=arguments.model,
-                        optimizer_method=arguments.optimizer_method, use_grayscale=arguments.use_grayscale)
+                        optimizer_method=arguments.optimizer_method, use_grayscale=arguments.use_grayscale,
+                        has_fixed_alpha=arguments.has_fixed_alpha)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()
@@ -788,6 +792,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
     parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
+    parser.add_argument("--has_fixed_alpha", help='If alpha should be constant else tuned on val set.', action='store_true')
     parser.add_argument("--normalize", help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)

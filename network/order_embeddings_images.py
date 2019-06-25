@@ -710,6 +710,7 @@ class EmbeddingLabelsWithImages:
                  image_fc7,
                  normalize,
                  alpha,
+                 has_fixed_alpha,
                  lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10,
@@ -731,7 +732,6 @@ class EmbeddingLabelsWithImages:
         self.lr_step = lr_step
         self.batch_size = batch_size
         self.feature_extracting = feature_extracting
-        self.optimal_thresholds = np.zeros(self.n_classes)
         self.optimizer_method = optimizer_method
         self.labelmap = labelmap
         self.model_name = model_name
@@ -762,6 +762,7 @@ class EmbeddingLabelsWithImages:
         self.graph_dict = graph_dict
 
         self.optimal_threshold = alpha
+        self.has_fixed_alpha = has_fixed_alpha
         self.embedding_dim = embedding_dim # 10
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
         self.normalize = normalize
@@ -930,11 +931,11 @@ class EmbeddingLabelsWithImages:
 
         classification_metrics = self.calculate_classification_metrics(phase)
 
-        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
+        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase, self.has_fixed_alpha)
 
         f1_score, threshold, accuracy = metrics.calculate_metrics()
-        # if phase == 'val':
-        #     self.optimal_threshold = threshold
+        if not self.has_fixed_alpha and phase == 'val':
+            self.optimal_threshold = threshold
 
         if phase == 'train':
             epoch_loss = running_loss / ((index+1)*self.batch_size*self.neg_to_pos_ratio*2)
@@ -1285,6 +1286,7 @@ def order_embedding_labels_with_images_train_model(arguments):
                                       experiment_dir=arguments.experiment_dir,
                                       image_fc7=image_fc7,
                                       alpha=alpha,
+                                      has_fixed_alpha=arguments.has_fixed_alpha,
                                       normalize=arguments.normalize,
                                       embedding_dim=arguments.embedding_dim,
                                       neg_to_pos_ratio=arguments.neg_to_pos_ratio,
@@ -1318,6 +1320,8 @@ if __name__ == '__main__':
         parser.add_argument("--normalize",
                             help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].',
                             type=str, required=True)
+        parser.add_argument("--has_fixed_alpha", help='If alpha should be constant else tuned on val set.',
+                            action='store_true')
         # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
         parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
         parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)

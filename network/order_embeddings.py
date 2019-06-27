@@ -219,6 +219,7 @@ class OrderEmbedding(CIFAR10):
         self.normalize = normalize
 
         self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize)
+        self.model = nn.DataParallel(self.model)
         self.labelmap = labelmap
 
         self.G, self.G_train, self.G_val, self.G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph(), nx.DiGraph()

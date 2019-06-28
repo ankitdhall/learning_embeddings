@@ -228,7 +228,7 @@ def create_combined_graphs(dataloaders, labelmap):
 
     print('Graph with labels connected has {} edges'.format(G.size()))
 
-    G_train_tc, = copy.deepcopy(G)
+    G_train_tc = copy.deepcopy(G)
     G_train, G_val, G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph()
 
     for split_name, split_graph, split_graph_tc in zip(['train', 'val', 'test'], [G_train, G_val, G_test], [G_train_tc, None, None]):

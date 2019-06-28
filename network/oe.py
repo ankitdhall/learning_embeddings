@@ -13,6 +13,7 @@ from network.experiment import Experiment, WeightedResampler
 from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
 from network.finetuner import CIFAR10
 from network.summarize import Summarize
+from network.order_embeddings_images import EmbeddingMetrics
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
 from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
@@ -711,7 +712,6 @@ class JointEmbeddings:
                 self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
             print('train loss: {}'.format(epoch_loss))
 
-
         else:
             self.model.eval()
             self.img_feat_net.eval()
@@ -728,8 +728,18 @@ class JointEmbeddings:
                     self.best_model_wts = copy.deepcopy(self.model.state_dict())
                     self.save_model(-9999.0, filename='best_model')
 
+            if phase == 'test':
+                reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = self.check_graph_embedding()
+                print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
+                                                                                          reconstruction_accuracy,
+                                                                                          reconstruction_threshold))
+
             if save_to_tensorboard:
                 self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
+                if phase == 'test':
+                    self.writer.add_scalar('reconstruction_thresh', reconstruction_threshold, self.epoch)
+                    self.writer.add_scalar('reconstruction_f1', reconstruction_f1, self.epoch)
+                    self.writer.add_scalar('reconstruction_accuracy', reconstruction_accuracy, self.epoch)
 
         path_to_save_summary = os.path.join(self.log_dir, 'stats',
                                             ('best_' if not save_to_tensorboard else '') + phase + str(self.epoch))
@@ -763,6 +773,7 @@ class JointEmbeddings:
 
         self.summarizer.make_heading('Level-wise Classification Summary - Epoch {} {}'.format(self.epoch, phase), 1)
         self.summarizer.make_table(data=level_wise_data, x_labels=level_wise_x_labels, y_labels=level_wise_y_labels)
+
 
     def save_model(self, loss, filename=None):
         torch.save({
@@ -997,6 +1008,50 @@ class JointEmbeddings:
         # print('=' * 70)
 
         return calculated_metrics
+
+    def check_graph_embedding(self):
+        edges_in_G = self.graph_dict['graph'].edges()
+        n_nodes_in_G = len(self.graph_dict['graph'].nodes())
+        label_embeddings = self.model(torch.tensor([i for i in range(n_nodes_in_G)], dtype=torch.long))
+        positive_e = torch.zeros(len(edges_in_G))
+        for ix, edge in enumerate(edges_in_G):
+            u, v = edge
+            positive_e[ix] = self.criterion.E_operator(label_embeddings[u, :], label_embeddings[v, :])
+
+        # make negative graph
+        full_G = nx.complete_graph(len(list(self.graph_dict['graph'].nodes())), create_using=nx.DiGraph())
+        full_G = nx.relabel_nodes(full_G, dict(enumerate(list(self.graph_dict['graph'].nodes()))), copy=True)
+
+        neg_G = copy.deepcopy(full_G)
+        neg_G.remove_edges_from(self.graph_dict['graph'].edges())
+        negative_e = torch.zeros(neg_G.size())
+        for ix, edge in enumerate(neg_G.edges()):
+            u, v = edge
+            negative_e[ix] = self.criterion.E_operator(label_embeddings[u, :], label_embeddings[v, :])
+
+        possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
+                                                        negative_e.detach().cpu().numpy()), axis=None))
+        best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
+        for t_id in range(possible_thresholds.shape[0]):
+            correct_positives = torch.sum(positive_e <= possible_thresholds[t_id]).item()
+            correct_negatives = torch.sum(negative_e > possible_thresholds[t_id]).item()
+            accuracy = (correct_positives + correct_negatives) / (
+                        positive_e.shape[0] + negative_e.shape[0])
+            precision = correct_positives / (
+                        correct_positives + (negative_e.shape[0] - correct_negatives))
+            recall = correct_positives / positive_e.shape[0]
+            if precision + recall == 0:
+                f1_score = 0.0
+            else:
+                f1_score = (2 * precision * recall) / (precision + recall)
+            if f1_score > best_score:
+                best_accuracy = accuracy
+                best_score = f1_score
+                best_threshold = possible_thresholds[t_id]
+
+        return best_score, best_threshold, best_accuracy
+
+
 
 
 def order_embedding_labels_with_images_train_model(arguments):

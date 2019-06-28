@@ -228,10 +228,10 @@ def create_combined_graphs(dataloaders, labelmap):
 
     print('Graph with labels connected has {} edges'.format(G.size()))
 
-    G_train_tc, G_val_tc, G_test_tc = copy.deepcopy(G), copy.deepcopy(G), copy.deepcopy(G)
+    G_train_tc, = copy.deepcopy(G)
     G_train, G_val, G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph()
 
-    for split_name, split_graph, split_graph_tc in zip(['train', 'val', 'test'], [G_train, G_val, G_test], [G_train_tc, G_val_tc, G_test_tc]):
+    for split_name, split_graph, split_graph_tc in zip(['train', 'val', 'test'], [G_train, G_val, G_test], [G_train_tc, None, None]):
         dataloader = dataloaders[split_name]
         for index, data_item in enumerate(dataloader):
             level_labels = data_item['level_labels']
@@ -239,6 +239,8 @@ def create_combined_graphs(dataloaders, labelmap):
                 for sample_id in range(level_labels.shape[0]):
                     split_graph.add_edge(level_labels[sample_id, level_id].item() + labelmap.level_start[level_id],
                                          data_item['image_filename'][sample_id])
+                    if split_name != 'train':
+                        continue
                     split_graph_tc.add_edge(level_labels[sample_id, level_id].item() + labelmap.level_start[level_id],
                                             data_item['image_filename'][sample_id])
 
@@ -249,16 +251,13 @@ def create_combined_graphs(dataloaders, labelmap):
     print('Graphs with labels connected + labels & images connected for train has: {} edges'.format(G_train_skeleton_full.size()))
 
     G_train_tc = nx.transitive_closure(G_train_tc)
-    G_val_tc = nx.transitive_closure(G_val_tc)
-    G_test_tc = nx.transitive_closure(G_test_tc)
 
-    print('Transitive closure of graphs with labels & images: train {}, val {}, test {}'.format(
-        G_train_tc.size(), G_val_tc.size(), G_test_tc.size()))
+    print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size())
 
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,  # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full, # graph with edge between labels + between labels and images
-            'G_train_tc': G_train_tc, 'G_val_tc': G_val_tc, 'G_test_tc': G_test_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
+            'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 
 class ETHECHierarchyWithImages(torch.utils.data.Dataset):
@@ -824,7 +823,6 @@ class JointEmbeddings:
     def calculate_classification_metrics(self, phase, k=[1, 3, 5]):
         calculated_metrics = {}
 
-        G_tc = self.graph_dict['G_{}_tc'.format(phase)]
         G = self.graph_dict['G_{}'.format(phase)]
         G_rev = nx.reverse(G)
         nodes_in_graph = list(G)

@@ -252,7 +252,7 @@ def create_combined_graphs(dataloaders, labelmap):
 
     G_train_tc = nx.transitive_closure(G_train_tc)
 
-    print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size())
+    print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
 
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,  # graph with labels and images; edges between labels and images only

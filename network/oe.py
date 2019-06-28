@@ -457,10 +457,10 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
 
         if len(image_elem) != 0:
             image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
-            from_embeddings = torch.zeros((len(from_elem), image_emb.shape[-1]))
+            from_embeddings = torch.zeros((len(from_elem), image_emb.shape[-1])).to(self.device)
         if len(non_image_elem) != 0:
             non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
-            from_embeddings = torch.zeros((len(from_elem), non_image_emb.shape[-1]))
+            from_embeddings = torch.zeros((len(from_elem), non_image_emb.shape[-1])).to(self.device)
 
         if len(image_elem) != 0:
             from_embeddings[image_ix, :] = image_emb
@@ -475,10 +475,10 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
 
         if len(image_elem) != 0:
             image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
-            to_embeddings = torch.zeros((len(to_elem), image_emb.shape[-1]))
+            to_embeddings = torch.zeros((len(to_elem), image_emb.shape[-1])).to(self.device)
         if len(non_image_elem) != 0:
             non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
-            to_embeddings = torch.zeros((len(to_elem), non_image_emb.shape[-1]))
+            to_embeddings = torch.zeros((len(to_elem), non_image_emb.shape[-1])).to(self.device)
 
         if len(image_elem) != 0:
             to_embeddings[image_ix, :] = image_emb

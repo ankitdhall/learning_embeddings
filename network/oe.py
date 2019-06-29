@@ -773,7 +773,6 @@ class JointEmbeddings:
         self.summarizer.make_heading('Level-wise Classification Summary - Epoch {} {}'.format(self.epoch, phase), 1)
         self.summarizer.make_table(data=level_wise_data, x_labels=level_wise_x_labels, y_labels=level_wise_y_labels)
 
-
     def save_model(self, loss, filename=None):
         torch.save({
             'epoch': self.epoch,
@@ -1047,6 +1046,7 @@ class JointEmbeddings:
                 best_score = f1_score
                 best_threshold = possible_thresholds[t_id]
 
+        print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(edges_in_G), neg_G.size()))
         return best_score, best_threshold, best_accuracy
 
 

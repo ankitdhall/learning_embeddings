@@ -704,8 +704,8 @@ class JointEmbeddings:
                 # statistics
                 running_loss += loss.item()
 
-                e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().data))
-                e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().data))
+                e_positive = torch.cat((e_positive, e_for_u_v_positive.detach().cpu().data))
+                e_negative = torch.cat((e_negative, e_for_u_v_negative.detach().cpu().data))
 
             # metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
             # f1_score, threshold, accuracy = metrics.calculate_metrics()
@@ -1027,7 +1027,7 @@ class JointEmbeddings:
             label_embeddings[ix:min(ix + 10, len(nodes_in_G) - 1), :] = self.model(
                 torch.tensor(nodes_in_G[ix:min(ix + 10, len(nodes_in_G) - 1)], dtype=torch.long).to(
                     self.device))
-        label_embeddings = label_embeddings.cpu().detach()
+        label_embeddings = label_embeddings.detach().cpu()
 
         positive_e = torch.zeros(len(edges_in_G))
         for ix, edge in enumerate(edges_in_G):

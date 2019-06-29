@@ -216,7 +216,6 @@ class EmbeddingMetrics:
                 f1_score = (2 * precision * recall) / (precision + recall)
             return f1_score, self.threshold, accuracy
 
-
 def create_combined_graphs(dataloaders, labelmap):
     G = nx.DiGraph()
     for index, data_item in enumerate(dataloaders['train']):
@@ -226,7 +225,7 @@ def create_combined_graphs(dataloaders, labelmap):
                 G.add_edge(level_labels[sample_id, level_id].item() + labelmap.level_start[level_id],
                            level_labels[sample_id, level_id + 1].item() + labelmap.level_start[level_id + 1])
 
-    print('Graph with labels connected has {} edges'.format(G.size()))
+    print('Graph with labels connected has {} edges, {} nodes'.format(G.size(), len(G.nodes())))
 
     G_train_tc = copy.deepcopy(G)
     G_train, G_val, G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph()
@@ -253,6 +252,13 @@ def create_combined_graphs(dataloaders, labelmap):
     G_train_tc = nx.transitive_closure(G_train_tc)
 
     print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
+
+    nx.write_gpickle(G, 'G')
+    nx.write_gpickle(G_train, 'G_train')
+    nx.write_gpickle(G_val, 'G_val')
+    nx.write_gpickle(G_test, 'G_test')
+    nx.write_gpickle(G_train_skeleton_full, 'G_train_skeleton_full')
+    nx.write_gpickle(G_train_tc, 'G_train_tc')
 
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,  # graph with labels and images; edges between labels and images only
@@ -1050,6 +1056,35 @@ class JointEmbeddings:
         return best_score, best_threshold, best_accuracy
 
 
+def load_combined_graphs(debug):
+    print('Reading graphs from disk!')
+    if debug:
+        path_to_folder = '../database/ETHEC/ETHECSmall_embeddings/graphs'
+    else:
+        path_to_folder = '../database/ETHEC/ETHEC_embeddings/graphs'
+
+    G = nx.read_gpickle(os.path.join(path_to_folder, 'G'))
+    G_train = nx.read_gpickle(os.path.join(path_to_folder, 'G_train'))
+    G_val = nx.read_gpickle(os.path.join(path_to_folder, 'G_val'))
+    G_test = nx.read_gpickle(os.path.join(path_to_folder, 'G_test'))
+    G_train_skeleton_full = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_skeleton_full'))
+    G_train_tc = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_tc'))
+
+    print('Graph with labels connected has {} edges, {} nodes'.format(G.size(), len(G.nodes())))
+    print('Graphs with labels (disconnected between themselves) & images: train {}, val {}, test {}'.format(
+        G_train.size(), G_val.size(), G_test.size()))
+
+    print('Graphs with labels connected + labels & images connected for train has: {} edges'.format(
+        G_train_skeleton_full.size()))
+
+    print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
+
+    return {'graph': G,  # graph with labels only; edges between labels only
+            'G_train': G_train, 'G_val': G_val, 'G_test': G_test,
+            # graph with labels and images; edges between labels and images only
+            'G_train_skeleton_full': G_train_skeleton_full,
+            # graph with edge between labels + between labels and images
+            'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 
 def order_embedding_labels_with_images_train_model(arguments):
@@ -1073,7 +1108,10 @@ def order_embedding_labels_with_images_train_model(arguments):
         labelmap = ETHECLabelMapMergedSmall()
 
     dataloaders = create_imageless_dataloaders(debug=arguments.debug)
-    graph_dict = create_combined_graphs(dataloaders, labelmap)
+    if arguments.load_G_from_disk:
+        graph_dict = load_combined_graphs(debug=arguments.debug)
+    else:
+        graph_dict = create_combined_graphs(dataloaders, labelmap)
 
     batch_size = arguments.batch_size
     n_workers = arguments.n_workers
@@ -1142,9 +1180,8 @@ if __name__ == '__main__':
         parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.01)
         parser.add_argument("--alpha", help='Margin for the loss.', type=float, default=0.05)
         parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
-        # parser.add_argument("--normalize",
-        #                     help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].',
-        #                     type=str, required=True)
+        parser.add_argument("--load_G_from_disk", help='If set, then loads precomputed graphs from disk.',
+                            action='store_true')
         parser.add_argument("--has_fixed_alpha", help='If alpha should be constant else tuned on val set.',
                             action='store_true')
         # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')

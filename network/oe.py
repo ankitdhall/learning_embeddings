@@ -846,11 +846,16 @@ class JointEmbeddings:
                 hit_at_k[k_val][label_ix] = 0
 
         images_to_ix = {image_name: ix for ix, image_name in enumerate(images_in_graph)}
+        img_rep = torch.zeros((len(images_in_graph), self.embedding_dim)).to(self.device)
+        for ix in range(0, len(images_in_graph), 10):
+            img_rep[ix:min(ix+10, len(images_in_graph)-1), :] = self.img_feat_net(self.criterion.get_img_features(images_in_graph[ix:min(ix+10, len(images_in_graph)-1)]).to(self.device))
+        img_rep = img_rep.cpu().detach().unsqueeze(0)
 
-        img_rep = self.img_feat_net(self.criterion.get_img_features(images_in_graph).to(self.device))
-        img_rep = img_rep.cpu().detach()
-
-        label_rep = self.model(torch.tensor(labels_in_graph).to(self.device))
+        label_rep = torch.zeros((len(labels_in_graph), self.embedding_dim)).to(self.device)
+        for ix in range(0, len(labels_in_graph), 10):
+            label_rep[ix:min(ix + 10, len(labels_in_graph) - 1), :] = self.model(
+                torch.tensor(labels_in_graph[ix:min(ix + 10, len(labels_in_graph) - 1)], dtype=torch.long).to(
+                    self.device))
         label_rep = label_rep.cpu().detach().unsqueeze(0)
 
         for image_name in images_in_graph:
@@ -1015,7 +1020,15 @@ class JointEmbeddings:
     def check_graph_embedding(self):
         edges_in_G = self.graph_dict['graph'].edges()
         n_nodes_in_G = len(self.graph_dict['graph'].nodes())
-        label_embeddings = self.model(torch.tensor([i for i in range(n_nodes_in_G)], dtype=torch.long))
+        nodes_in_G = [i for i in range(n_nodes_in_G)]
+
+        label_embeddings = torch.zeros((len(nodes_in_G), self.embedding_dim)).to(self.device)
+        for ix in range(0, len(nodes_in_G), 10):
+            label_embeddings[ix:min(ix + 10, len(nodes_in_G) - 1), :] = self.model(
+                torch.tensor(nodes_in_G[ix:min(ix + 10, len(nodes_in_G) - 1)], dtype=torch.long).to(
+                    self.device))
+        label_embeddings = label_embeddings.cpu().detach()
+
         positive_e = torch.zeros(len(edges_in_G))
         for ix, edge in enumerate(edges_in_G):
             u, v = edge

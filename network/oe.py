@@ -216,6 +216,7 @@ class EmbeddingMetrics:
                 f1_score = (2 * precision * recall) / (precision + recall)
             return f1_score, self.threshold, accuracy
 
+
 def create_combined_graphs(dataloaders, labelmap):
     G = nx.DiGraph()
     for index, data_item in enumerate(dataloaders['train']):
@@ -253,16 +254,24 @@ def create_combined_graphs(dataloaders, labelmap):
 
     print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
 
+    full_G = nx.complete_graph(len(list(G_train_tc.nodes())), create_using=nx.DiGraph())
+    full_G = nx.relabel_nodes(full_G, dict(enumerate(list(G_train_tc.nodes()))), copy=True)
+
+    neg_G = copy.deepcopy(full_G)
+    neg_G.remove_edges_from(G_train_tc.edges())
+
     nx.write_gpickle(G, 'G')
     nx.write_gpickle(G_train, 'G_train')
     nx.write_gpickle(G_val, 'G_val')
     nx.write_gpickle(G_test, 'G_test')
     nx.write_gpickle(G_train_skeleton_full, 'G_train_skeleton_full')
     nx.write_gpickle(G_train_tc, 'G_train_tc')
+    nx.write_gpickle(neg_G, 'G_train_neg')
 
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,  # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full, # graph with edge between labels + between labels and images
+            'G_train_neg': neg_G,  # connected labels and images but only negative edges
             'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 
@@ -566,23 +575,16 @@ class JointEmbeddings:
         # load precomputed features as look-up table
         self.img_feat_net = FeatNet(output_dim=self.embedding_dim, normalize=self.normalize).to(self.device)
 
-        full_G = nx.complete_graph(len(list(self.graph_dict['G_train_tc'].nodes())), create_using=nx.DiGraph())
-        full_G = nx.relabel_nodes(full_G, dict(enumerate(list(self.graph_dict['G_train_tc'].nodes()))), copy=True)
-
-        neg_G = copy.deepcopy(full_G)
-        print('Neg_G has {} edges before removing tc edges'.format(neg_G.size()))
-        neg_G.remove_edges_from(self.graph_dict['G_train_tc'].edges())
-
         print('Train graph has {} nodes'.format(len(list(self.graph_dict['G_train_tc'].nodes()))))
-        print('Full graph has {} edges, transitive closure has {} (={}), Negatives graph has {}'.format(full_G.size(),
-                                                                                                  self.graph_dict['G_train_tc'].size(), len(self.graph_dict['G_train_tc'].edges()),
-                                                                                                  neg_G.size()
-                                                                                                  ))
+        print('Transitive closure has {} (={}) edges, Negatives graph has {} edges'.format(self.graph_dict['G_train_tc'].size(),
+                                                                                           len(self.graph_dict['G_train_tc'].edges()),
+                                                                                           self.graph_dict['G_train_neg'].size()
+                                                                                           ))
 
         # set this graph to use for generating corrupt pairs on the fly
         # so this graph should correspond to the graph: fully connected graph - tc graph
         # for the train set
-        self.criterion.set_negative_graph(neg_G)
+        self.criterion.set_negative_graph(self.graph_dict['G_train_neg'])
         #
         # nx.draw_networkx(self.G, arrows=True)
         # plt.show()
@@ -1082,6 +1084,7 @@ def load_combined_graphs(debug):
     G_test = nx.read_gpickle(os.path.join(path_to_folder, 'G_test'))
     G_train_skeleton_full = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_skeleton_full'))
     G_train_tc = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_tc'))
+    G_train_neg = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_neg'))
 
     print('Graph with labels connected has {} edges, {} nodes'.format(G.size(), len(G.nodes())))
     print('Graphs with labels (disconnected between themselves) & images: train {}, val {}, test {}'.format(
@@ -1097,6 +1100,7 @@ def load_combined_graphs(debug):
             # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full,
             # graph with edge between labels + between labels and images
+            'G_train_neg': neg_G,  # connected labels and images but only negative edges
             'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 

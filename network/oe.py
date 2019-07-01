@@ -254,8 +254,16 @@ def create_combined_graphs(dataloaders, labelmap):
 
     print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
 
-    mapping_ix_to_node = dict(enumerate(list(G_train_tc.nodes())))
-    mapping_node_to_ix = {node_name: ix for ix, node_name in enumerate(list(G_train_tc.nodes()))}
+    mapping_ix_to_node = {}
+    img_label = len(G.nodes())
+    for node in list(G_train_tc.nodes()):
+        if type(node) == int:
+            mapping_ix_to_node[node] = node
+        else:
+            mapping_ix_to_node[img_label] = node
+            img_label += 1
+
+    mapping_node_to_ix = {mapping_ix_to_node[k]: k for k in mapping_ix_to_node}
 
     n_nodes = len(list(G_train_tc.nodes()))
 
@@ -331,7 +339,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
 
 
 class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha):
+    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
@@ -344,6 +352,8 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
         self.negative_G = None
 
         self.feature_dict = feature_dict
+
+        self.pick_per_level = pick_per_level
 
     def get_img_features(self, x):
         retval = None
@@ -404,6 +414,26 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
         S = torch.sum(e_for_u_v_positive) + torch.sum(torch.clamp(self.alpha - e_for_u_v_negative, min=0.0))
         return S
 
+    def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if u is not None and v is None:
+            choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
+        elif u is None and v is not None:
+            choose_from = np.where(self.negative_G[:, self.mapping_from_node_to_ix[v]] == 1)[0]
+        else:
+            print('Error! Both (u, v) given or neither (u, v) given!')
+
+        if self.pick_per_level:
+            if level_id < len(self.labelmap.levels):
+                level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+                choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
+            else:
+                level_start, level_stop = self.labelmap.level_stop[-1], None
+                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+        else:
+            choose_from = choose_from.tolist()
+        corrupted_ix = random.choice(choose_from)
+        return corrupted_ix
+
     def forward(self, model, img_feat_net, inputs_from, inputs_to, status, phase):
         loss = 0.0
         e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
@@ -444,11 +474,11 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
                 sample_inputs_from, sample_inputs_to = inputs_from[batch_id], inputs_to[batch_id]
                 for pass_ix in range(self.neg_to_pos_ratio):
 
-                    corrupted_ix = random.choice(np.where(self.negative_G[self.mapping_from_node_to_ix[sample_inputs_from], :] == 1)[0].tolist())
+                    corrupted_ix = self.sample_negative_edge(u=sample_inputs_from, v=None, level_id=pass_ix)
                     negative_from[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = sample_inputs_from
                     negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = self.mapping_from_ix_to_node[corrupted_ix]
 
-                    corrupted_ix = random.choice(np.where(self.negative_G[:, self.mapping_from_node_to_ix[sample_inputs_to]] == 1)[0].tolist())
+                    corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
                     negative_from[
                         2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = self.mapping_from_ix_to_node[corrupted_ix]
                     negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
@@ -1098,8 +1128,16 @@ def load_combined_graphs(debug):
 
     print('Neg_G has {} edges'.format(np.sum(G_train_neg)))
 
-    mapping_ix_to_node = dict(enumerate(list(G_train_tc.nodes())))
-    mapping_node_to_ix = {node_name: ix for ix, node_name in enumerate(list(G_train_tc.nodes()))}
+    mapping_ix_to_node = {}
+    img_label = len(G.nodes())
+    for node in list(G_train_tc.nodes()):
+        if type(node) == int:
+            mapping_ix_to_node[node] = node
+        else:
+            mapping_ix_to_node[img_label] = node
+            img_label += 1
+
+    mapping_node_to_ix = {mapping_ix_to_node[k]: k for k in mapping_ix_to_node}
 
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,
@@ -1159,7 +1197,8 @@ def order_embedding_labels_with_images_train_model(arguments):
         use_criterion = OrderEmbeddingWithImagesHypernymLoss(labelmap=labelmap,
                                                              neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                                                              feature_dict=image_fc7,
-                                                             alpha=alpha)
+                                                             alpha=alpha,
+                                                             pick_per_level=arguments.pick_per_level)
     elif arguments.loss == 'euc_emb_loss':
         print('Not implemented!')
         # use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap)
@@ -1230,8 +1269,8 @@ if __name__ == '__main__':
                             help='Loss function to use. [order_emb_loss, euc_emb_loss]',
                             type=str, required=True)
         parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
-        # parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',
-        #                     action='store_true')
+        parser.add_argument("--pick_per_level", help='If set, then picks samples from each level, for the remaining, picks from images.',
+                            action='store_true')
         parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
         parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                             required=True)

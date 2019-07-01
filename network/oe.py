@@ -534,7 +534,7 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
 
 
 class JointEmbeddings:
-    def __init__(self, graph_dict, labelmap, criterion, lr,
+    def __init__(self, graph_dict, labelmap, criterion, lr, n_workers,
                  batch_size,
                  experiment_name,
                  embedding_dim,
@@ -567,6 +567,7 @@ class JointEmbeddings:
         self.optimizer_method = optimizer_method
         self.labelmap = labelmap
         self.model_name = model_name
+        self.n_workers = n_workers
 
         self.best_model_wts = None
         self.best_score = 0.0
@@ -648,15 +649,15 @@ class JointEmbeddings:
         # create dataloaders
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=self.batch_size,
-                                                  num_workers=16, collate_fn=my_collate,
+                                                  num_workers=self.n_workers, collate_fn=my_collate,
                                                   shuffle=True)
         valloader = torch.utils.data.DataLoader(val_set,
                                                 batch_size=self.batch_size, collate_fn=my_collate,
-                                                num_workers=16,
+                                                num_workers=self.n_workers,
                                                 shuffle=False)
         testloader = torch.utils.data.DataLoader(test_set, collate_fn=my_collate,
                                                  batch_size=self.batch_size,
-                                                 num_workers=16,
+                                                 num_workers=self.n_workers,
                                                  shuffle=False)
 
         self.dataloaders = {'train': trainloader, 'val': valloader, 'test': testloader}
@@ -1212,7 +1213,7 @@ def order_embedding_labels_with_images_train_model(arguments):
                             experiment_name=arguments.experiment_name,  # 'cifar_test_ft_multi',
                             experiment_dir=arguments.experiment_dir,
                             image_fc7=image_fc7,
-                            alpha=alpha,
+                            alpha=alpha, n_workers=n_workers,
                             has_fixed_alpha=arguments.has_fixed_alpha,
                             normalize=None,
                             embedding_dim=arguments.embedding_dim,
@@ -1253,7 +1254,7 @@ if __name__ == '__main__':
         parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
         parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
         parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
-        parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
+        parser.add_argument("--n_workers", help='Number of workers.', type=int, default=8)
         parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
         parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
         parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int,

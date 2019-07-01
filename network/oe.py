@@ -638,7 +638,8 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
-        self.params_to_update = list(self.model.parameters()) + list(self.img_feat_net.parameters())
+        self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.01},
+                                 {'params': self.img_feat_net.parameters()}]
 
     def create_splits(self):
         random.seed(0)

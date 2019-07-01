@@ -254,11 +254,19 @@ def create_combined_graphs(dataloaders, labelmap):
 
     print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
 
-    full_G = nx.complete_graph(len(list(G_train_tc.nodes())), create_using=nx.DiGraph())
-    full_G = nx.relabel_nodes(full_G, dict(enumerate(list(G_train_tc.nodes()))), copy=True)
+    mapping_ix_to_node = dict(enumerate(list(G_train_tc.nodes())))
+    mapping_node_to_ix = {node_name: ix for ix, node_name in enumerate(list(G_train_tc.nodes()))}
 
-    neg_G = copy.deepcopy(full_G)
-    neg_G.remove_edges_from(G_train_tc.edges())
+    n_nodes = len(list(G_train_tc.nodes()))
+
+    A = np.ones((n_nodes, n_nodes), dtype=np.bool)
+
+    for u, v in list(G_train_tc.edges()):
+        # remove edges that are in G_train_tc
+        A[mapping_node_to_ix[u], mapping_node_to_ix[v]] = 0
+    np.fill_diagonal(A, 0)
+
+    np.save('neg_adjacency.npy', A)
 
     nx.write_gpickle(G, 'G')
     nx.write_gpickle(G_train, 'G_train')
@@ -266,12 +274,13 @@ def create_combined_graphs(dataloaders, labelmap):
     nx.write_gpickle(G_test, 'G_test')
     nx.write_gpickle(G_train_skeleton_full, 'G_train_skeleton_full')
     nx.write_gpickle(G_train_tc, 'G_train_tc')
-    nx.write_gpickle(neg_G, 'G_train_neg')
 
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,  # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full, # graph with edge between labels + between labels and images
-            'G_train_neg': neg_G,  # connected labels and images but only negative edges
+            'G_train_neg': A,  # adjacency labels and images but only negative edges
+            'mapping_ix_to_node': mapping_ix_to_node,  # mapping from integer indices to node names
+            'mapping_node_to_ix': mapping_node_to_ix,  # mapping from node names to integer indices
             'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 
@@ -330,16 +339,9 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
         self.alpha = alpha
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # self.G_tc = None
-        # self.reverse_G = None
-        # self.nodes_in_graph = None
-        # self.num_edges = None
+        self.mapping_from_node_to_ix = None
+        self.mapping_from_ix_to_node = None
         self.negative_G = None
-
-        # self.image_nodes_in_graph = set()
-        # self.non_image_nodes_in_graph = set()
-
-        self.list_of_edges_from_ui, self.list_of_edges_to_vi = {}, {}
 
         self.feature_dict = feature_dict
 
@@ -372,13 +374,17 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
             retval = retval.unsqueeze(0)
         return retval
 
-    def set_negative_graph(self, n_G):
+    def set_negative_graph(self, n_G, mapping_from_node_to_ix, mapping_from_ix_to_node):
         """
         Get graph to pick negative edges from.
-        :param n_G: <networkx.DiGraph> Training graph to generate corrupted samples
+        :param n_G: <np.array> Bool adjacency matrix; containing 1s for edges (u, v) which represent a negative edge
+        :param mapping_from_node_to_ix: <dict> mapping from integer indices to node names
+        :param mapping_from_ix_to_node: <dict> mapping from node names to integer indices
         :return: NA
         """
         self.negative_G = n_G
+        self.mapping_from_node_to_ix = mapping_from_node_to_ix
+        self.mapping_from_ix_to_node = mapping_from_ix_to_node
 
     @staticmethod
     def E_operator(x, y):
@@ -438,19 +444,13 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
                 sample_inputs_from, sample_inputs_to = inputs_from[batch_id], inputs_to[batch_id]
                 for pass_ix in range(self.neg_to_pos_ratio):
 
-                    if sample_inputs_from not in self.list_of_edges_from_ui:
-                        self.list_of_edges_from_ui[sample_inputs_from] = [v for u, v in list(self.negative_G.out_edges(sample_inputs_from))]
-
-                    corrupted_ix = random.choice(self.list_of_edges_from_ui[sample_inputs_from])
+                    corrupted_ix = random.choice(np.where(self.negative_G[self.mapping_from_node_to_ix[sample_inputs_from], :] == 1)[0].tolist())
                     negative_from[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = sample_inputs_from
-                    negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = corrupted_ix
+                    negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = self.mapping_from_ix_to_node[corrupted_ix]
 
-                    if sample_inputs_to not in self.list_of_edges_to_vi:
-                        self.list_of_edges_to_vi[sample_inputs_to] = [u for u, v in list(self.negative_G.in_edges(sample_inputs_to))]
-
-                    corrupted_ix = random.choice(self.list_of_edges_to_vi[sample_inputs_to])
+                    corrupted_ix = random.choice(np.where(self.negative_G[:, self.mapping_from_node_to_ix[sample_inputs_to]] == 1)[0].tolist())
                     negative_from[
-                        2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
+                        2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = self.mapping_from_ix_to_node[corrupted_ix]
                     negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
             # get embeddings for concepts and images
@@ -578,13 +578,14 @@ class JointEmbeddings:
         print('Train graph has {} nodes'.format(len(list(self.graph_dict['G_train_tc'].nodes()))))
         print('Transitive closure has {} (={}) edges, Negatives graph has {} edges'.format(self.graph_dict['G_train_tc'].size(),
                                                                                            len(self.graph_dict['G_train_tc'].edges()),
-                                                                                           self.graph_dict['G_train_neg'].size()
+                                                                                           np.sum(self.graph_dict['G_train_neg'])
                                                                                            ))
 
         # set this graph to use for generating corrupt pairs on the fly
         # so this graph should correspond to the graph: fully connected graph - tc graph
         # for the train set
-        self.criterion.set_negative_graph(self.graph_dict['G_train_neg'])
+        self.criterion.set_negative_graph(self.graph_dict['G_train_neg'], self.graph_dict['mapping_node_to_ix'],
+                                          self.graph_dict['mapping_ix_to_node'])
         #
         # nx.draw_networkx(self.G, arrows=True)
         # plt.show()
@@ -1084,7 +1085,7 @@ def load_combined_graphs(debug):
     G_test = nx.read_gpickle(os.path.join(path_to_folder, 'G_test'))
     G_train_skeleton_full = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_skeleton_full'))
     G_train_tc = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_tc'))
-    G_train_neg = nx.read_gpickle(os.path.join(path_to_folder, 'G_train_neg'))
+    G_train_neg = np.load(os.path.join(path_to_folder, 'neg_adjacency.npy'))
 
     print('Graph with labels connected has {} edges, {} nodes'.format(G.size(), len(G.nodes())))
     print('Graphs with labels (disconnected between themselves) & images: train {}, val {}, test {}'.format(
@@ -1095,12 +1096,19 @@ def load_combined_graphs(debug):
 
     print('Transitive closure of graphs with labels & images: train {}'.format(G_train_tc.size()))
 
+    print('Neg_G has {} edges'.format(np.sum(G_train_neg)))
+
+    mapping_ix_to_node = dict(enumerate(list(G_train_tc.nodes())))
+    mapping_node_to_ix = {node_name: ix for ix, node_name in enumerate(list(G_train_tc.nodes()))}
+
     return {'graph': G,  # graph with labels only; edges between labels only
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,
             # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full,
             # graph with edge between labels + between labels and images
-            'G_train_neg': neg_G,  # connected labels and images but only negative edges
+            'G_train_neg': G_train_neg,  # adjacency labels and images but only negative edges
+            'mapping_ix_to_node': mapping_ix_to_node,  # mapping from integer indices to node names
+            'mapping_node_to_ix': mapping_node_to_ix,  # mapping from node names to integer indices
             'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 

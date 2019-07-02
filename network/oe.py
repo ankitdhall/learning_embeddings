@@ -355,6 +355,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
         self.pick_per_level = pick_per_level
         self.K = K
+        self.epsilon = 1e-5
 
     def get_img_features(self, x):
         retval = None
@@ -410,6 +411,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
         x_y_dist = torch.norm(x - y, p=2, dim=1)
 
         theta_between_x_y = torch.acos((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist))
+        theta_between_x_y = torch.clamp(theta_between_x_y, min=-1+self.epsilon, max=1-self.epsilon)
         psi_x = torch.asin(self.K/x_norm)
 
         return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
@@ -505,10 +507,11 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
     def clip_vectors(self, x):
         original_shape = x.shape
+        thresh = self.K + self.epsilon
         x = x.view(-1, original_shape[-1])
         x_norm = torch.norm(x, p=2, dim=1)
-        if torch.any(x_norm < self.K):
-            x[x_norm < self.K, :] *= self.K/x_norm[x_norm < self.K].unsqueeze(1)
+        if torch.any(x_norm < thresh):
+            x[x_norm < thresh, :] *= thresh/x_norm[x_norm < thresh].unsqueeze(1)
         return x.view(original_shape)
 
     def calculate_from_and_to_emb(self, model, img_feat_net, from_elem, to_elem):

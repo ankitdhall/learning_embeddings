@@ -411,7 +411,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
         theta_between_x_y = torch.acos((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist))
         psi_x = torch.asin(self.K/x_norm)
-        
+
         return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
 
     def positive_pair(self, x, y):
@@ -1288,9 +1288,12 @@ class JointEmbeddings:
         label_embeddings = label_embeddings.detach().cpu()
 
         positive_e = torch.zeros(len(edges_in_G))
-        for ix, edge in enumerate(edges_in_G):
-            u, v = edge
-            positive_e[ix] = self.criterion.E_operator(label_embeddings[u, :], label_embeddings[v, :])
+        u_list, v_list = [], []
+        for edge in edges_in_G:
+            u_list.append(edge[0])
+            v_list.append(edge[1])
+
+        positive_e = self.criterion.E_operator(label_embeddings[u_list, :], label_embeddings[v_list, :])
 
         # make negative graph
         full_G = nx.complete_graph(len(list(self.graph_dict['graph'].nodes())), create_using=nx.DiGraph())
@@ -1299,9 +1302,12 @@ class JointEmbeddings:
         neg_G = copy.deepcopy(full_G)
         neg_G.remove_edges_from(self.graph_dict['graph'].edges())
         negative_e = torch.zeros(neg_G.size())
+
+        u_list, v_list = [], []
         for ix, edge in enumerate(neg_G.edges()):
-            u, v = edge
-            negative_e[ix] = self.criterion.E_operator(label_embeddings[u, :], label_embeddings[v, :])
+            u_list.append(edge[0])
+            v_list.append(edge[1])
+        negative_e = self.criterion.E_operator(label_embeddings[u_list, :], label_embeddings[v_list, :])
 
         possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
                                                         negative_e.detach().cpu().numpy()), axis=None))

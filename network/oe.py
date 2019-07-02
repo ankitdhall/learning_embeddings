@@ -993,7 +993,7 @@ class JointEmbeddings:
                     self.best_model_wts = copy.deepcopy(self.model.state_dict())
                     self.save_model(-9999.0, filename='best_model')
 
-            if phase == 'test':
+            if phase == 'test' and (self.epoch % 5 == 0 or not save_to_tensorboard):
                 reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = self.check_graph_embedding()
                 print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
                                                                                           reconstruction_accuracy,
@@ -1001,7 +1001,7 @@ class JointEmbeddings:
 
             if save_to_tensorboard:
                 self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
-                if phase == 'test':
+                if phase == 'test' and self.epoch % 5 == 0:
                     self.writer.add_scalar('reconstruction_thresh', reconstruction_threshold, self.epoch)
                     self.writer.add_scalar('reconstruction_f1', reconstruction_f1, self.epoch)
                     self.writer.add_scalar('reconstruction_accuracy', reconstruction_accuracy, self.epoch)
@@ -1038,6 +1038,12 @@ class JointEmbeddings:
 
         self.summarizer.make_heading('Level-wise Classification Summary - Epoch {} {}'.format(self.epoch, phase), 1)
         self.summarizer.make_table(data=level_wise_data, x_labels=level_wise_x_labels, y_labels=level_wise_y_labels)
+
+        if phase == 'test' and (self.epoch % 5 == 0 or not save_to_tensorboard):
+            self.summarizer.make_heading('Reconstruction Summary - Epoch {} {}'.format(self.epoch, phase), 1)
+            self.summarizer.make_text(text='reconstruction f1: {}'.format(reconstruction_f1), bullet=False)
+            self.summarizer.make_text(text='reconstruction thresh: {}'.format(reconstruction_threshold), bullet=False)
+            self.summarizer.make_text(text='reconstruction accuracy: {}'.format(reconstruction_accuracy), bullet=False)
 
     def save_model(self, loss, filename=None):
         torch.save({

@@ -683,16 +683,22 @@ class JointEmbeddings:
 
             epoch_start_time = time.time()
             self.pass_samples(phase='train')
+            self.writer.add_scalar('epoch_time_train', time.time() - epoch_start_time, self.epoch)
+
             if self.epoch % self.eval_interval == 0:
+                val_start_time = time.time()
                 self.pass_samples(phase='val')
+                self.writer.add_scalar('epoch_time_val', time.time() - val_start_time, self.epoch)
+
+                test_start_time = time.time()
                 self.pass_samples(phase='test')
+                self.writer.add_scalar('epoch_time_test', time.time() - test_start_time, self.epoch)
 
             scheduler.step()
 
             epoch_time = time.time() - epoch_start_time
+            self.writer.add_scalar('epoch_time', time.time() - epoch_start_time, self.epoch)
             print('Epoch time {:.0f}m {:.0f}s'.format(epoch_time // 60, epoch_time % 60))
-
-            self.writer.add_scalar('epoch_time', epoch_time, self.epoch)
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -882,14 +888,14 @@ class JointEmbeddings:
 
         images_to_ix = {image_name: ix for ix, image_name in enumerate(images_in_graph)}
         img_rep = torch.zeros((len(images_in_graph), self.embedding_dim)).to(self.device)
-        for ix in range(0, len(images_in_graph), 10):
-            img_rep[ix:min(ix+10, len(images_in_graph)-1), :] = self.img_feat_net(self.criterion.get_img_features(images_in_graph[ix:min(ix+10, len(images_in_graph)-1)]).to(self.device))
+        for ix in range(0, len(images_in_graph), 100):
+            img_rep[ix:min(ix+100, len(images_in_graph)-1), :] = self.img_feat_net(self.criterion.get_img_features(images_in_graph[ix:min(ix+100, len(images_in_graph)-1)]).to(self.device))
         img_rep = img_rep.cpu().detach().unsqueeze(0)
 
         label_rep = torch.zeros((len(labels_in_graph), self.embedding_dim)).to(self.device)
-        for ix in range(0, len(labels_in_graph), 10):
-            label_rep[ix:min(ix + 10, len(labels_in_graph) - 1), :] = self.model(
-                torch.tensor(labels_in_graph[ix:min(ix + 10, len(labels_in_graph) - 1)], dtype=torch.long).to(
+        for ix in range(0, len(labels_in_graph), 100):
+            label_rep[ix:min(ix + 100, len(labels_in_graph) - 1), :] = self.model(
+                torch.tensor(labels_in_graph[ix:min(ix + 100, len(labels_in_graph) - 1)], dtype=torch.long).to(
                     self.device))
         label_rep = label_rep.cpu().detach().unsqueeze(0)
 
@@ -1058,9 +1064,9 @@ class JointEmbeddings:
         nodes_in_G = [i for i in range(n_nodes_in_G)]
 
         label_embeddings = torch.zeros((len(nodes_in_G), self.embedding_dim)).to(self.device)
-        for ix in range(0, len(nodes_in_G), 10):
-            label_embeddings[ix:min(ix + 10, len(nodes_in_G) - 1), :] = self.model(
-                torch.tensor(nodes_in_G[ix:min(ix + 10, len(nodes_in_G) - 1)], dtype=torch.long).to(
+        for ix in range(0, len(nodes_in_G), 100):
+            label_embeddings[ix:min(ix + 100, len(nodes_in_G) - 1), :] = self.model(
+                torch.tensor(nodes_in_G[ix:min(ix + 100, len(nodes_in_G) - 1)], dtype=torch.long).to(
                     self.device))
         label_embeddings = label_embeddings.detach().cpu()
 

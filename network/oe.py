@@ -338,6 +338,219 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         return len(self.status)
 
 
+class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
+    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False, K=0.1):
+        print('Using order-embedding loss!')
+        torch.nn.Module.__init__(self)
+        self.labelmap = labelmap
+        self.neg_to_pos_ratio = neg_to_pos_ratio
+        self.alpha = alpha
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.mapping_from_node_to_ix = None
+        self.mapping_from_ix_to_node = None
+        self.negative_G = None
+
+        self.feature_dict = feature_dict
+
+        self.pick_per_level = pick_per_level
+        self.K = K
+
+    def get_img_features(self, x):
+        retval = None
+        unsqueeze_once_more = False
+        for sublist_id, sublist in enumerate(x):
+            if type(sublist) == str:
+                unsqueeze_once_more = True
+                if retval is None:
+                    img_emb_feat = torch.tensor(self.feature_dict[sublist]).unsqueeze(0)
+                    retval = torch.zeros((len(x), img_emb_feat.shape[-1]))
+                    retval[sublist_id, :] = img_emb_feat
+                else:
+                    retval[sublist_id, :] = torch.tensor(self.feature_dict[sublist]).unsqueeze(0)
+            else:
+                img_feat = None
+                for file_id, filename in enumerate(sublist):
+                    if img_feat is None:
+                        img_emb_feat = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+                        img_feat = torch.zeros((len(sublist), img_emb_feat.shape[-1]))
+                        img_feat[file_id, :] = img_emb_feat
+                    else:
+                        img_feat[file_id, :] = torch.tensor(self.feature_dict[filename]).unsqueeze(0)
+
+                if retval is None:
+                    retval = torch.tensor([])
+                retval = torch.cat((retval, img_feat.unsqueeze(0)), dim=0)
+        if unsqueeze_once_more:
+            retval = retval.unsqueeze(0)
+        return retval
+
+    def set_negative_graph(self, n_G, mapping_from_node_to_ix, mapping_from_ix_to_node):
+        """
+        Get graph to pick negative edges from.
+        :param n_G: <np.array> Bool adjacency matrix; containing 1s for edges (u, v) which represent a negative edge
+        :param mapping_from_node_to_ix: <dict> mapping from integer indices to node names
+        :param mapping_from_ix_to_node: <dict> mapping from node names to integer indices
+        :return: NA
+        """
+        self.negative_G = n_G
+        self.mapping_from_node_to_ix = mapping_from_node_to_ix
+        self.mapping_from_ix_to_node = mapping_from_ix_to_node
+
+    def E_operator(self, x, y):
+        x = self.clip_vectors(x)
+        y = self.clip_vectors(y)
+
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        y = y.view(-1, original_shape[-1])
+
+        x_norm = torch.norm(x, p=2, dim=1)
+        y_norm = torch.norm(y, p=2, dim=1)
+        x_y_dist = torch.norm(x - y, p=2, dim=1)
+
+        theta_between_x_y = torch.acos((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist))
+        psi_x = torch.asin(self.K/x_norm)
+        
+        return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
+
+    def positive_pair(self, x, y):
+        return self.E_operator(x, y)
+
+    def negative_pair(self, x, y):
+        return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
+
+    def get_image_label_loss(self, e_for_u_v_positive, e_for_u_v_negative):
+        S = torch.sum(e_for_u_v_positive) + torch.sum(torch.clamp(self.alpha - e_for_u_v_negative, min=0.0))
+        return S
+
+    def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if u is not None and v is None:
+            choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
+        elif u is None and v is not None:
+            choose_from = np.where(self.negative_G[:, self.mapping_from_node_to_ix[v]] == 1)[0]
+        else:
+            print('Error! Both (u, v) given or neither (u, v) given!')
+
+        if self.pick_per_level:
+            if level_id < len(self.labelmap.levels):
+                level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+                choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
+            else:
+                level_start, level_stop = self.labelmap.level_stop[-1], None
+                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+        else:
+            choose_from = choose_from.tolist()
+        corrupted_ix = random.choice(choose_from)
+        return corrupted_ix
+
+    def forward(self, model, img_feat_net, inputs_from, inputs_to, status, phase):
+        loss = 0.0
+        e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
+
+        if phase != 'train':
+            predicted_from_embeddings, predicted_to_embeddings = self.calculate_from_and_to_emb(model,
+                                                                                                img_feat_net,
+                                                                                                inputs_from,
+                                                                                                inputs_to)
+            # loss for positive pairs
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[:, 0, :],
+                                                    predicted_to_embeddings[:, 0, :])
+
+            e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+
+            # loss for negative pairs
+            neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[:, 1:, :],
+                                                              predicted_to_embeddings[:, 1:, :])
+
+            e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+            loss += torch.sum(self.get_image_label_loss(e_for_u_v_positive, e_for_u_v_negative))
+
+        else:
+            # get embeddings for concepts and images
+            predicted_from_embeddings_pos, predicted_to_embeddings_pos = self.calculate_from_and_to_emb(model,
+                                                                                                        img_feat_net,
+                                                                                                        inputs_from,
+                                                                                                        inputs_to)
+            e_for_u_v_positive_all = self.positive_pair(predicted_from_embeddings_pos,
+                                                        predicted_to_embeddings_pos)
+
+            negative_from = [None] * (2 * self.neg_to_pos_ratio * len(inputs_from))
+            negative_to = [None] * (2 * self.neg_to_pos_ratio * len(inputs_to))
+
+            for batch_id in range(len(inputs_from)):
+                # loss for negative pairs
+                sample_inputs_from, sample_inputs_to = inputs_from[batch_id], inputs_to[batch_id]
+                for pass_ix in range(self.neg_to_pos_ratio):
+
+                    corrupted_ix = self.sample_negative_edge(u=sample_inputs_from, v=None, level_id=pass_ix)
+                    negative_from[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = sample_inputs_from
+                    negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix] = self.mapping_from_ix_to_node[corrupted_ix]
+
+                    corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
+                    negative_from[
+                        2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = self.mapping_from_ix_to_node[corrupted_ix]
+                    negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
+
+            # get embeddings for concepts and images
+            negative_from_embeddings, negative_to_embeddings = self.calculate_from_and_to_emb(model, img_feat_net, negative_from, negative_to)
+
+            neg_term, e_for_u_v_negative_all = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
+            e_for_u_v_negative_all = e_for_u_v_negative_all.view(len(inputs_from), 2 * self.neg_to_pos_ratio, -1)
+
+            loss += torch.sum(self.get_image_label_loss(torch.squeeze(e_for_u_v_positive_all), torch.squeeze(e_for_u_v_negative_all)))
+
+        return loss, e_for_u_v_positive_all, e_for_u_v_negative_all
+
+    def clip_vectors(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        x_norm = torch.norm(x, p=2, dim=1)
+        if torch.any(x_norm < self.K):
+            x[x_norm < self.K, :] *= self.K/x_norm[x_norm < self.K].unsqueeze(1)
+        return x.view(original_shape)
+
+    def calculate_from_and_to_emb(self, model, img_feat_net, from_elem, to_elem):
+        # get embeddings for concepts and images
+        image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) == str]
+        image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) == str]
+        non_image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) == int]
+        non_image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) == int]
+
+        if len(image_elem) != 0:
+            image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
+            from_embeddings = torch.zeros((len(from_elem), image_emb.shape[-1])).to(self.device)
+        if len(non_image_elem) != 0:
+            non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
+            from_embeddings = torch.zeros((len(from_elem), non_image_emb.shape[-1])).to(self.device)
+
+        if len(image_elem) != 0:
+            from_embeddings[image_ix, :] = image_emb
+        if len(non_image_elem) != 0:
+            from_embeddings[non_image_ix, :] = non_image_emb
+
+        # do the same for to embeddings
+        image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == str]
+        image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == str]
+        non_image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == int]
+        non_image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == int]
+
+        if len(image_elem) != 0:
+            image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
+            to_embeddings = torch.zeros((len(to_elem), image_emb.shape[-1])).to(self.device)
+        if len(non_image_elem) != 0:
+            non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
+            to_embeddings = torch.zeros((len(to_elem), non_image_emb.shape[-1])).to(self.device)
+
+        if len(image_elem) != 0:
+            to_embeddings[image_ix, :] = image_emb
+        if len(non_image_elem) != 0:
+            to_embeddings[non_image_ix, :] = non_image_emb
+
+        return from_embeddings, to_embeddings
+
+
 class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
     def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False):
         print('Using order-embedding loss!')
@@ -399,8 +612,9 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
     @staticmethod
     def E_operator(x, y):
         original_shape = x.shape
-        x = x.contiguous().view(-1, original_shape[-1])
-        y = y.contiguous().view(-1, original_shape[-1])
+
+        x = x.view(-1, original_shape[-1])
+        y = y.view(-1, original_shape[-1])
 
         return torch.sum(torch.clamp(x - y, min=0.0) ** 2, dim=1).view(original_shape[:-1])
 
@@ -492,6 +706,9 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
             loss += torch.sum(self.get_image_label_loss(torch.squeeze(e_for_u_v_positive_all), torch.squeeze(e_for_u_v_negative_all)))
 
         return loss, e_for_u_v_positive_all, e_for_u_v_negative_all
+
+    def clip_vectors(self, x):
+        return x
 
     def calculate_from_and_to_emb(self, model, img_feat_net, from_elem, to_elem):
         # get embeddings for concepts and images
@@ -1207,9 +1424,12 @@ def order_embedding_labels_with_images_train_model(arguments):
                                                              feature_dict=image_fc7,
                                                              alpha=alpha,
                                                              pick_per_level=arguments.pick_per_level)
-    elif arguments.loss == 'euc_emb_loss':
-        print('Not implemented!')
-        # use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap)
+    elif arguments.loss == 'euc_cones_loss':
+        use_criterion = EuclideanConesWithImagesHypernymLoss(labelmap=labelmap,
+                                                             neg_to_pos_ratio=arguments.neg_to_pos_ratio,
+                                                             feature_dict=image_fc7,
+                                                             alpha=alpha,
+                                                             pick_per_level=arguments.pick_per_level)
     else:
         print("== Invalid --loss argument")
 

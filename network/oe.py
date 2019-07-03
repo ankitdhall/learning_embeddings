@@ -884,6 +884,12 @@ class JointEmbeddings:
         self.dataloaders = {'train': trainloader, 'val': valloader, 'test': testloader}
         self.dataset_length = {'train': len(train_set), 'val': len(val_set), 'test': len(test_set)}
 
+    def find_existing_weights(self):
+        files = os.listdir(self.path_to_save_model)
+        files = [int(t.split('_')[0]) for t in files if 'best' not in t]
+        files.sort()
+        self.load_model(epoch_to_load=files[-1])
+
     def run_model(self, optimizer):
         self.optimizer = optimizer
         scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)

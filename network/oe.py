@@ -410,7 +410,8 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
         y_norm = torch.norm(y, p=2, dim=1)
         x_y_dist = torch.norm(x - y, p=2, dim=1)
 
-        theta_between_x_y = torch.acos((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist))
+        theta_between_x_y = torch.acos(torch.clamp((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist),
+                                                   min=-1+self.epsilon, max=1-self.epsilon))
         psi_x = torch.asin(self.K/x_norm)
 
         return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])

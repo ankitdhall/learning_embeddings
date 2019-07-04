@@ -2750,7 +2750,13 @@ class ETHECDBMerged(ETHECDB):
             if self.transform:
                 img = self.transform(img)
         else:
-            path_to_image, img = 0, 0
+            image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample[
+                                                                                                        'image_name'][
+                                                                                                    11:21] + "R"
+            path_to_image = os.path.join(self.path_to_images, image_folder,
+                                         sample['image_path'] if '.JPG' in sample['image_path'] else sample[
+                                             'image_name'])
+            img = 0
 
         ret_sample = {
             'image': img,

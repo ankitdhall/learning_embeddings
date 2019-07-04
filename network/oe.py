@@ -14,6 +14,7 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 from network.finetuner import CIFAR10
 from network.summarize import Summarize
 from network.order_embeddings_images import EmbeddingMetrics
+from network.inference import Inference
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
 from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
@@ -1627,7 +1628,7 @@ def order_embedding_labels_with_images_train_model(arguments):
         print("== Invalid --loss argument")
 
     oelwi = JointEmbeddings(graph_dict=graph_dict, labelmap=labelmap,
-                            imageless_dataloaders=dataloaders, image_dir=arguments.image_dir
+                            imageless_dataloaders=dataloaders, image_dir=arguments.image_dir,
                             use_CNN=arguments.use_CNN,
                             criterion=use_criterion,
                             lr=arguments.lr,

@@ -888,7 +888,10 @@ class JointEmbeddings:
         files = os.listdir(self.path_to_save_model)
         files = [int(t.split('_')[0]) for t in files if 'best' not in t]
         files.sort()
-        self.load_model(epoch_to_load=files[-1])
+        if len(files) > 0:
+            self.load_model(epoch_to_load=files[-1])
+        else:
+            print('=== Could not find any existing weight files, training from scratch.')
 
     def run_model(self, optimizer):
         self.optimizer = optimizer

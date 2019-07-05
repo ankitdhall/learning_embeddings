@@ -696,7 +696,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
 
 class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False):
+    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False, use_CNN=False):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
@@ -711,6 +711,11 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
         self.feature_dict = feature_dict
 
         self.pick_per_level = pick_per_level
+        self.use_CNN = use_CNN
+        self.dataloader = None
+
+    def set_dataloader(self, dataloader):
+        self.dataloader = dataloader
 
     def get_img_features(self, x):
         retval = None
@@ -855,43 +860,94 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
         return x
 
     def calculate_from_and_to_emb(self, model, img_feat_net, from_elem, to_elem):
-        # get embeddings for concepts and images
-        image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) == str]
-        image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) == str]
-        non_image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) == int]
-        non_image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) == int]
+        if self.use_CNN:
+            # get embeddings for concepts and images
+            image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) != int]
+            image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) != int]
+            non_image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) == int]
+            non_image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) == int]
 
-        if len(image_elem) != 0:
-            image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
-            from_embeddings = torch.zeros((len(from_elem), image_emb.shape[-1])).to(self.device)
-        if len(non_image_elem) != 0:
-            non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
-            from_embeddings = torch.zeros((len(from_elem), non_image_emb.shape[-1])).to(self.device)
+            if len(image_elem) != 0:
+                if type(image_elem[0]) == str:
+                    image_stack = []
+                    for filename in image_elem:
+                        image_stack.append(self.dataloader.get_image(filename))
+                    image_emb = img_feat_net(torch.stack(image_stack).to(self.device))
+                else:
+                    image_emb = img_feat_net(torch.stack(image_elem).to(self.device))
+                from_embeddings = torch.zeros((len(from_elem), image_emb.shape[-1])).to(self.device)
+            if len(non_image_elem) != 0:
+                non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
+                from_embeddings = torch.zeros((len(from_elem), non_image_emb.shape[-1])).to(self.device)
 
-        if len(image_elem) != 0:
-            from_embeddings[image_ix, :] = image_emb
-        if len(non_image_elem) != 0:
-            from_embeddings[non_image_ix, :] = non_image_emb
+            if len(image_elem) != 0:
+                from_embeddings[image_ix, :] = image_emb
+            if len(non_image_elem) != 0:
+                from_embeddings[non_image_ix, :] = non_image_emb
 
-        # do the same for to embeddings
-        image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == str]
-        image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == str]
-        non_image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == int]
-        non_image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == int]
+            # do the same for to embeddings
+            image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) != int]
+            image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) != int]
+            non_image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == int]
+            non_image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == int]
 
-        if len(image_elem) != 0:
-            image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
-            to_embeddings = torch.zeros((len(to_elem), image_emb.shape[-1])).to(self.device)
-        if len(non_image_elem) != 0:
-            non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
-            to_embeddings = torch.zeros((len(to_elem), non_image_emb.shape[-1])).to(self.device)
+            if len(image_elem) != 0:
+                if type(image_elem[0]) == str:
+                    image_stack = []
+                    for filename in image_elem:
+                        image_stack.append(self.dataloader.get_image(filename))
+                    image_emb = img_feat_net(torch.stack(image_stack).to(self.device))
+                else:
+                    image_emb = img_feat_net(torch.stack(image_elem).to(self.device))
+                to_embeddings = torch.zeros((len(to_elem), image_emb.shape[-1])).to(self.device)
+            if len(non_image_elem) != 0:
+                non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
+                to_embeddings = torch.zeros((len(to_elem), non_image_emb.shape[-1])).to(self.device)
 
-        if len(image_elem) != 0:
-            to_embeddings[image_ix, :] = image_emb
-        if len(non_image_elem) != 0:
-            to_embeddings[non_image_ix, :] = non_image_emb
+            if len(image_elem) != 0:
+                to_embeddings[image_ix, :] = image_emb
+            if len(non_image_elem) != 0:
+                to_embeddings[non_image_ix, :] = non_image_emb
 
-        return from_embeddings, to_embeddings
+            return from_embeddings, to_embeddings
+
+        else:
+            # get embeddings for concepts and images
+            image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) != int]
+            image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) != int]
+            non_image_elem = [elem for ix, elem in enumerate(from_elem) if type(elem) == int]
+            non_image_ix = [ix for ix, elem in enumerate(from_elem) if type(elem) == int]
+            if len(image_elem) != 0:
+                image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
+                from_embeddings = torch.zeros((len(from_elem), image_emb.shape[-1])).to(self.device)
+            if len(non_image_elem) != 0:
+                non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
+                from_embeddings = torch.zeros((len(from_elem), non_image_emb.shape[-1])).to(self.device)
+
+            if len(image_elem) != 0:
+                from_embeddings[image_ix, :] = image_emb
+            if len(non_image_elem) != 0:
+                from_embeddings[non_image_ix, :] = non_image_emb
+
+            # do the same for to embeddings
+            image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == str]
+            image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == str]
+            non_image_elem = [elem for ix, elem in enumerate(to_elem) if type(elem) == int]
+            non_image_ix = [ix for ix, elem in enumerate(to_elem) if type(elem) == int]
+
+            if len(image_elem) != 0:
+                image_emb = img_feat_net(self.get_img_features(image_elem).to(self.device))
+                to_embeddings = torch.zeros((len(to_elem), image_emb.shape[-1])).to(self.device)
+            if len(non_image_elem) != 0:
+                non_image_emb = model(torch.tensor(non_image_elem, dtype=torch.long).to(self.device))
+                to_embeddings = torch.zeros((len(to_elem), non_image_emb.shape[-1])).to(self.device)
+
+            if len(image_elem) != 0:
+                to_embeddings[image_ix, :] = image_emb
+            if len(non_image_elem) != 0:
+                to_embeddings[non_image_ix, :] = non_image_emb
+
+            return from_embeddings, to_embeddings
 
 
 class JointEmbeddings:
@@ -1136,6 +1192,9 @@ class JointEmbeddings:
                         self.criterion(self.model, self.img_feat_net, inputs_from, inputs_to, original_from, original_to,
                                        status, phase)
 
+                    e_positive = torch.cat((e_positive, e_for_u_v_positive.detach().cpu().data))
+                    e_negative = torch.cat((e_negative, e_for_u_v_negative.detach().cpu().data))
+
                     # backward + optimize only if in training phase
                     if phase == 'train':
                         loss.backward()
@@ -1144,8 +1203,6 @@ class JointEmbeddings:
                 # statistics
                 running_loss += loss.item()
 
-                e_positive = torch.cat((e_positive, e_for_u_v_positive.detach().cpu().data))
-                e_negative = torch.cat((e_negative, e_for_u_v_negative.detach().cpu().data))
 
             # metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
             # f1_score, threshold, accuracy = metrics.calculate_metrics()
@@ -1624,7 +1681,8 @@ def order_embedding_labels_with_images_train_model(arguments):
                                                              neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                                                              feature_dict=image_fc7,
                                                              alpha=alpha,
-                                                             pick_per_level=arguments.pick_per_level)
+                                                             pick_per_level=arguments.pick_per_level,
+                                                             use_CNN=arguments.use_CNN)
     elif arguments.loss == 'euc_cones_loss':
         use_criterion = EuclideanConesWithImagesHypernymLoss(labelmap=labelmap,
                                                              neg_to_pos_ratio=arguments.neg_to_pos_ratio,

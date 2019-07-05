@@ -1293,16 +1293,16 @@ class JointEmbeddings:
                 hit_at_k[k_val][label_ix] = 0
 
         images_to_ix = {image_name: ix for ix, image_name in enumerate(images_in_graph)}
-        img_rep = torch.zeros((len(images_in_graph), self.embedding_dim)).to(self.device)
+        img_rep = torch.zeros((len(images_in_graph), self.embedding_dim))
         for ix in range(0, len(images_in_graph), bs):
             if self.use_CNN:
                 image_stack = []
                 for filename in images_in_graph[ix:min(ix + bs, len(images_in_graph) - 1)]:
                     image_stack.append(self.criterion.dataloader.get_image(filename))
-                img_rep[ix:min(ix + bs, len(images_in_graph) - 1), :] = self.img_feat_net(torch.stack(image_stack).to(self.device))
+                img_rep[ix:min(ix + bs, len(images_in_graph) - 1), :] = self.img_feat_net(torch.stack(image_stack).to(self.device)).cpu().detach()
             else:
-                img_rep[ix:min(ix+bs, len(images_in_graph)-1), :] = self.img_feat_net(self.criterion.get_img_features(images_in_graph[ix:min(ix+bs, len(images_in_graph)-1)]).to(self.device))
-        img_rep = img_rep.cpu().detach().unsqueeze(0)
+                img_rep[ix:min(ix+bs, len(images_in_graph)-1), :] = self.img_feat_net(self.criterion.get_img_features(images_in_graph[ix:min(ix+bs, len(images_in_graph)-1)]).to(self.device)).cpu().detach()
+        img_rep = img_rep.unsqueeze(0)
 
         label_rep = torch.zeros((len(labels_in_graph), self.embedding_dim)).to(self.device)
         for ix in range(0, len(labels_in_graph), bs):

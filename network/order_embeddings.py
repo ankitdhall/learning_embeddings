@@ -154,15 +154,14 @@ class Embedder(nn.Module):
 
 
 class EmbeddingMetrics:
-    def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase, has_fixed_alpha):
+    def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase):
         self.e_for_u_v_positive = e_for_u_v_positive.view(-1)
         self.e_for_u_v_negative = e_for_u_v_negative.view(-1)
         self.threshold = threshold
         self.phase = phase
-        self.has_fixed_alpha = has_fixed_alpha
 
     def calculate_metrics(self):
-        if not self.has_fixed_alpha and self.phase == 'val':
+        if self.phase == 'val':
             possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
             best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
             for t_id in range(possible_thresholds.shape[0]):
@@ -203,7 +202,7 @@ class EmbeddingMetrics:
 
 class OrderEmbedding(CIFAR10):
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
-                 neg_to_pos_ratio, alpha, has_fixed_alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[],
+                 neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10, eval_interval=2, feature_extracting=True, use_pretrained=True, load_wt=False,
                  model_name=None, optimizer_method='adam', use_grayscale=False, lr_decay=1.0):
@@ -223,8 +222,7 @@ class OrderEmbedding(CIFAR10):
         self.optimizer_method = optimizer_method
         self.lr_step = lr_step
 
-        self.optimal_threshold = alpha
-        self.has_fixed_alpha = has_fixed_alpha
+        self.optimal_threshold = 0
         self.embedding_dim = embedding_dim # 10
         self.neg_to_pos_ratio = neg_to_pos_ratio # 5
         self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
@@ -425,10 +423,10 @@ class OrderEmbedding(CIFAR10):
             e_positive = torch.cat((e_positive, e_for_u_v_positive.cpu().detach().data))
             e_negative = torch.cat((e_negative, e_for_u_v_negative.cpu().detach().data))
 
-        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase, self.has_fixed_alpha)
+        metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
 
         f1_score, threshold, accuracy = metrics.calculate_metrics()
-        if not self.has_fixed_alpha and phase == 'val':
+        if phase == 'val':
             self.optimal_threshold = threshold
 
         epoch_loss = running_loss / self.dataset_length[phase]
@@ -614,7 +612,7 @@ class EucConesLoss(torch.nn.Module):
         #                                            min=-1+self.epsilon, max=1-self.epsilon))
         theta_between_x_y = -torch.sum(F.normalize(x, dim=1) * F.normalize(y - x, dim=1), dim=1)
         # in cos space
-        psi_x = -torch.sqrt(1 - self.K*self.K/x_norm**2)
+        psi_x = -torch.sqrt(1 - (self.K*self.K/x_norm**2))
 
         return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
 
@@ -904,9 +902,9 @@ def order_embedding_train_model(arguments):
 
     use_criterion = None
     if arguments.loss == 'order_emb_loss':
-        use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
+        use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=arguments.alpha)
     elif arguments.loss == 'euc_cones_loss':
-        use_criterion = EucConesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
+        use_criterion = EucConesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=arguments.alpha)
     else:
         print("== Invalid --loss argument")
 
@@ -918,7 +916,7 @@ def order_embedding_train_model(arguments):
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
                         use_pretrained=True, load_wt=arguments.resume, model_name=arguments.model,
                         optimizer_method=arguments.optimizer_method, use_grayscale=arguments.use_grayscale,
-                        has_fixed_alpha=arguments.has_fixed_alpha, lr_decay=arguments.lr_decay)
+                        lr_decay=arguments.lr_decay)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()
@@ -933,7 +931,6 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
     parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
-    parser.add_argument("--has_fixed_alpha", help='If alpha should be constant else tuned on val set.', action='store_true')
     parser.add_argument("--normalize", help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)

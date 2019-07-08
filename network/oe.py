@@ -49,11 +49,12 @@ import cv2
 
 
 class Embedder(nn.Module):
-    def __init__(self, embedding_dim, labelmap, normalize):
+    def __init__(self, embedding_dim, labelmap, normalize, K=None):
         super(Embedder, self).__init__()
         self.labelmap = labelmap
         self.embedding_dim = embedding_dim
         self.normalize = normalize
+        self.K = K
         if self.normalize == 'max_norm':
             self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim, max_norm=1.0)
         else:
@@ -65,14 +66,24 @@ class Embedder(nn.Module):
         if self.normalize == 'unit_norm':
             return F.normalize(embeds, p=2, dim=1)
         else:
-            return embeds
+            if self.K:
+                return self.soft_clip(embeds)
+            else:
+                return embeds
+
+    def soft_clip(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        direction = F.normalize(x, dim=1)
+        norm = torch.norm(x, dim=1, keepdim=True)
+        return (direction * (norm + self.K)).view(original_shape)
 
 
 class FeatNet(nn.Module):
     """
     Fully connected NN to learn features on top of image features in the joint embedding space.
     """
-    def __init__(self, normalize, input_dim=2048, output_dim=10):
+    def __init__(self, normalize, input_dim=2048, output_dim=10, K=None):
         """
         Constructor to prepare layers for the embedding.
         """
@@ -81,6 +92,7 @@ class FeatNet(nn.Module):
         self.fc2 = nn.Linear(512, output_dim)
 
         self.normalize = normalize
+        self.K = K
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -104,7 +116,18 @@ class FeatNet(nn.Module):
             x = x.view(original_shape)
         else:
             x = self.fc2(x)
+            if self.K:
+                return self.soft_clip(x)
+            else:
+                return x
         return x
+
+    def soft_clip(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        direction = F.normalize(x, dim=1)
+        norm = torch.norm(x, dim=1, keepdim=True)
+        return (direction * (norm + self.K)).view(original_shape)
 
 
 class FeatCNN(nn.Module):
@@ -423,7 +446,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
 
 
 class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False, K=0.1, use_CNN=False):
+    def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False, K=3.0, use_CNN=False):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
@@ -489,20 +512,22 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
         self.mapping_from_ix_to_node = mapping_from_ix_to_node
 
     def E_operator(self, x, y):
-        x = self.clip_vectors(x)
-        y = self.clip_vectors(y)
 
         original_shape = x.shape
         x = x.view(-1, original_shape[-1])
         y = y.view(-1, original_shape[-1])
 
         x_norm = torch.norm(x, p=2, dim=1)
-        y_norm = torch.norm(y, p=2, dim=1)
-        x_y_dist = torch.norm(x - y, p=2, dim=1)
+        # y_norm = torch.norm(y, p=2, dim=1)
+        # x_y_dist = torch.norm(x - y, p=2, dim=1)
 
-        theta_between_x_y = torch.acos(torch.clamp((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist),
-                                                   min=-1+self.epsilon, max=1-self.epsilon))
-        psi_x = torch.asin(self.K/x_norm)
+        # theta_between_x_y = torch.acos(torch.clamp((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist),
+        #                                            min=-1+self.epsilon, max=1-self.epsilon))
+        # psi_x = torch.asin(self.K/x_norm)
+
+        theta_between_x_y = -torch.sum(F.normalize(x, dim=1) * F.normalize(y - x, dim=1), dim=1)
+        # in cos space
+        psi_x = -torch.sqrt(1 - (self.K * self.K / x_norm ** 2))
 
         return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
 
@@ -594,15 +619,6 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
             loss += torch.sum(self.get_image_label_loss(torch.squeeze(e_for_u_v_positive_all), torch.squeeze(e_for_u_v_negative_all)))
 
         return loss, e_for_u_v_positive_all, e_for_u_v_negative_all
-
-    def clip_vectors(self, x):
-        original_shape = x.shape
-        thresh = self.K + self.epsilon
-        x = x.view(-1, original_shape[-1])
-        x_norm = torch.norm(x, p=2, dim=1)
-        if torch.any(x_norm < thresh):
-            x[x_norm < thresh, :] *= thresh/x_norm[x_norm < thresh].unsqueeze(1)
-        return x.view(original_shape)
 
     def calculate_from_and_to_emb(self, model, img_feat_net, from_elem, to_elem):
 
@@ -857,9 +873,6 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
 
         return loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 
-    def clip_vectors(self, x):
-        return x
-
     def calculate_from_and_to_emb(self, model, img_feat_net, from_elem, to_elem):
         if self.use_CNN:
             # get embeddings for concepts and images
@@ -961,7 +974,6 @@ class JointEmbeddings:
                  image_fc7,
                  normalize,
                  alpha,
-                 has_fixed_alpha,
                  lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10,
@@ -1023,14 +1035,16 @@ class JointEmbeddings:
         self.normalize = None
 
         # prepare models (embedding module and image feature extractor)
-        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize).to \
-            (self.device)
+        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize,
+                              K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None).to(self.device)
 
         if self.use_CNN:
-            self.img_feat_net = FeatCNN(image_dir=self.image_dir, output_dim=self.embedding_dim).to(self.device)
+            self.img_feat_net = FeatCNN(image_dir=self.image_dir, output_dim=self.embedding_dim,
+                                        K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None).to(self.device)
         else:
             # load precomputed features as look-up table
-            self.img_feat_net = FeatNet(output_dim=self.embedding_dim, normalize=self.normalize).to(self.device)
+            self.img_feat_net = FeatNet(output_dim=self.embedding_dim, normalize=self.normalize,
+                                        K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None).to(self.device)
 
         print('Train graph has {} nodes'.format(len(list(self.graph_dict['G_train_tc'].nodes()))))
         print('Transitive closure has {} (={}) edges, Negatives graph has {} edges'.format(self.graph_dict['G_train_tc'].size(),
@@ -1677,7 +1691,6 @@ def order_embedding_labels_with_images_train_model(arguments):
 
     use_criterion = None
     if arguments.loss == 'order_emb_loss':
-        # use_criterion = OrderEmbeddingWithImagesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=alpha)
         use_criterion = OrderEmbeddingWithImagesHypernymLoss(labelmap=labelmap,
                                                              neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                                                              feature_dict=image_fc7,
@@ -1704,7 +1717,6 @@ def order_embedding_labels_with_images_train_model(arguments):
                             experiment_dir=arguments.experiment_dir,
                             image_fc7=image_fc7,
                             alpha=alpha, n_workers=n_workers,
-                            has_fixed_alpha=arguments.has_fixed_alpha,
                             normalize=None,
                             embedding_dim=arguments.embedding_dim,
                             neg_to_pos_ratio=arguments.neg_to_pos_ratio,
@@ -1737,9 +1749,6 @@ if __name__ == '__main__':
         parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
         parser.add_argument("--load_G_from_disk", help='If set, then loads precomputed graphs from disk.',
                             action='store_true')
-        parser.add_argument("--has_fixed_alpha", help='If alpha should be constant else tuned on val set.',
-                            action='store_true')
-        # parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
         parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
         parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
         parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
@@ -1749,12 +1758,9 @@ if __name__ == '__main__':
         parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
         parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int,
                             default=5)
-        # parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.0)
         parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
         parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
         parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
-        # parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
-        #                     type=str, default='inv')
         parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')
         parser.add_argument("--loss",
                             help='Loss function to use. [order_emb_loss, euc_emb_loss]',
@@ -1765,7 +1771,6 @@ if __name__ == '__main__':
         parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
         parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                             required=True)
-        # parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
         parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[],
                             type=int)
         args = parser.parse_args()

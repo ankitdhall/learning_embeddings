@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
@@ -122,11 +123,12 @@ class ETHECHierarchy(torch.utils.data.Dataset):
 
 
 class Embedder(nn.Module):
-    def __init__(self, embedding_dim, labelmap, normalize):
+    def __init__(self, embedding_dim, labelmap, normalize, K=None):
         super(Embedder, self).__init__()
         self.labelmap = labelmap
         self.embedding_dim = embedding_dim
         self.normalize = normalize
+        self.K = K
         if self.normalize == 'max_norm':
             self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim, max_norm=1.0)
         else:
@@ -138,7 +140,17 @@ class Embedder(nn.Module):
         if self.normalize == 'unit_norm':
             return torch.abs(F.normalize(embeds, p=2, dim=1))
         else:
-            return torch.abs(embeds)
+            if self.K:
+                return self.soft_clip(embeds)
+            else:
+                return embeds
+
+    def soft_clip(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        direction = F.normalize(x, dim=1)
+        norm = torch.norm(x, dim=1, keepdim=True)
+        return (direction * (norm + self.K)).view(original_shape)
 
 
 class EmbeddingMetrics:
@@ -194,7 +206,7 @@ class OrderEmbedding(CIFAR10):
                  neg_to_pos_ratio, alpha, has_fixed_alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[],
                  experiment_dir='../exp/',
                  n_epochs=10, eval_interval=2, feature_extracting=True, use_pretrained=True, load_wt=False,
-                 model_name=None, optimizer_method='adam', use_grayscale=False):
+                 model_name=None, optimizer_method='adam', use_grayscale=False, lr_decay=1.0):
         torch.manual_seed(0)
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained, load_wt,
@@ -218,7 +230,10 @@ class OrderEmbedding(CIFAR10):
         self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
         self.normalize = normalize
 
-        self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize)
+        if isinstance(criterion, EucConesLoss):
+            self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize, K=self.criterion.K)
+        else:
+            self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize)
         self.model = nn.DataParallel(self.model)
         self.labelmap = labelmap
 
@@ -236,6 +251,8 @@ class OrderEmbedding(CIFAR10):
 
         # nx.draw_networkx(self.G, arrows=True)
         # plt.show()
+
+        self.lr_decay = lr_decay
 
 
     def prepare_model(self):
@@ -354,6 +371,10 @@ class OrderEmbedding(CIFAR10):
 
             scheduler.step()
 
+            self.lr *= self.lr_decay
+            for param_group in optimizer.param_groups:
+                param_group['lr'] *= self.lr_decay
+
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
         print('Best val score: {:4f}'.format(self.best_score))
@@ -418,7 +439,8 @@ class OrderEmbedding(CIFAR10):
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
-        print('{} Loss: {:.4f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, f1_score, accuracy))
+        print('{} Loss: {:.4f} lr: {:.5f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, self.lr,
+                                                                                      f1_score, accuracy))
 
         # deep copy the model
         if phase == 'val':
@@ -477,6 +499,124 @@ class OrderEmbeddingLoss(torch.nn.Module):
         y = y.contiguous().view(-1, original_shape[-1])
 
         return torch.sum(torch.clamp(x-y, min=0.0)**2, dim=1).view(original_shape[:-1])
+
+    def positive_pair(self, x, y):
+        return self.E_operator(x, y)
+
+    def negative_pair(self, x, y):
+        return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
+
+    def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
+        # print(status)
+        loss = 0.0
+        e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
+        predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
+        predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
+
+        for batch_id in range(len(inputs_from)):
+            predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
+            predicted_to_embeddings = model(inputs_to[batch_id].to(self.device))
+            predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
+            predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
+
+            if phase != 'train':
+                # loss for positive pairs
+                positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
+                e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
+                                                        predicted_to_embeddings[positive_indices])
+                loss += torch.sum(e_for_u_v_positive)
+                e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+
+                # loss for negative pairs
+                negative_indices = (status[batch_id] == 0).nonzero().squeeze(dim=1)
+                neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
+                                                                 predicted_to_embeddings[negative_indices])
+                loss += torch.sum(neg_term)
+                e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+            else:
+                # loss for positive pairs
+                positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
+                e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
+                                                        predicted_to_embeddings[positive_indices])
+                loss += torch.sum(e_for_u_v_positive)
+                e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+
+                # print('E+ {}'.format(e_for_u_v_positive))
+                # print('E+ {}'.format(e_for_u_v_positive.shape))
+                # print('Loss from +ve samples = {}'.format(torch.sum(e_for_u_v_positive)))
+
+                # loss for negative pairs
+
+                negative_from = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
+                negative_to = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
+
+                for sample_id in range(inputs_from[batch_id].shape[0]):
+                    sample_inputs_from, sample_inputs_to = inputs_from[batch_id][sample_id], inputs_to[batch_id][sample_id]
+                    for pass_ix in range(self.neg_to_pos_ratio):
+
+                        list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
+                        corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_from_ui)))
+                        negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
+                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = corrupted_ix
+
+                        list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to.item()))]
+                        corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_to_vi)))
+                        negative_from[
+                            2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
+                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
+
+                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), model(negative_to.to(self.device))
+                neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
+                loss += torch.sum(neg_term)
+                e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+                # print('E- {}'.format(e_for_u_v_negative))
+                # print('E- {}'.format(e_for_u_v_negative.shape))
+                # print('Loss from -ve samples = {}'.format(torch.sum(neg_term)))
+
+        return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
+
+
+class EucConesLoss(torch.nn.Module):
+    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0):
+        print('Using order-embedding loss!')
+        torch.nn.Module.__init__(self)
+        self.labelmap = labelmap
+        self.neg_to_pos_ratio = neg_to_pos_ratio
+        self.alpha = alpha
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.G_tc = None
+        self.reverse_G = None
+        self.nodes_in_graph = None
+        self.num_edges = None
+
+        self.epsilon = 1e-5
+        self.K = 3.0
+
+    def set_graph_tc(self, graph_tc):
+        self.G_tc = graph_tc
+        self.reverse_G = nx.reverse(self.G_tc)
+        self.nodes_in_graph = set(list(self.G_tc))
+        self.num_edges = self.G_tc.size()
+
+    def E_operator(self, x, y):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        y = y.view(-1, original_shape[-1])
+
+        x_norm = torch.norm(x, p=2, dim=1)
+        y_norm = torch.norm(y, p=2, dim=1)
+        x_y_dist = torch.norm(x - y, p=2, dim=1)
+
+        # theta_between_x_y = torch.acos(torch.clamp((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist),
+        #                                            min=-1+self.epsilon, max=1-self.epsilon))
+        theta_between_x_y = -torch.sum(F.normalize(x, dim=1) * F.normalize(y - x, dim=1), dim=1)
+        # in cos space
+        psi_x = -torch.sqrt(1 - self.K*self.K/x_norm**2)
+
+        return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
 
     def positive_pair(self, x, y):
         return self.E_operator(x, y)
@@ -765,8 +905,8 @@ def order_embedding_train_model(arguments):
     use_criterion = None
     if arguments.loss == 'order_emb_loss':
         use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
-    elif arguments.loss == 'euc_emb_loss':
-        use_criterion = SimpleEuclideanEmbLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
+    elif arguments.loss == 'euc_cones_loss':
+        use_criterion = EucConesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio)
     else:
         print("== Invalid --loss argument")
 
@@ -778,7 +918,7 @@ def order_embedding_train_model(arguments):
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
                         use_pretrained=True, load_wt=arguments.resume, model_name=arguments.model,
                         optimizer_method=arguments.optimizer_method, use_grayscale=arguments.use_grayscale,
-                        has_fixed_alpha=arguments.has_fixed_alpha)
+                        has_fixed_alpha=arguments.has_fixed_alpha, lr_decay=arguments.lr_decay)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()
@@ -821,6 +961,7 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
+    parser.add_argument("--lr_decay", help='Decay lr by a factor.', default=1.0, type=float)
     args = parser.parse_args()
 
     order_embedding_train_model(args)

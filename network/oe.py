@@ -1612,7 +1612,8 @@ class JointEmbeddings:
                 best_score = f1_score
                 best_threshold = possible_thresholds[t_id]
 
-        print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G), neg_G.size()))
+        print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
+                                                                                 self.check_graph_embedding_neg_graph.size()))
         return best_score, best_threshold, best_accuracy
 
 

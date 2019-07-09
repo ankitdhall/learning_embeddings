@@ -1084,6 +1084,8 @@ class JointEmbeddings:
         if not self.use_CNN:
             self.img_feat_net = nn.DataParallel(self.img_feat_net)
 
+        self.check_graph_embedding_neg_graph = None
+
     @staticmethod
     def make_dir_if_non_existent(directory):
         if not os.path.exists(directory):
@@ -1554,38 +1556,41 @@ class JointEmbeddings:
         return calculated_metrics
 
     def check_graph_embedding(self):
-        edges_in_G = self.graph_dict['graph'].edges()
-        n_nodes_in_G = len(self.graph_dict['graph'].nodes())
-        nodes_in_G = [i for i in range(n_nodes_in_G)]
+        if self.check_graph_embedding_neg_graph is None:
+            # make negative graph
+            full_G = nx.complete_graph(len(list(self.graph_dict['graph'].nodes())), create_using=nx.DiGraph())
+            full_G = nx.relabel_nodes(full_G, dict(enumerate(list(self.graph_dict['graph'].nodes()))), copy=True)
 
-        label_embeddings = torch.zeros((len(nodes_in_G), self.embedding_dim)).to(self.device)
-        for ix in range(0, len(nodes_in_G), 100):
-            label_embeddings[ix:min(ix + 100, len(nodes_in_G) - 1), :] = self.model(
-                torch.tensor(nodes_in_G[ix:min(ix + 100, len(nodes_in_G) - 1)], dtype=torch.long).to(
+            neg_G = copy.deepcopy(full_G)
+            neg_G.remove_edges_from(self.graph_dict['graph'].edges())
+            self.check_graph_embedding_neg_graph = neg_G
+
+            self.edges_in_G = self.graph_dict['graph'].edges()
+            self.n_nodes_in_G = len(self.graph_dict['graph'].nodes())
+            self.nodes_in_G = [i for i in range(self.n_nodes_in_G)]
+
+            self.pos_u_list, self.pos_v_list = [], []
+            for edge in self.edges_in_G:
+                self.pos_u_list.append(edge[0])
+                self.pos_v_list.append(edge[1])
+
+            self.neg_u_list, self.neg_v_list = [], []
+            for ix, edge in enumerate(self.check_graph_embedding_neg_graph.edges()):
+                self.neg_u_list.append(edge[0])
+                self.neg_v_list.append(edge[1])
+
+        label_embeddings = torch.zeros((len(self.nodes_in_G), self.embedding_dim)).to(self.device)
+        for ix in range(0, len(self.nodes_in_G), 100):
+            label_embeddings[ix:min(ix + 100, len(self.nodes_in_G) - 1), :] = self.model(
+                torch.tensor(self.nodes_in_G[ix:min(ix + 100, len(self.nodes_in_G) - 1)], dtype=torch.long).to(
                     self.device))
         label_embeddings = label_embeddings.detach().cpu()
 
-        positive_e = torch.zeros(len(edges_in_G))
-        u_list, v_list = [], []
-        for edge in edges_in_G:
-            u_list.append(edge[0])
-            v_list.append(edge[1])
+        positive_e = torch.zeros(len(self.edges_in_G))
+        positive_e = self.criterion.E_operator(label_embeddings[self.pos_u_list, :], label_embeddings[self.pos_v_list, :])
 
-        positive_e = self.criterion.E_operator(label_embeddings[u_list, :], label_embeddings[v_list, :])
-
-        # make negative graph
-        full_G = nx.complete_graph(len(list(self.graph_dict['graph'].nodes())), create_using=nx.DiGraph())
-        full_G = nx.relabel_nodes(full_G, dict(enumerate(list(self.graph_dict['graph'].nodes()))), copy=True)
-
-        neg_G = copy.deepcopy(full_G)
-        neg_G.remove_edges_from(self.graph_dict['graph'].edges())
-        negative_e = torch.zeros(neg_G.size())
-
-        u_list, v_list = [], []
-        for ix, edge in enumerate(neg_G.edges()):
-            u_list.append(edge[0])
-            v_list.append(edge[1])
-        negative_e = self.criterion.E_operator(label_embeddings[u_list, :], label_embeddings[v_list, :])
+        negative_e = torch.zeros(self.check_graph_embedding_neg_graph.size())
+        negative_e = self.criterion.E_operator(label_embeddings[self.neg_u_list, :], label_embeddings[self.neg_v_list, :])
 
         possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
                                                         negative_e.detach().cpu().numpy()), axis=None))
@@ -1607,7 +1612,7 @@ class JointEmbeddings:
                 best_score = f1_score
                 best_threshold = possible_thresholds[t_id]
 
-        print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(edges_in_G), neg_G.size()))
+        print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G), neg_G.size()))
         return best_score, best_threshold, best_accuracy
 
 

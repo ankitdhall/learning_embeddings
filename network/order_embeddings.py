@@ -710,13 +710,14 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
 
 class EucConesLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0):
+    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=False):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
         self.neg_to_pos_ratio = neg_to_pos_ratio
         self.alpha = alpha
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.pick_per_level = pick_per_level
 
         self.G_tc = None
         self.reverse_G = None
@@ -755,74 +756,97 @@ class EucConesLoss(torch.nn.Module):
     def negative_pair(self, x, y):
         return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
 
+    def set_negative_graph(self, n_G, mapping_from_node_to_ix, mapping_from_ix_to_node):
+        """
+        Get graph to pick negative edges from.
+        :param n_G: <np.array> Bool adjacency matrix; containing 1s for edges (u, v) which represent a negative edge
+        :param mapping_from_node_to_ix: <dict> mapping from integer indices to node names
+        :param mapping_from_ix_to_node: <dict> mapping from node names to integer indices
+        :return: NA
+        """
+        self.negative_G = n_G
+        self.mapping_from_node_to_ix = mapping_from_node_to_ix
+        self.mapping_from_ix_to_node = mapping_from_ix_to_node
+
+    def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if u is not None and v is None:
+            choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
+        elif u is None and v is not None:
+            choose_from = np.where(self.negative_G[:, self.mapping_from_node_to_ix[v]] == 1)[0]
+        else:
+            print('Error! Both (u, v) given or neither (u, v) given!')
+
+        if self.pick_per_level:
+            if level_id < len(self.labelmap.levels):
+                level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+                choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
+            else:
+                level_start, level_stop = self.labelmap.level_stop[-1], None
+                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+        else:
+            choose_from = choose_from.tolist()
+        corrupted_ix = random.choice(choose_from)
+        return corrupted_ix
+
     def forward(self, model, inputs_from, inputs_to, status, phase, neg_to_pos_ratio):
-        # print(status)
         loss = 0.0
         e_for_u_v_positive_all, e_for_u_v_negative_all = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
-        predicted_from_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_from)
-        predicted_to_embeddings_all = torch.tensor([]).to(self.device) # model(inputs_to)
+        predicted_from_embeddings_all = torch.tensor([]).to(self.device)
+        predicted_to_embeddings_all = torch.tensor([]).to(self.device)
 
-        for batch_id in range(len(inputs_from)):
-            predicted_from_embeddings = model(inputs_from[batch_id].to(self.device))
-            predicted_to_embeddings = model(inputs_to[batch_id].to(self.device))
-            predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
-            predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
+        predicted_from_embeddings = model(torch.tensor(inputs_from).to(self.device))
+        predicted_to_embeddings = model(torch.tensor(inputs_to).to(self.device))
+        predicted_from_embeddings_all = torch.cat((predicted_from_embeddings_all, predicted_from_embeddings))
+        predicted_to_embeddings_all = torch.cat((predicted_to_embeddings_all, predicted_to_embeddings))
 
-            if phase != 'train':
-                # loss for positive pairs
-                positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
-                e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
-                                                        predicted_to_embeddings[positive_indices])
-                loss += torch.sum(e_for_u_v_positive)
-                e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+        if phase != 'train':
+            # loss for positive pairs
+            positive_indices = (status == 1).nonzero().squeeze(dim=1)
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
+                                                    predicted_to_embeddings[positive_indices])
+            loss += torch.sum(e_for_u_v_positive)
+            e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
 
+            # loss for negative pairs
+            negative_indices = (status == 0).nonzero().squeeze(dim=1)
+            neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
+                                                             predicted_to_embeddings[negative_indices])
+            loss += torch.sum(neg_term)
+            e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+
+        else:
+            # loss for positive pairs
+            positive_indices = (status == 1).nonzero().squeeze(dim=1)
+            e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
+                                                    predicted_to_embeddings[positive_indices])
+            loss += torch.sum(e_for_u_v_positive)
+            e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+
+            # loss for negative pairs
+            negative_from = [None] * (2 * self.neg_to_pos_ratio * len(inputs_from))
+            negative_to = [None] * (2 * self.neg_to_pos_ratio * len(inputs_to))
+
+            for sample_id in range(len(inputs_from)):
                 # loss for negative pairs
-                negative_indices = (status[batch_id] == 0).nonzero().squeeze(dim=1)
-                neg_term, e_for_u_v_negative = self.negative_pair(predicted_from_embeddings[negative_indices],
-                                                                 predicted_to_embeddings[negative_indices])
-                loss += torch.sum(neg_term)
-                e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
+                sample_inputs_from, sample_inputs_to = inputs_from[sample_id], inputs_to[
+                    sample_id]
+                for pass_ix in range(self.neg_to_pos_ratio):
+                    corrupted_ix = self.sample_negative_edge(u=sample_inputs_from, v=None, level_id=pass_ix)
+                    negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
+                    negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = self.mapping_from_ix_to_node[
+                        corrupted_ix]
 
-            else:
-                # loss for positive pairs
-                positive_indices = (status[batch_id] == 1).nonzero().squeeze(dim=1)
-                e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
-                                                        predicted_to_embeddings[positive_indices])
-                loss += torch.sum(e_for_u_v_positive)
-                e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
+                    corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
+                    negative_from[
+                        2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = \
+                        self.mapping_from_ix_to_node[corrupted_ix]
+                    negative_to[
+                        2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                # print('E+ {}'.format(e_for_u_v_positive))
-                # print('E+ {}'.format(e_for_u_v_positive.shape))
-                # print('Loss from +ve samples = {}'.format(torch.sum(e_for_u_v_positive)))
-
-                # loss for negative pairs
-
-                negative_from = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
-                negative_to = torch.zeros((2 * self.neg_to_pos_ratio * inputs_from[batch_id].shape[0]), dtype=torch.long)
-
-                for sample_id in range(inputs_from[batch_id].shape[0]):
-                    sample_inputs_from, sample_inputs_to = inputs_from[batch_id][sample_id], inputs_to[batch_id][sample_id]
-                    for pass_ix in range(self.neg_to_pos_ratio):
-
-                        list_of_edges_from_ui = [v for u, v in list(self.G_tc.edges(sample_inputs_from.item()))]
-                        corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_from_ui)))
-                        negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = sample_inputs_from
-                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = corrupted_ix
-
-                        list_of_edges_to_vi = [v for u, v in list(self.reverse_G.edges(sample_inputs_to.item()))]
-                        corrupted_ix = random.choice(list(self.nodes_in_graph - set(list_of_edges_to_vi)))
-                        negative_from[
-                            2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = corrupted_ix
-                        negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
-
-                negative_from_embeddings, negative_to_embeddings = model(negative_from.to(self.device)), model(negative_to.to(self.device))
-                neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
-                loss += torch.sum(neg_term)
-                e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
-
-                # print('E- {}'.format(e_for_u_v_negative))
-                # print('E- {}'.format(e_for_u_v_negative.shape))
-                # print('Loss from -ve samples = {}'.format(torch.sum(neg_term)))
+            negative_from_embeddings, negative_to_embeddings = model(torch.tensor(negative_from).to(self.device)), model(torch.tensor(negative_to).to(self.device))
+            neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
+            loss += torch.sum(neg_term)
+            e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
 
         return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 

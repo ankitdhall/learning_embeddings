@@ -118,8 +118,7 @@ class ETHECHierarchy(torch.utils.data.Dataset):
                 level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
                 choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
             else:
-                level_start, level_stop = self.labelmap.level_stop[-1], None
-                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+                choose_from = choose_from.tolist()
         else:
             choose_from = choose_from.tolist()
         corrupted_ix = random.choice(choose_from)
@@ -175,27 +174,20 @@ class ETHECHierarchy(torch.utils.data.Dataset):
 
 
 class Embedder(nn.Module):
-    def __init__(self, embedding_dim, labelmap, normalize, K=None):
+    def __init__(self, embedding_dim, labelmap, K=None):
         super(Embedder, self).__init__()
         self.labelmap = labelmap
         self.embedding_dim = embedding_dim
-        self.normalize = normalize
         self.K = K
-        if self.normalize == 'max_norm':
-            self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim, max_norm=1.0)
-        else:
-            self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim)
+        self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim)
         print('Embeds {} objects'.format(self.labelmap.n_classes))
 
     def forward(self, inputs):
         embeds = self.embeddings(inputs)#.view((1, -1))
-        if self.normalize == 'unit_norm':
-            return torch.abs(F.normalize(embeds, p=2, dim=1))
+        if self.K:
+            return self.soft_clip(embeds)
         else:
-            if self.K:
-                return self.soft_clip(embeds)
-            else:
-                return embeds
+            return embeds
 
     def soft_clip(self, x):
         original_shape = x.shape
@@ -254,7 +246,7 @@ class EmbeddingMetrics:
 
 class OrderEmbedding:
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
-                 neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[],
+                 neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, lr_step=[], pick_per_level=False,
                  experiment_dir='../exp/', n_epochs=10, eval_interval=2, feature_extracting=True, load_wt=False,
                  optimizer_method='adam', lr_decay=1.0):
         torch.manual_seed(0)
@@ -262,6 +254,7 @@ class OrderEmbedding:
         self.epoch = 0
         self.exp_dir = experiment_dir
         self.load_wt = load_wt
+        self.pick_per_level = pick_per_level
 
         self.eval = evaluator
         self.criterion = criterion
@@ -295,12 +288,11 @@ class OrderEmbedding:
         self.embedding_dim = embedding_dim
         self.neg_to_pos_ratio = neg_to_pos_ratio
         self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
-        self.normalize = normalize
 
         if isinstance(criterion, EucConesLoss):
-            self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize, K=self.criterion.K)
+            self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, K=self.criterion.K)
         else:
-            self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize)
+            self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap)
         self.model = self.model.to(self.device)
         self.model = nn.DataParallel(self.model)
         self.labelmap = labelmap
@@ -412,11 +404,12 @@ class OrderEmbedding:
         print('Edges in transitive closure: {}'.format(self.G_tc.size()))
 
         # create dataloaders
-        train_set = ETHECHierarchy(self.G_train, self.G_tc, labelmap=self.labelmap, has_negative=False)
+        train_set = ETHECHierarchy(self.G_train, self.G_tc, labelmap=self.labelmap, has_negative=False,
+                                   pick_per_level=self.pick_per_level)
         val_set = ETHECHierarchy(self.G_val, self.G_tc, labelmap=self.labelmap, has_negative=True,
-                                 neg_to_pos_ratio=self.neg_to_pos_ratio)
+                                 neg_to_pos_ratio=self.neg_to_pos_ratio, pick_per_level=self.pick_per_level)
         test_set = ETHECHierarchy(self.G_test, self.G_tc, labelmap=self.labelmap, has_negative=True,
-                                  neg_to_pos_ratio=self.neg_to_pos_ratio)
+                                  neg_to_pos_ratio=self.neg_to_pos_ratio, pick_per_level=self.pick_per_level)
         trainloader = torch.utils.data.DataLoader(train_set,
                                                   batch_size=self.batch_size, collate_fn=my_collate,
                                                   num_workers=16,
@@ -461,11 +454,8 @@ class OrderEmbedding:
 
             self.pass_samples(phase='train')
             if self.epoch % self.eval_interval == 0:
-                if self.epoch % 10 == 0:
-                    self.eval.enable_plotting()
                 self.pass_samples(phase='val')
                 self.pass_samples(phase='test')
-                self.eval.disable_plotting()
 
             scheduler.step()
 
@@ -585,7 +575,7 @@ class OrderEmbedding:
 
 
 class OrderEmbeddingLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=False):
+    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=True):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
@@ -624,8 +614,7 @@ class OrderEmbeddingLoss(torch.nn.Module):
                 level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
                 choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
             else:
-                level_start, level_stop = self.labelmap.level_stop[-1], None
-                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+                choose_from = choose_from.tolist()
         else:
             choose_from = choose_from.tolist()
         corrupted_ix = random.choice(choose_from)
@@ -781,8 +770,7 @@ class EucConesLoss(torch.nn.Module):
                 level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
                 choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
             else:
-                level_start, level_stop = self.labelmap.level_stop[-1], None
-                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+                choose_from = choose_from.tolist()
         else:
             choose_from = choose_from.tolist()
         corrupted_ix = random.choice(choose_from)
@@ -1059,9 +1047,11 @@ def order_embedding_train_model(arguments):
 
     use_criterion = None
     if arguments.loss == 'order_emb_loss':
-        use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=arguments.alpha)
+        use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio,
+                                           alpha=arguments.alpha, pick_per_level=arguments.pick_per_level)
     elif arguments.loss == 'euc_cones_loss':
-        use_criterion = EucConesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=arguments.alpha)
+        use_criterion = EucConesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio,
+                                     alpha=arguments.alpha, pick_per_level=arguments.pick_per_level)
     else:
         print("== Invalid --loss argument")
 
@@ -1069,7 +1059,7 @@ def order_embedding_train_model(arguments):
                         batch_size=batch_size, evaluator=eval_type, experiment_name=arguments.experiment_name,
                         embedding_dim=arguments.embedding_dim, neg_to_pos_ratio=arguments.neg_to_pos_ratio, alpha=arguments.alpha,
                         proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges, lr_step=arguments.lr_step,
-                        experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, normalize=arguments.normalize,
+                        experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, pick_per_level=arguments.pick_per_level,
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
                         load_wt=arguments.resume, optimizer_method=arguments.optimizer_method, lr_decay=arguments.lr_decay)
     oe.prepare_model()
@@ -1086,7 +1076,6 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
     parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
-    parser.add_argument("--normalize", help='Constrain embeddings to lie on the unit ball [unit_norm] or within the unit ball [max_norm].', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
     parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
@@ -1109,6 +1098,7 @@ if __name__ == '__main__':
     parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',
                         action='store_true')
     parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+    parser.add_argument("--pick_per_level", help='Pick negatives from each level in the graph.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                         required=True)
     parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)

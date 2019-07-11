@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 from torchvision import datasets, models, transforms
+from tensorboardX import SummaryWriter
 
 import os
 from network.experiment import Experiment, WeightedResampler
@@ -200,16 +201,33 @@ class EmbeddingMetrics:
             return f1_score, self.threshold, accuracy
 
 
-class OrderEmbedding(CIFAR10):
+class OrderEmbedding:
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
                  neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, normalize, lr_step=[],
-                 experiment_dir='../exp/',
-                 n_epochs=10, eval_interval=2, feature_extracting=True, use_pretrained=True, load_wt=False,
-                 model_name=None, optimizer_method='adam', use_grayscale=False, lr_decay=1.0):
+                 experiment_dir='../exp/', n_epochs=10, eval_interval=2, feature_extracting=True, load_wt=False,
+                 optimizer_method='adam', lr_decay=1.0):
         torch.manual_seed(0)
-        CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
-                         experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained, load_wt,
-                         model_name, optimizer_method)
+
+        self.epoch = 0
+        self.exp_dir = experiment_dir
+        self.load_wt = load_wt
+
+        self.eval = evaluator
+        self.criterion = criterion
+        self.batch_size = batch_size
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print('Using device: {}'.format(self.device))
+        if torch.cuda.device_count() > 1:
+            print("== Using", torch.cuda.device_count(), "GPUs!")
+        self.n_epochs = n_epochs
+        self.eval_interval = eval_interval
+
+        self.log_dir = os.path.join(self.exp_dir, '{}').format(experiment_name)
+        self.path_to_save_model = os.path.join(self.log_dir, 'weights')
+        if not os.path.exists(self.path_to_save_model):
+            os.makedirs(self.path_to_save_model)
+
+        self.writer = SummaryWriter(log_dir=os.path.join(self.log_dir, 'tensorboard'))
 
         self.classes = labelmap.classes
         self.n_classes = labelmap.n_classes
@@ -223,8 +241,8 @@ class OrderEmbedding(CIFAR10):
         self.lr_step = lr_step
 
         self.optimal_threshold = 0
-        self.embedding_dim = embedding_dim # 10
-        self.neg_to_pos_ratio = neg_to_pos_ratio # 5
+        self.embedding_dim = embedding_dim
+        self.neg_to_pos_ratio = neg_to_pos_ratio
         self.proportion_of_nb_edges_in_train = proportion_of_nb_edges_in_train
         self.normalize = normalize
 
@@ -232,11 +250,12 @@ class OrderEmbedding(CIFAR10):
             self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize, K=self.criterion.K)
         else:
             self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize)
+        self.model = self.model.to(self.device)
         self.model = nn.DataParallel(self.model)
         self.labelmap = labelmap
 
         self.G, self.G_train, self.G_val, self.G_test = nx.DiGraph(), nx.DiGraph(), nx.DiGraph(), nx.DiGraph()
-        for index, data_item in enumerate(self.dataloaders['train']):
+        for index, data_item in enumerate(data_loaders['train']):
             inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
             for level_id in range(len(self.labelmap.levels)-1):
                 for sample_id in range(level_labels.shape[0]):
@@ -247,11 +266,7 @@ class OrderEmbedding(CIFAR10):
         self.criterion.set_graph_tc(self.G_tc)
         self.create_splits()
 
-        # nx.draw_networkx(self.G, arrows=True)
-        # plt.show()
-
         self.lr_decay = lr_decay
-
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -286,8 +301,6 @@ class OrderEmbedding(CIFAR10):
         edges_for_test_val = int(0.05*total_number_of_nb_edges)
         print('Has {} non-basic edges. {} for val and test.'.format(total_number_of_nb_edges, edges_for_test_val))
         non_basic_edges = self.G_tc.size()-self.G.size()
-
-
 
         # create val graph
         total_number_of_nb_edges = copy_of_G_tc.size()
@@ -341,6 +354,13 @@ class OrderEmbedding(CIFAR10):
         self.dataloaders = {'train': trainloader, 'val': valloader, 'test': testloader}
         self.graphs = {'train': self.G_train, 'val': self.G_val, 'test': self.G_test}
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
+
+    def train(self):
+        if self.optimizer_method == 'sgd':
+            self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
+        elif self.optimizer_method == 'adam':
+            self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
+        self.load_best_model()
 
     def run_model(self, optimizer):
         self.optimizer = optimizer
@@ -468,6 +488,20 @@ class OrderEmbedding(CIFAR10):
         self.epoch = checkpoint['epoch']
         self.optimal_threshold = checkpoint['optimal_threshold']
         print('Successfully loaded model epoch {} from {}'.format(self.epoch, self.path_to_save_model))
+
+    def find_existing_weights(self):
+        weights = sorted([filename for filename in os.listdir(self.path_to_save_model)])
+        if len(weights) < 2:
+            print('Could not find weights to load from, will train from scratch.')
+        else:
+            self.load_model(epoch_to_load=weights[-2].split('.')[0])
+
+    def load_best_model(self, only_load=False):
+        if only_load:
+            self.load_model(epoch_to_load='best_model')
+        else:
+            self.load_model(epoch_to_load='best_model')
+            self.pass_samples(phase='test', save_to_tensorboard=False)
 
 
 class OrderEmbeddingLoss(torch.nn.Module):
@@ -914,9 +948,7 @@ def order_embedding_train_model(arguments):
                         proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges, lr_step=arguments.lr_step,
                         experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, normalize=arguments.normalize,
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
-                        use_pretrained=True, load_wt=arguments.resume, model_name=arguments.model,
-                        optimizer_method=arguments.optimizer_method, use_grayscale=arguments.use_grayscale,
-                        lr_decay=arguments.lr_decay)
+                        load_wt=arguments.resume, optimizer_method=arguments.optimizer_method, lr_decay=arguments.lr_decay)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()

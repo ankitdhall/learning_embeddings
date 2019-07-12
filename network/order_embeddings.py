@@ -106,6 +106,8 @@ class ETHECHierarchy(torch.utils.data.Dataset):
         return len(self.status)
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if level_id is not None:
+            level_id = level_id % (len(self.labelmap.level_names)+1)
         if u is not None and v is None:
             choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
         elif u is None and v is not None:
@@ -311,6 +313,7 @@ class OrderEmbedding:
         self.criterion.set_negative_graph(self.G_train_neg, self.mapping_ix_to_node, self.mapping_node_to_ix)
 
         self.lr_decay = lr_decay
+        self.check_graph_embedding_neg_graph = None
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -426,7 +429,71 @@ class OrderEmbedding:
         self.graphs = {'train': self.G_train, 'val': self.G_val, 'test': self.G_test}
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
+    def check_graph_embedding(self):
+        if self.check_graph_embedding_neg_graph is None:
+            start_time = time.time()
+            # make negative graph
+            full_G = nx.complete_graph(len(list(self.G.nodes())), create_using=nx.DiGraph())
+            full_G = nx.relabel_nodes(full_G, dict(enumerate(list(self.G.nodes()))), copy=True)
 
+            neg_G = copy.deepcopy(full_G)
+            neg_G.remove_edges_from(self.G.edges())
+            self.check_graph_embedding_neg_graph = neg_G
+
+            self.edges_in_G = self.G.edges()
+            self.n_nodes_in_G = len(self.G.nodes())
+            self.nodes_in_G = [i for i in range(self.n_nodes_in_G)]
+
+            self.pos_u_list, self.pos_v_list = [], []
+            for edge in self.edges_in_G:
+                self.pos_u_list.append(edge[0])
+                self.pos_v_list.append(edge[1])
+
+            self.neg_u_list, self.neg_v_list = [], []
+            for ix, edge in enumerate(self.check_graph_embedding_neg_graph.edges()):
+                self.neg_u_list.append(edge[0])
+                self.neg_v_list.append(edge[1])
+            print('created negative graph in {}'.format(time.time()-start_time))
+
+        label_embeddings = torch.zeros((len(self.nodes_in_G), self.embedding_dim)).to(self.device)
+        for ix in range(0, len(self.nodes_in_G), 100):
+            label_embeddings[ix:min(ix + 100, len(self.nodes_in_G) - 1), :] = self.model(
+                torch.tensor(self.nodes_in_G[ix:min(ix + 100, len(self.nodes_in_G) - 1)], dtype=torch.long).to(
+                    self.device))
+        label_embeddings = label_embeddings.detach().cpu()
+
+        positive_e = torch.zeros(len(self.edges_in_G))
+        positive_e = self.criterion.E_operator(label_embeddings[self.pos_u_list, :], label_embeddings[self.pos_v_list, :])
+
+        negative_e = torch.zeros(self.check_graph_embedding_neg_graph.size())
+        negative_e = self.criterion.E_operator(label_embeddings[self.neg_u_list, :], label_embeddings[self.neg_v_list, :])
+
+        possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
+                                                        negative_e.detach().cpu().numpy()), axis=None))
+
+        best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
+
+        print('Can choose from {} thresholds'.format(possible_thresholds.shape[0]))
+        for t_id in tqdm(range(possible_thresholds.shape[0])):
+            correct_positives = torch.sum(positive_e <= possible_thresholds[t_id]).item()
+            correct_negatives = torch.sum(negative_e > possible_thresholds[t_id]).item()
+            accuracy = (correct_positives + correct_negatives) / (
+                        positive_e.shape[0] + negative_e.shape[0])
+            precision = correct_positives / (
+                        correct_positives + (negative_e.shape[0] - correct_negatives))
+            recall = correct_positives / positive_e.shape[0]
+            if precision + recall == 0:
+                f1_score = 0.0
+            else:
+                f1_score = (2 * precision * recall) / (precision + recall)
+            if f1_score > best_score:
+                best_accuracy = accuracy
+                best_score = f1_score
+                best_threshold = possible_thresholds[t_id]
+
+        print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
+                                                                                 self.check_graph_embedding_neg_graph.size()))
+        return best_score, best_threshold, best_accuracy
 
     def train(self):
         if self.optimizer_method == 'sgd':
@@ -519,6 +586,12 @@ class OrderEmbedding:
         if phase == 'val':
             self.optimal_threshold = threshold
 
+        if phase == 'test' and (self.epoch % 5 == 0 or not save_to_tensorboard):
+            reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = self.check_graph_embedding()
+            print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
+                                                                                                 reconstruction_accuracy,
+                                                                                                 reconstruction_threshold))
+
         epoch_loss = running_loss / self.dataset_length[phase]
 
         if save_to_tensorboard:
@@ -526,6 +599,11 @@ class OrderEmbedding:
             self.writer.add_scalar('{}_f1_score'.format(phase), f1_score, self.epoch)
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
+
+            if phase == 'test' and self.epoch % 5 == 0:
+                self.writer.add_scalar('reconstruction_thresh', reconstruction_threshold, self.epoch)
+                self.writer.add_scalar('reconstruction_f1', reconstruction_f1, self.epoch)
+                self.writer.add_scalar('reconstruction_accuracy', reconstruction_accuracy, self.epoch)
 
         print('{} Loss: {:.4f} lr: {:.5f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, self.lr,
                                                                                       f1_score, accuracy))
@@ -760,6 +838,8 @@ class EucConesLoss(torch.nn.Module):
         self.mapping_from_ix_to_node = mapping_from_ix_to_node
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if level_id is not None:
+            level_id = level_id % (len(self.labelmap.level_names)+1)
         if u is not None and v is None:
             choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
         elif u is None and v is not None:

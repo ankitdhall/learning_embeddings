@@ -24,9 +24,6 @@ from network.order_embeddings import OrderEmbedding, OrderEmbeddingLoss, EucCone
 from tensorboardX import SummaryWriter
 import torch.nn as nn
 
-def load_toy_graphs():
-    raise NotImplementedError
-
 
 class ToyGraph:
     def __init__(self, levels=4, branching_factor=3):
@@ -54,11 +51,6 @@ class ToyGraph:
                 self.level_start.append(self.level_stop[level_id - 1])
                 self.level_stop.append(self.level_stop[level_id - 1] + level_len)
 
-        print(self.n_levels)
-        print(self.levels)
-        for level_id, level_name in enumerate(self.level_names):
-            print(getattr(self, level_name))
-
         self.edges = set()
         for level_id, level_name in enumerate(self.level_names[:-1]):
             child_of_dict = getattr(self, 'child_of_' + level_name)
@@ -68,15 +60,13 @@ class ToyGraph:
                     v = getattr(self, self.level_names[level_id+1])[child_node] + self.level_start[level_id+1]
                     self.edges.add((u, v))
 
-        print(self.edges)
-
 
 class ToyOrderEmbedding(OrderEmbedding):
     def __init__(self, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
                  neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, lr_step=[], pick_per_level=False,
                  experiment_dir='../exp/', n_epochs=10, eval_interval=2, feature_extracting=True, load_wt=False,
-                 optimizer_method='adam', lr_decay=1.0):
-        torch.manual_seed(0)
+                 optimizer_method='adam', lr_decay=1.0, random_seed=0):
+        torch.manual_seed(random_seed)
 
         self.epoch = 0
         self.exp_dir = experiment_dir
@@ -148,9 +138,7 @@ def embed_toy_model(arguments):
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(arguments), indent=4)))
 
-    # initial_crop = 324
-    input_size = 224
-    labelmap = ToyGraph()
+    labelmap = ToyGraph(levels=arguments.tree_levels, branching_factor=arguments.tree_branching)
 
     batch_size = arguments.batch_size
     n_workers = arguments.n_workers
@@ -166,31 +154,31 @@ def embed_toy_model(arguments):
         print("== Invalid --loss argument")
 
     oe = ToyOrderEmbedding(labelmap=labelmap, criterion=use_criterion, lr=arguments.lr,
-                           batch_size=batch_size, evaluator=eval_type, experiment_name=arguments.experiment_name,
+                           batch_size=batch_size, experiment_name=arguments.experiment_name,
                            embedding_dim=arguments.embedding_dim, neg_to_pos_ratio=arguments.neg_to_pos_ratio,
                            alpha=arguments.alpha, pick_per_level=arguments.pick_per_level,
                            proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges, lr_step=arguments.lr_step,
                            experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs,
-                           eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
+                           eval_interval=arguments.eval_interval, feature_extracting=False, evaluator=None,
                            load_wt=arguments.resume, optimizer_method=arguments.optimizer_method,
-                           lr_decay=arguments.lr_decay)
+                           lr_decay=arguments.lr_decay, random_seed=arguments.random_seed)
     oe.prepare_model()
-    if arguments.set_mode == 'train':
-        oe.train()
-    elif arguments.set_mode == 'test':
-        oe.test()
+    f1, acc = oe.train()
+
+    title = 'L={}, b={} \n F1 score: {:.4f} Accuracy: {:.4f}'.format(str(arguments.tree_levels-1),
+                                                                     str(arguments.tree_branching), f1, acc)
+
+    from network.viz_toy import VizualizeGraphRepresentation
+    path_to_best = os.path.join(arguments.experiment_dir, arguments.experiment_name, 'weights', 'best_model.pth')
+    viz = VizualizeGraphRepresentation(weights_to_load=path_to_best, title_text=title, L=arguments.tree_levels, b=arguments.tree_branching)
 
 
 if __name__ == '__main__':
-    ToyGraph()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')
     parser.add_argument("--lr", help='Input learning rate.', type=float, default=0.001)
     parser.add_argument("--batch_size", help='Batch size.', type=int, default=8)
-    parser.add_argument("--evaluator", help='Evaluator type.', type=str, default='ML')
     parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
     parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
-    parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
     parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
     parser.add_argument("--n_workers", help='Number of workers.', type=int, default=4)
     parser.add_argument("--eval_interval", help='Evaluate model every N intervals.', type=int, default=1)
@@ -202,26 +190,19 @@ if __name__ == '__main__':
                         type=float, default=0.0)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
-    parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
-    parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
-                        type=str, default='inv')
-    parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')
     parser.add_argument("--loss",
                         help='Loss function to use. [order_emb_loss, euc_emb_loss]',
                         type=str, required=True)
-    parser.add_argument("--use_grayscale", help='Use grayscale images.', action='store_true')
-    parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.',
-                        action='store_true')
-    parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
-    parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
-                        required=True)
-    parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     parser.add_argument("--pick_per_level", help='Pick negatives from each level in the graph.', action='store_true')
     parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[],
                         type=int)
     parser.add_argument("--lr_decay", help='Decay lr by a factor.', default=1.0, type=float)
-    cmd = """--pick_per_level --n_epochs 500 --lr 0.1 --loss euc_cones_loss --embedding_dim 2 --neg_to_pos_ratio 5 --alpha 0.01 --experiment_name toy_graph --batch_size 10 --optimizer adam --model alexnet --experiment_dir ../exp/embed_toy/ --set_mode train --image_dir /media/ankit/DataPartition/IMAGO_build_test_resized --eval_interval 1 --merged"""
+    parser.add_argument("--tree_levels", help='tree levels', required=True, type=int)
+    parser.add_argument("--tree_branching", help='branching factor', required=True, type=int)
+    parser.add_argument("--random_seed", help='pytorch random seed', default=0, type=int)
+    # cmd = """--pick_per_level --tree_levels 6 --tree_branching 2 --n_epochs 5 --lr 0.1 --loss euc_cones_loss --embedding_dim 2 --neg_to_pos_ratio 5 --alpha 0.01 --experiment_name toy_graph --batch_size 10 --optimizer adam --experiment_dir ../exp/embed_toy/"""
 
-    args = parser.parse_args(cmd.split(' '))
+    # args = parser.parse_args(cmd.split(' '))
+    args = parser.parse_args()
 
     embed_toy_model(args)

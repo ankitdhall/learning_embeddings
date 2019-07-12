@@ -47,13 +47,15 @@ from network.embed_toy import ToyGraph
 
 class VizualizeGraphRepresentation:
     def __init__(self,
+                 L, b,
                  dim=2,
-                 weights_to_load='/home/ankit/Desktop/hypernym_viz/toy/t3/ec_ppl_0.01_0.01_best_model.pth'):
+                 weights_to_load='/home/ankit/Desktop/hypernym_viz/toy/t3/ec_ppl_0.01_0.01_best_model.pth',
+                 title_text=''):
         torch.manual_seed(0)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.labelmap = ToyGraph()
+        self.labelmap = ToyGraph(L, b)
 
         self.G = nx.DiGraph()
         for edge in self.labelmap.edges:
@@ -67,6 +69,8 @@ class VizualizeGraphRepresentation:
         self.model =nn.DataParallel(self.model)
 
         self.load_model(weights_to_load)
+        self.weights_to_load = weights_to_load
+        self.title_text = title_text
 
         # run vizualize
         self.vizualize()
@@ -126,7 +130,11 @@ class VizualizeGraphRepresentation:
 
         # for i, txt in enumerate(annotation):
         #     ax.annotate(txt, (embeddings_x[i], embeddings_y[i]))
+        fig.suptitle(self.title_text, family='sans-serif')
+        fig.set_size_inches(8, 7)
+        ax.axis('equal')
+        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.png'), dpi=200)
 
-        plt.show()
 
-obj = VizualizeGraphRepresentation()
+if __name__ == '__main__':
+    obj = VizualizeGraphRepresentation()

@@ -248,8 +248,8 @@ class OrderEmbedding:
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
                  neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, lr_step=[], pick_per_level=False,
                  experiment_dir='../exp/', n_epochs=10, eval_interval=2, feature_extracting=True, load_wt=False,
-                 optimizer_method='adam', lr_decay=1.0):
-        torch.manual_seed(0)
+                 optimizer_method='adam', lr_decay=1.0, random_seed=0):
+        torch.manual_seed(random_seed)
 
         self.epoch = 0
         self.exp_dir = experiment_dir
@@ -433,7 +433,7 @@ class OrderEmbedding:
             self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.9))
         elif self.optimizer_method == 'adam':
             self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
-        self.load_best_model()
+        return self.load_best_model()
 
     def run_model(self, optimizer):
         self.optimizer = optimizer
@@ -539,6 +539,8 @@ class OrderEmbedding:
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
                 self.save_model(epoch_loss, filename='best_model')
 
+        return f1_score, accuracy
+
     def save_model(self, loss, filename=None):
         torch.save({
             'epoch': self.epoch,
@@ -571,7 +573,7 @@ class OrderEmbedding:
             self.load_model(epoch_to_load='best_model')
         else:
             self.load_model(epoch_to_load='best_model')
-            self.pass_samples(phase='test', save_to_tensorboard=False)
+            return self.pass_samples(phase='test', save_to_tensorboard=False)
 
 
 class OrderEmbeddingLoss(torch.nn.Module):
@@ -1061,7 +1063,8 @@ def order_embedding_train_model(arguments):
                         proportion_of_nb_edges_in_train=arguments.prop_of_nb_edges, lr_step=arguments.lr_step,
                         experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, pick_per_level=arguments.pick_per_level,
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
-                        load_wt=arguments.resume, optimizer_method=arguments.optimizer_method, lr_decay=arguments.lr_decay)
+                        load_wt=arguments.resume, optimizer_method=arguments.optimizer_method, lr_decay=arguments.lr_decay,
+                        random_seed=arguments.random_seed)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         oe.train()
@@ -1104,6 +1107,7 @@ if __name__ == '__main__':
     parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
     parser.add_argument("--lr_decay", help='Decay lr by a factor.', default=1.0, type=float)
+    parser.add_argument("--random_seed", help='Random seed for torch.', default=0, type=int)
     args = parser.parse_args()
 
     order_embedding_train_model(args)

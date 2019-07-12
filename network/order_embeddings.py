@@ -586,7 +586,7 @@ class OrderEmbedding:
         if phase == 'val':
             self.optimal_threshold = threshold
 
-        if phase == 'test' and (self.epoch % 5 == 0 or not save_to_tensorboard):
+        if phase == 'test' and (self.epoch % 20 == 0 or not save_to_tensorboard):
             reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = self.check_graph_embedding()
             print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
                                                                                                  reconstruction_accuracy,
@@ -600,7 +600,7 @@ class OrderEmbedding:
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
-            if phase == 'test' and self.epoch % 5 == 0:
+            if phase == 'test' and self.epoch % 20 == 0:
                 self.writer.add_scalar('reconstruction_thresh', reconstruction_threshold, self.epoch)
                 self.writer.add_scalar('reconstruction_f1', reconstruction_f1, self.epoch)
                 self.writer.add_scalar('reconstruction_accuracy', reconstruction_accuracy, self.epoch)

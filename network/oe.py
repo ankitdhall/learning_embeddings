@@ -54,6 +54,7 @@ class Embedder(nn.Module):
         self.labelmap = labelmap
         self.embedding_dim = embedding_dim
         self.normalize = normalize
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.K = K
         if self.normalize == 'max_norm':
             self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim, max_norm=1.0)
@@ -369,7 +370,7 @@ def create_combined_graphs(dataloaders, labelmap):
             'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 
-class ETHECHierarchyWithImages(torch.utils.data.Dataset):
+class q(torch.utils.data.Dataset):
     """
     Creates a PyTorch dataset for order-embeddings with images.
     """
@@ -994,7 +995,7 @@ class JointEmbeddings:
                  load_wt=False,
                  model_name=None,
                  optimizer_method='adam',
-                 use_grayscale=False):
+                 use_grayscale=False, load_emb_from=None):
         torch.manual_seed(0)
 
         self.classes = labelmap.classes
@@ -1081,6 +1082,9 @@ class JointEmbeddings:
         self.prepare_model()
 
         self.model = nn.DataParallel(self.model)
+        if load_emb_from:
+            self.load_emb_model(load_emb_from)
+
         if not self.use_CNN:
             self.img_feat_net = nn.DataParallel(self.img_feat_net)
 
@@ -1331,6 +1335,15 @@ class JointEmbeddings:
         print('Successfully saved img feat net epoch {} to {} as {}_img_feat_net.pth'.format(self.epoch,
                                                                                              self.path_to_save_model,
                                                                                              filename if filename else self.epoch))
+
+    def load_emb_model(self, path_to_weights):
+        checkpoint = torch.load(path_to_weights,
+                                map_location=self.device)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model = self.model.to(self.device)
+        self.optimal_threshold = checkpoint['optimal_threshold']
+        print('Successfully loaded model from {} epoch {} with thresh {}'.format(path_to_weights, checkpoint['epoch'],
+                                                                                 self.optimal_threshold))
 
     def load_model(self, epoch_to_load):
         checkpoint = torch.load(os.path.join(self.path_to_save_model, '{}_model.pth'.format(epoch_to_load)),
@@ -1745,7 +1758,8 @@ def order_embedding_labels_with_images_train_model(arguments):
                             model_name=arguments.model,
                             optimizer_method=arguments.optimizer_method,
                             use_grayscale=False,
-                            lr_step=arguments.lr_step)
+                            lr_step=arguments.lr_step,
+                            load_emb_from=arguments.load_emb_from)
 
     if arguments.set_mode == 'train':
         oelwi.train()
@@ -1768,6 +1782,7 @@ if __name__ == '__main__':
                             action='store_true')
         parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
         parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
+        parser.add_argument("--load_emb_from", help='Path to embeddings .pth file', type=str, default=None)
         parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
         parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
         parser.add_argument("--n_workers", help='Number of workers.', type=int, default=8)

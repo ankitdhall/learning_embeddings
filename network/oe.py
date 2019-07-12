@@ -370,7 +370,7 @@ def create_combined_graphs(dataloaders, labelmap):
             'G_train_tc': G_train_tc}  # graph with labels and images; tc(graph with edge between labels; labels and images)
 
 
-class q(torch.utils.data.Dataset):
+class ETHECHierarchyWithImages(torch.utils.data.Dataset):
     """
     Creates a PyTorch dataset for order-embeddings with images.
     """
@@ -567,7 +567,10 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
                 choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
             else:
                 level_start, level_stop = self.labelmap.level_stop[-1], None
-                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+                if type(v) == str:
+                    choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
+                else:
+                    choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
         else:
             choose_from = choose_from.tolist()
         corrupted_ix = random.choice(choose_from)
@@ -820,7 +823,10 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
                 choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
             else:
                 level_start, level_stop = self.labelmap.level_stop[-1], None
-                choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+                if type(v) == str:
+                    choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
+                else:
+                    choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
         else:
             choose_from = choose_from.tolist()
         corrupted_ix = random.choice(choose_from)

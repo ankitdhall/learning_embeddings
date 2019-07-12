@@ -554,6 +554,8 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
         return S
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if level_id is not None:
+            level_id = level_id % (len(self.labelmap.level_names)+1)
         if u is not None and v is None:
             choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
         elif u is None and v is not None:
@@ -810,6 +812,8 @@ class OrderEmbeddingWithImagesHypernymLoss(torch.nn.Module):
         return S
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if level_id is not None:
+            level_id = level_id % (len(self.labelmap.level_names) + 1)
         if u is not None and v is None:
             choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
         elif u is None and v is not None:

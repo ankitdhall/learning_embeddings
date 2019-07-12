@@ -16,7 +16,8 @@ random.seed(0)
 import networkx as nx
 
 import matplotlib
-matplotlib.use('tkagg')
+matplotlib.use('pdf')
+#matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 import cv2
 

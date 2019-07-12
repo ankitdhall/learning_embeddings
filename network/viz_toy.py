@@ -38,7 +38,8 @@ random.seed(0)
 
 import networkx as nx
 import matplotlib
-matplotlib.use('tkagg')
+matplotlib.use('pdf')
+#matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 
 from network.order_embeddings import Embedder
@@ -133,6 +134,7 @@ class VizualizeGraphRepresentation:
         fig.suptitle(self.title_text, family='sans-serif')
         fig.set_size_inches(8, 7)
         ax.axis('equal')
+        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.pdf'), dpi=200)
         fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.png'), dpi=200)
 
 

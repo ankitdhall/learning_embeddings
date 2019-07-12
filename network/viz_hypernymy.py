@@ -152,8 +152,8 @@ class VizualizeGraphRepresentationWithImages:
     def __init__(self, debug=False,
                  dim=2,
                  loss_fn='oe',
-                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb/weights/best_model_model.pth',
-                 img_weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb/weights/best_model_img_feat_net.pth'):
+                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb_lr_0.01/weights/best_model_model.pth',
+                 img_weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb_lr_0.01/weights/best_model_img_feat_net.pth'):
         torch.manual_seed(0)
         self.load_split = 'train'
 
@@ -305,7 +305,8 @@ class VizualizeGraphRepresentationWithImages:
             emb = self.img_to_emb[key]
             ax.scatter(emb[0], emb[1], c=level_color, alpha=0.3)
 
-            from_ix = list(self.graph_dict['G_{}'.format(self.load_split)].in_edges(key))[0][0]
+            from_ix = max([u for u, v in list(self.graph_dict['G_{}'.format(self.load_split)].in_edges(key))])
+
             if from_ix in embeddings_x:
                 plt.plot([embeddings_x[from_ix], emb[0]],
                          [embeddings_y[from_ix], emb[1]],

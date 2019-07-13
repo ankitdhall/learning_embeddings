@@ -9,7 +9,7 @@ from torchvision import datasets, models, transforms
 import os
 from network.experiment import Experiment
 from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss
+from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss
 from network.finetuner import CIFAR10
 
 from PIL import Image
@@ -141,7 +141,10 @@ def train_FMNIST(arguments):
     if arguments.loss == 'multi_label':
         use_criterion = MultiLabelSMLoss(weight=weight)
     elif arguments.loss == 'multi_level':
-        use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight)
+        use_criterion = MultiLevelCELoss(labelmap=labelmap, weight=weight, level_weights=arguments.level_weights)
+        eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
+    elif arguments.loss == 'last_level':
+        use_criterion = LastLevelCELoss(labelmap=labelmap, weight=weight, level_weights=arguments.level_weights)
         eval_type = MultiLevelEvaluation(os.path.join(arguments.experiment_dir, arguments.experiment_name), labelmap)
 
     FMNIST_trainer = FMNIST(data_loaders=data_loaders, labelmap=labelmap,
@@ -166,13 +169,15 @@ def train_FMNIST(arguments):
 
 class labelmap_FMNIST:
     def __init__(self):
-        self.classes = ('T-shirt_top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot',
-                        'tops', 'bottoms', 'accessories', 'footwear')
-
-        self.family = {'tops': 10, 'bottoms': 11, 'accessories': 12, 'footwear': 13}
+        self.classes_to_ix = {'tops': 0, 'bottoms': 1, 'accessories': 2, 'footwear': 3,
+                              'T-shirt_top': 4, 'Trouser': 5, 'Pullover': 6, 'Dress': 7, 'Coat': 8, 'Sandal': 9,
+                              'Shirt': 10, 'Sneaker': 11, 'Bag': 12, 'Ankle boot': 13}
+        self.ix_to_classes = {self.classes_to_ix[k]: k for k in self.classes_to_ix}
+        self.classes = [k for k in self.classes_to_ix]
+        self.family = {'tops': 0, 'bottoms': 1, 'accessories': 2, 'footwear': 3}
         self.n_classes = 14
-        self.levels = [10, 4]
-        self.level_names = ['classes', 'family']
+        self.levels = [4, 10]
+        self.level_names = ['family', 'classes']
         self.map = {
             'T-shirt_top': ['tops'],
             'Trouser': ['bottoms'],
@@ -185,10 +190,12 @@ class labelmap_FMNIST:
             'Bag': ['accessories'],
             'Ankle boot': ['footwear']
         }
+        self.child_of_family_ix = {0: [0, 2, 3, 4, 6], 1: [1], 2: [8], 3: [5, 7, 9]}
 
     def get_labels(self, class_index):
+        class_index += 4
         family = self.map[self.classes[class_index]][0]
-        return [class_index, self.family[family]]
+        return [self.family[family], class_index]
 
     def labels_one_hot(self, class_index):
         indices = self.get_labels(class_index)
@@ -270,6 +277,7 @@ if __name__ == '__main__':
     parser.add_argument("--class_weights", help='Re-weigh the loss function based on inverse class freq.', action='store_true')
     parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str, required=True)
     parser.add_argument("--loss", help='Loss function to use.', type=str, required=True)
+    parser.add_argument("--level_weights", help='List of weights for each level', nargs=2, default=None, type=float)
     args = parser.parse_args()
 
     train_FMNIST(args)

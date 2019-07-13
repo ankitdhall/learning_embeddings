@@ -49,28 +49,17 @@ from network.inference import Inference
 
 class VizualizeGraphRepresentation:
     def __init__(self, debug=False,
-                 dim=2,
+                 dim=2, loss_fn='ec', title_text=None,
                  # weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/ec_debug/d10/oe10d_debug/weights/best_model.pth'):
-                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb/weights/best_model_model.pth'):
+                 weights_to_load='/home/ankit/Desktop/hypernym_viz/d2bs10/ec_n_10_lr_0.1/weights/best_model.pth'):
         torch.manual_seed(0)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.title_text = title_text
 
         labelmap = ETHECLabelMapMerged()
         if debug:
             labelmap = ETHECLabelMapMergedSmall()
-
-        # dataloaders = create_imageless_dataloaders(debug=debug)
-
-        # G = nx.DiGraph()
-        # for index, data_item in enumerate(dataloaders['train']):
-        #     inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
-        #     for level_id in range(len(labelmap.levels)-1):
-        #         for sample_id in range(level_labels.shape[0]):
-        #             G.add_edge(level_labels[sample_id, level_id].item()+labelmap.level_start[level_id],
-        #                        level_labels[sample_id, level_id+1].item()+labelmap.level_start[level_id+1])
-
-        if debug:
             path_to_folder = '../database/ETHEC/ETHECSmall_embeddings/graphs'
         else:
             path_to_folder = '../database/ETHEC/ETHEC_embeddings/graphs'
@@ -81,26 +70,27 @@ class VizualizeGraphRepresentation:
         self.G_tc = nx.transitive_closure(self.G)
         self.labelmap = labelmap
 
-        if 'ec' in weights_to_load:
+        if loss_fn == 'ec':
             self.model = Embedder(embedding_dim=dim, labelmap=labelmap, normalize=False, K=3.0)
-        else:
+        elif loss_fn == 'oe':
             self.model = Embedder(embedding_dim=dim, labelmap=labelmap, normalize=False)#, K=3.0)
         self.model =nn.DataParallel(self.model)
 
-        self.load_model(weights_to_load)
+        self.weights_to_load = weights_to_load
+        self.load_model()
 
         # run vizualize
         self.vizualize()
 
-    def load_model(self, weights_to_load):
-        checkpoint = torch.load(weights_to_load,
+    def load_model(self):
+        checkpoint = torch.load(self.weights_to_load,
                                 map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model = self.model.to(self.device)
         self.epoch = checkpoint['epoch']
         self.optimal_threshold = checkpoint['optimal_threshold']
         print('Using optimal threshold = {}'.format(self.optimal_threshold))
-        print('Successfully loaded model and img_feat_net epoch {} from {}'.format(self.epoch, weights_to_load))
+        print('Successfully loaded model and img_feat_net epoch {} from {}'.format(self.epoch, self.weights_to_load))
 
     def vizualize(self):
         phase = 'test'
@@ -130,7 +120,10 @@ class VizualizeGraphRepresentation:
 
                 connected_to[emb_id] = [v for u, v in list(self.G.edges(emb_id))]
 
-                ax.scatter(emb[0], emb[1], c=level_color, alpha=1)
+                if level_id == 3:
+                    ax.scatter(emb[0], emb[1], c=level_color, alpha=0.5, linewidth='0')
+                else:
+                    ax.scatter(emb[0], emb[1], c=level_color, alpha=1)
                 # ax.annotate(annotation[emb_id], (emb[0], emb[1]))
 
         # fig, ax = plt.subplots()
@@ -145,7 +138,12 @@ class VizualizeGraphRepresentation:
         # for i, txt in enumerate(annotation):
         #     ax.annotate(txt, (embeddings_x[i], embeddings_y[i]))
 
-        plt.show()
+        if self.title_text:
+            fig.suptitle(self.title_text, family='sans-serif')
+        fig.set_size_inches(8, 7)
+        ax.axis('equal')
+        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.pdf'), dpi=200)
+        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.png'), dpi=200)
 
 
 class VizualizeGraphRepresentationWithImages:
@@ -315,5 +313,5 @@ class VizualizeGraphRepresentationWithImages:
 
         plt.show()
 
-# obj = VizualizeGraphRepresentation(debug=True)
-obj = VizualizeGraphRepresentationWithImages(debug=True)
+obj = VizualizeGraphRepresentation(debug=False)
+# obj = VizualizeGraphRepresentationWithImages(debug=True)

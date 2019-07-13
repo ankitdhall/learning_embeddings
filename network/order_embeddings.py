@@ -541,6 +541,7 @@ class OrderEmbedding:
         return self.model
 
     def pass_samples(self, phase, save_to_tensorboard=True):
+        reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = -1, -1, -1
         if phase == 'train':
             self.model.train()
         else:
@@ -617,7 +618,7 @@ class OrderEmbedding:
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
                 self.save_model(epoch_loss, filename='best_model')
 
-        return f1_score, accuracy
+        return reconstruction_f1, accuracy
 
     def save_model(self, loss, filename=None):
         torch.save({
@@ -1147,7 +1148,13 @@ def order_embedding_train_model(arguments):
                         random_seed=arguments.random_seed)
     oe.prepare_model()
     if arguments.set_mode == 'train':
-        oe.train()
+        reconstr_f1, acc = oe.train()
+        title = 'Reconstruction F1 score: {:.4f} Accuracy: {:.4f}'.format(reconstr_f1, acc)
+
+        from network.viz_hypernymy import VizualizeGraphRepresentation
+        path_to_best = os.path.join(arguments.experiment_dir, arguments.experiment_name, 'weights', 'best_model.pth')
+        viz = VizualizeGraphRepresentation(weights_to_load=path_to_best, title_text=title, debug=arguments.debug,
+                                           loss_fn='ec' if arguments.loss == 'order_emb_loss' else 'oe')
     elif arguments.set_mode == 'test':
         oe.test()
 

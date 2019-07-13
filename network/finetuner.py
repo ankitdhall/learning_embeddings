@@ -21,6 +21,7 @@ import copy
 import argparse
 import json
 import git
+from tqdm import tqdm
 
 print("PyTorch Version: ", torch.__version__)
 print("Torchvision Version: ", torchvision.__version__)
@@ -187,7 +188,7 @@ class CIFAR10(Experiment):
         correct_labels = np.zeros((self.dataset_length[phase], self.n_classes))
 
         # Iterate over data.
-        for index, data_item in enumerate(self.dataloaders[phase]):
+        for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
             inputs, labels, level_labels = data_item['image'], data_item['labels'], data_item['level_labels']
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)

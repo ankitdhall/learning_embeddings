@@ -132,6 +132,8 @@ class ETHEC2D(CIFAR10):
                 annotation[emb_id] = '{}'.format(getattr(self.labelmap,
                                                          '{}_ix_to_str'.format(self.labelmap.level_names[level_id]))[label_ix]
                                                  )
+                color_list[emb_id] = colors[level_id]
+
                 if level_id < len(self.labelmap.levels)-1:
                     connected_to[emb_id] = getattr(self.labelmap, 'child_of_{}_ix'.format(self.labelmap.level_names[level_id]))[label_ix]
                     connected_to[emb_id] = [i+self.labelmap.level_start[level_id+1] for i in connected_to[emb_id]]
@@ -144,6 +146,9 @@ class ETHEC2D(CIFAR10):
                 if to_node in embeddings_x:
                     plt.plot([embeddings_x[from_node], embeddings_x[to_node]], [embeddings_y[from_node], embeddings_y[to_node]],
                              'b-', alpha=0.2)
+
+        emb_info = {'x': embeddings_x, 'y': embeddings_y, 'annotation': annotation, 'color': color_list, 'connected_to': connected_to}
+        np.save(os.path.join(self.log_dir, 'embedding_info.npy'), emb_info)
 
         # if self.title_text:
         #     fig.suptitle(self.title_text, family='sans-serif')

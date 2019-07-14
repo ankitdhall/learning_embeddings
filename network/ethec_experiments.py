@@ -137,7 +137,7 @@ class ETHEC2D(CIFAR10):
                     connected_to[emb_id] = [i+self.labelmap.level_start[level_id+1] for i in connected_to[emb_id]]
 
                 ax.scatter(weights[label_ix][0], weights[label_ix][1], c=colors[level_id], alpha=1)
-                ax.annotate(annotation[emb_id], (weights[label_ix][0], weights[label_ix][1]))
+                # ax.annotate(annotation[emb_id], (weights[label_ix][0], weights[label_ix][1]))
 
         for from_node in connected_to:
             for to_node in connected_to[from_node]:

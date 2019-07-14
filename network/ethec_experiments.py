@@ -110,7 +110,7 @@ class ETHEC2D(CIFAR10):
 
     def plot_label_representations(self):
         import matplotlib
-        matplotlib.use('tkagg')
+        matplotlib.use('pdf')
         import matplotlib.pyplot as plt
 
         self.load_model(epoch_to_load='best_model')
@@ -123,7 +123,7 @@ class ETHEC2D(CIFAR10):
 
         for level_id in range(len(self.labelmap.levels)):
             level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
-            weights = self.model.module.final_linears[level_id].weight.data.numpy()
+            weights = self.model.module.final_linears[level_id].weight.data.cpu().numpy()
             for label_ix in range(weights.shape[0]):
                 emb_id = label_ix + level_start
 

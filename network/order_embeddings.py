@@ -315,6 +315,8 @@ class OrderEmbedding:
         self.lr_decay = lr_decay
         self.check_graph_embedding_neg_graph = None
 
+        self.check_reconstr_every = 20
+
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
 
@@ -587,7 +589,7 @@ class OrderEmbedding:
         if phase == 'val':
             self.optimal_threshold = threshold
 
-        if phase == 'test' and (self.epoch % 20 == 0 or not save_to_tensorboard):
+        if phase == 'test' and (self.epoch % self.check_reconstr_every == 0 or not save_to_tensorboard):
             reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = self.check_graph_embedding()
             print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
                                                                                                  reconstruction_accuracy,
@@ -601,7 +603,7 @@ class OrderEmbedding:
             self.writer.add_scalar('{}_accuracy'.format(phase), accuracy, self.epoch)
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
-            if phase == 'test' and self.epoch % 20 == 0:
+            if phase == 'test' and self.epoch % self.check_reconstr_every == 0:
                 self.writer.add_scalar('reconstruction_thresh', reconstruction_threshold, self.epoch)
                 self.writer.add_scalar('reconstruction_f1', reconstruction_f1, self.epoch)
                 self.writer.add_scalar('reconstruction_accuracy', reconstruction_accuracy, self.epoch)
@@ -683,6 +685,8 @@ class OrderEmbeddingLoss(torch.nn.Module):
         self.mapping_from_ix_to_node = mapping_from_ix_to_node
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
+        if level_id is not None:
+            level_id = level_id % len(self.labelmap.level_names)
         if u is not None and v is None:
             choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
         elif u is None and v is not None:
@@ -840,7 +844,7 @@ class EucConesLoss(torch.nn.Module):
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
         if level_id is not None:
-            level_id = level_id % (len(self.labelmap.level_names)+1)
+            level_id = level_id % len(self.labelmap.level_names)
         if u is not None and v is None:
             choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
         elif u is None and v is not None:

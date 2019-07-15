@@ -126,6 +126,9 @@ class ToyOrderEmbedding(OrderEmbedding):
 
         self.lr_decay = lr_decay
 
+        self.check_graph_embedding_neg_graph = None
+        self.check_reconstr_every = 1
+
 
 def embed_toy_model(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):

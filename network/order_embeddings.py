@@ -316,6 +316,7 @@ class OrderEmbedding:
         self.check_graph_embedding_neg_graph = None
 
         self.check_reconstr_every = 20
+        self.save_model_every = 10
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -431,6 +432,8 @@ class OrderEmbedding:
         self.graphs = {'train': self.G_train, 'val': self.G_val, 'test': self.G_test}
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
+        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
+
     def check_graph_embedding(self):
         if self.check_graph_embedding_neg_graph is None:
             start_time = time.time()
@@ -473,7 +476,7 @@ class OrderEmbedding:
         possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
                                                         negative_e.detach().cpu().numpy()), axis=None))
 
-        best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
+        best_score, best_threshold, best_accuracy, best_precision, best_recall = 0.0, 0.0, 0.0, 0.0, 0.0
 
         print('Can choose from {} thresholds'.format(possible_thresholds.shape[0]))
         for t_id in tqdm(range(possible_thresholds.shape[0])):
@@ -492,10 +495,12 @@ class OrderEmbedding:
                 best_accuracy = accuracy
                 best_score = f1_score
                 best_threshold = possible_thresholds[t_id]
+                best_precision = precision
+                best_recall = recall
 
         print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
                                                                                  self.check_graph_embedding_neg_graph.size()))
-        return best_score, best_threshold, best_accuracy
+        return best_score, best_threshold, best_accuracy, best_precision, best_recall
 
     def train(self):
         if self.optimizer_method == 'sgd':
@@ -590,10 +595,13 @@ class OrderEmbedding:
             self.optimal_threshold = threshold
 
         if phase == 'test' and (self.epoch % self.check_reconstr_every == 0 or not save_to_tensorboard):
-            reconstruction_f1, reconstruction_threshold, reconstruction_accuracy = self.check_graph_embedding()
-            print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
+            reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall = self.check_graph_embedding()
+            print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
                                                                                                  reconstruction_accuracy,
+                                                                                                 reconstruction_prec,
+                                                                                                 reconstruction_recall,
                                                                                                  reconstruction_threshold))
+            self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall
 
         epoch_loss = running_loss / self.dataset_length[phase]
 
@@ -604,17 +612,20 @@ class OrderEmbedding:
             self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
 
             if phase == 'test' and self.epoch % self.check_reconstr_every == 0:
-                self.writer.add_scalar('reconstruction_thresh', reconstruction_threshold, self.epoch)
-                self.writer.add_scalar('reconstruction_f1', reconstruction_f1, self.epoch)
-                self.writer.add_scalar('reconstruction_accuracy', reconstruction_accuracy, self.epoch)
+                self.writer.add_scalar('reconstruction_thresh', self.reconstruction_threshold, self.epoch)
+                self.writer.add_scalar('reconstruction_f1', self.reconstruction_f1, self.epoch)
+                self.writer.add_scalar('reconstruction_precision', self.reconstruction_prec, self.epoch)
+                self.writer.add_scalar('reconstruction_recall', self.reconstruction_recall, self.epoch)
+                self.writer.add_scalar('reconstruction_accuracy', self.reconstruction_accuracy, self.epoch)
 
         print('{} Loss: {:.4f} lr: {:.5f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, self.lr,
                                                                                       f1_score, accuracy))
 
         # deep copy the model
-        if phase == 'val':
-            if self.epoch % 10 == 0:
+        if phase == 'test':
+            if self.epoch % self.save_model_every == 0:
                 self.save_model(epoch_loss)
+        if phase == 'val':
             if f1_score >= self.best_score:
                 self.best_score = f1_score
                 self.best_model_wts = copy.deepcopy(self.model.state_dict())
@@ -628,7 +639,10 @@ class OrderEmbedding:
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss': loss,
-            'optimal_threshold': self.optimal_threshold
+            'optimal_threshold': self.optimal_threshold,
+            'reconstruction_scores': {'f1': self.reconstruction_f1, 'precision': self.reconstruction_prec,
+                                      'recall': self.reconstruction_recall, 'accuracy': self.reconstruction_accuracy,
+                                      'threshold': self.reconstruction_threshold}
         }, os.path.join(self.path_to_save_model, '{}.pth'.format(filename if filename else self.epoch)))
         print('Successfully saved model epoch {} to {} as {}.pth'.format(self.epoch, self.path_to_save_model,
                                                                          filename if filename else self.epoch))
@@ -640,6 +654,10 @@ class OrderEmbedding:
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epoch = checkpoint['epoch']
         self.optimal_threshold = checkpoint['optimal_threshold']
+        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = \
+        checkpoint['reconstruction_scores']['f1'], checkpoint['reconstruction_scores']['threshold'], \
+        checkpoint['reconstruction_scores']['accuracy'], checkpoint['reconstruction_scores']['precision'], \
+        checkpoint['reconstruction_scores']['recall']
         print('Successfully loaded model epoch {} from {}'.format(self.epoch, self.path_to_save_model))
 
     def find_existing_weights(self):

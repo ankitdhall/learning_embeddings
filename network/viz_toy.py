@@ -49,7 +49,7 @@ from network.embed_toy import ToyGraph
 class VizualizeGraphRepresentation:
     def __init__(self,
                  L, b,
-                 dim=2,
+                 dim=2, loss_fn='oe',
                  weights_to_load='/home/ankit/Desktop/hypernym_viz/toy/t3/ec_ppl_0.01_0.01_best_model.pth',
                  title_text=''):
         torch.manual_seed(0)
@@ -63,7 +63,7 @@ class VizualizeGraphRepresentation:
             u, v = edge
             self.G.add_edge(u, v)
 
-        if 'ec' in weights_to_load:
+        if loss_fn == 'ec':
             self.model = Embedder(embedding_dim=dim, labelmap=self.labelmap, K=3.0)
         else:
             self.model = Embedder(embedding_dim=dim, labelmap=self.labelmap)
@@ -154,14 +154,15 @@ class VizualizeGraphRepresentation:
         return ax
 
 def create_images():
-    path_to_weights = '/home/ankit/learning_embeddings/exp/embed_toy/toy_graph/weights'
+    path_to_weights = '/cluster/scratch/adhall/exp/toy_trees/oe/l_5_b_3/weights'
+    loss_fn = 'oe'
     files = os.listdir(path_to_weights)
     files.sort()
     for filename in files:
         if 'best_model' in filename:
             continue
-        viz = VizualizeGraphRepresentation(weights_to_load=os.path.join(path_to_weights, filename), title_text='', L=4,
-                                           b=3)
+        viz = VizualizeGraphRepresentation(weights_to_load=os.path.join(path_to_weights, filename), title_text='', L=5,
+                                           b=3, loss_fn=loss_fn)
         viz.vizualize(save_to_disk=True, filename='{0:03d}'.format(int(filename[:-4])))
 
 if __name__ == '__main__':

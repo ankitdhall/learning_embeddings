@@ -70,8 +70,15 @@ class VizualizeGraphRepresentation:
         self.model =nn.DataParallel(self.model)
 
         self.load_model(weights_to_load)
-        self.weights_to_load = weights_to_load
+
         self.title_text = title_text
+        if self.title_text == '':
+            self.title_text = 'L={}, b={} | F1 score: {:.4f} Accuracy: {:.4f} \n Precision: {:.4f} Recall: {:.4f} | Threshold: {:.4f}'.format(
+                str(L-1), str(b), self.reconstruction_f1, self.reconstruction_accuracy, self.reconstruction_prec,
+                self.reconstruction_recall, self.reconstruction_threshold)
+
+        self.weights_to_load = weights_to_load
+
 
         # run vizualize
         self.vizualize()
@@ -83,10 +90,16 @@ class VizualizeGraphRepresentation:
         self.model = self.model.to(self.device)
         self.epoch = checkpoint['epoch']
         self.optimal_threshold = checkpoint['optimal_threshold']
+
+        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = \
+            checkpoint['reconstruction_scores']['f1'], checkpoint['reconstruction_scores']['threshold'], \
+            checkpoint['reconstruction_scores']['accuracy'], checkpoint['reconstruction_scores']['precision'], \
+            checkpoint['reconstruction_scores']['recall']
+
         print('Using optimal threshold = {}'.format(self.optimal_threshold))
         print('Successfully loaded model and img_feat_net epoch {} from {}'.format(self.epoch, weights_to_load))
 
-    def vizualize(self):
+    def vizualize(self, save_to_disk=True, filename='embedding'):
         phase = 'test'
         self.model.eval()
 
@@ -132,11 +145,26 @@ class VizualizeGraphRepresentation:
         # for i, txt in enumerate(annotation):
         #     ax.annotate(txt, (embeddings_x[i], embeddings_y[i]))
         fig.suptitle(self.title_text, family='sans-serif')
-        fig.set_size_inches(8, 7)
         ax.axis('equal')
-        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.pdf'), dpi=200)
-        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.png'), dpi=200)
+        if save_to_disk:
+            fig.set_size_inches(8, 7)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.pdf'.format(filename)), dpi=200)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.png'.format(filename)), dpi=200)
 
+        return ax
+
+def create_images():
+    path_to_weights = '/home/ankit/learning_embeddings/exp/embed_toy/toy_graph/weights'
+    files = os.listdir(path_to_weights)
+    files.sort()
+    for filename in files:
+        if 'best_model' in filename:
+            continue
+        viz = VizualizeGraphRepresentation(weights_to_load=os.path.join(path_to_weights, filename), title_text='', L=4,
+                                           b=3)
+        viz.vizualize(save_to_disk=True, filename='{0:03d}'.format(int(filename[:-4])))
 
 if __name__ == '__main__':
-    obj = VizualizeGraphRepresentation()
+    # obj = VizualizeGraphRepresentation()
+    create_images()
+

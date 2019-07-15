@@ -128,6 +128,7 @@ class ToyOrderEmbedding(OrderEmbedding):
 
         self.check_graph_embedding_neg_graph = None
         self.check_reconstr_every = 1
+        self.save_model_every = 5
 
 
 def embed_toy_model(arguments):
@@ -174,7 +175,7 @@ def embed_toy_model(arguments):
 
     from network.viz_toy import VizualizeGraphRepresentation
     path_to_best = os.path.join(arguments.experiment_dir, arguments.experiment_name, 'weights', 'best_model.pth')
-    viz = VizualizeGraphRepresentation(weights_to_load=path_to_best, title_text=title, L=arguments.tree_levels, b=arguments.tree_branching)
+    viz = VizualizeGraphRepresentation(weights_to_load=path_to_best, title_text='', L=arguments.tree_levels, b=arguments.tree_branching)
 
 
 if __name__ == '__main__':

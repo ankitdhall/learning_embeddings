@@ -315,7 +315,7 @@ class OrderEmbedding:
         self.lr_decay = lr_decay
         self.check_graph_embedding_neg_graph = None
 
-        self.check_reconstr_every = 20
+        self.check_reconstr_every = 100
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
 
@@ -1200,7 +1200,7 @@ if __name__ == '__main__':
     parser.add_argument("--embedding_dim", help='Dimensions of learnt embeddings.', type=int, default=10)
     parser.add_argument("--neg_to_pos_ratio", help='Number of negatives to sample for one positive.', type=int, default=5)
     parser.add_argument("--alpha", help='Margin alpha.', type=float, default=0.05)
-    parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.0)
+    parser.add_argument("--prop_of_nb_edges", help='Proportion of non-basic edges to be added to train set.', type=float, default=0.90)
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
     parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')

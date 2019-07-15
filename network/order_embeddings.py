@@ -317,6 +317,7 @@ class OrderEmbedding:
 
         self.check_reconstr_every = 20
         self.save_model_every = 10
+        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -431,8 +432,6 @@ class OrderEmbedding:
         self.dataloaders = {'train': trainloader, 'val': valloader, 'test': testloader}
         self.graphs = {'train': self.G_train, 'val': self.G_val, 'test': self.G_test}
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
-
-        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
 
     def check_graph_embedding(self):
         if self.check_graph_embedding_neg_graph is None:

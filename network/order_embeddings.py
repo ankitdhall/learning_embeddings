@@ -438,12 +438,15 @@ class OrderEmbedding:
         if self.check_graph_embedding_neg_graph is None:
             start_time = time.time()
             # make negative graph
-            full_G = nx.complete_graph(len(list(self.G.nodes())), create_using=nx.DiGraph())
-            full_G = nx.relabel_nodes(full_G, dict(enumerate(list(self.G.nodes()))), copy=True)
+            n_nodes = len(list(self.G.nodes()))
 
-            neg_G = copy.deepcopy(full_G)
-            neg_G.remove_edges_from(self.G.edges())
-            self.check_graph_embedding_neg_graph = neg_G
+            A = np.ones((n_nodes, n_nodes), dtype=np.bool)
+
+            for u, v in list(self.G.edges()):
+                # remove edges that are in G_train_tc
+                A[u, v] = 0
+            np.fill_diagonal(A, 0)
+            self.check_graph_embedding_neg_graph = A
 
             self.edges_in_G = self.G.edges()
             self.n_nodes_in_G = len(self.G.nodes())
@@ -455,10 +458,12 @@ class OrderEmbedding:
                 self.pos_v_list.append(edge[1])
 
             self.neg_u_list, self.neg_v_list = [], []
-            for ix, edge in enumerate(self.check_graph_embedding_neg_graph.edges()):
-                self.neg_u_list.append(edge[0])
-                self.neg_v_list.append(edge[1])
-            print('created negative graph in {}'.format(time.time()-start_time))
+            for i_ix in range(n_nodes):
+                for j_ix in range(n_nodes):
+                    if self.check_graph_embedding_neg_graph[i_ix, j_ix] == 1:
+                        self.neg_u_list.append(i_ix)
+                        self.neg_v_list.append(j_ix)
+            print('created negative graph in {}'.format(time.time() - start_time))
 
         label_embeddings = torch.zeros((len(self.nodes_in_G), self.embedding_dim)).to(self.device)
         for ix in range(0, len(self.nodes_in_G), 100):
@@ -470,7 +475,7 @@ class OrderEmbedding:
         positive_e = torch.zeros(len(self.edges_in_G))
         positive_e = self.criterion.E_operator(label_embeddings[self.pos_u_list, :], label_embeddings[self.pos_v_list, :])
 
-        negative_e = torch.zeros(self.check_graph_embedding_neg_graph.size())
+        negative_e = torch.zeros(self.check_graph_embedding_neg_graph.size)
         negative_e = self.criterion.E_operator(label_embeddings[self.neg_u_list, :], label_embeddings[self.neg_v_list, :])
 
         possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
@@ -499,7 +504,7 @@ class OrderEmbedding:
                 best_recall = recall
 
         print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
-                                                                                 self.check_graph_embedding_neg_graph.size()))
+                                                                                 self.check_graph_embedding_neg_graph.size))
         return best_score, best_threshold, best_accuracy, best_precision, best_recall
 
     def train(self):

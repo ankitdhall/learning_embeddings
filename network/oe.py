@@ -89,8 +89,10 @@ class FeatNet(nn.Module):
         Constructor to prepare layers for the embedding.
         """
         super(FeatNet, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 512)
-        self.fc2 = nn.Linear(512, output_dim)
+        self.fc1 = nn.Linear(input_dim, 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.fc4 = nn.Linear(1024, output_dim)
 
         self.normalize = normalize
         self.K = K
@@ -102,21 +104,22 @@ class FeatNet(nn.Module):
         Forward pass through the model.
         """
         x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
+
         if self.normalize == 'unit_norm':
-            x = self.fc2(x)
             original_shape = x.shape
             x = x.view(-1, original_shape[-1])
             x = F.normalize(x, p=2, dim=1)
             x = x.view(original_shape)
         elif self.normalize == 'max_norm':
-            x = self.fc2(x)
             original_shape = x.shape
             x = x.view(-1, original_shape[-1])
             norm_x = torch.norm(x, p=2, dim=1)
             x[norm_x > 1.0] = F.normalize(x[norm_x > 1.0], p=2, dim=1)
             x = x.view(original_shape)
         else:
-            x = self.fc2(x)
             if self.K:
                 return self.soft_clip(x)
             else:

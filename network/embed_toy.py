@@ -130,6 +130,7 @@ class ToyOrderEmbedding(OrderEmbedding):
         self.check_reconstr_every = 1
         self.save_model_every = 5
 
+        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
 
 def embed_toy_model(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):

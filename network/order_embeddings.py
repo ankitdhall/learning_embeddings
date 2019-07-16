@@ -278,8 +278,9 @@ class EmbeddingMetrics:
             pool = multiprocessing.Pool(processes=self.n_proc)
 
             # if number of processes is not specified, it uses the number of core
-            F[:, :] = pool.map(self.calculate_best,
-                               [possible_thresholds[t_id] for t_id in range(possible_thresholds.shape[0])])
+            F[:, :] = list(tqdm(pool.imap(self.calculate_best,
+                                          [possible_thresholds[t_id] for t_id in range(possible_thresholds.shape[0])]),
+                                total=possible_thresholds.shape[0]))
             best_index = np.argmax(F[:, 0])
             return F[best_index, :]
 
@@ -374,7 +375,7 @@ class OrderEmbedding:
         self.check_reconstr_every = 100
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
-        self.n_proc = 32 if torch.cuda.device_count() > 0 else 1
+        self.n_proc = 16 if torch.cuda.device_count() > 0 else 4
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()

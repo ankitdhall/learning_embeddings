@@ -21,7 +21,12 @@ import copy
 import argparse
 import json
 import git
+import time
 
+import matplotlib
+
+matplotlib.use('pdf')
+import matplotlib.pyplot as plt
 
 class CNN2DFeat(torch.nn.Module):
     def __init__(self, original_model, labelmap):
@@ -101,6 +106,41 @@ class ETHEC2D(CIFAR10):
 
         self.model = nn.DataParallel(self.model)
 
+    def run_model(self, optimizer):
+        self.optimizer = optimizer
+
+        if self.load_wt:
+            self.find_existing_weights()
+
+        self.best_model_wts = copy.deepcopy(self.model.state_dict())
+        self.best_score = 0.0
+
+        since = time.time()
+
+        for self.epoch in range(self.epoch, self.n_epochs):
+            print('=' * 10)
+            print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
+            print('=' * 10)
+
+            self.pass_samples(phase='train')
+            if self.epoch % self.eval_interval == 0:
+                if self.epoch % 10 == 0:
+                    self.eval.enable_plotting()
+                self.pass_samples(phase='val')
+                self.pass_samples(phase='test')
+                self.eval.disable_plotting()
+                self.plot_label_representations(to_load=False)
+
+        time_elapsed = time.time() - since
+        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+        print('Best val score: {:4f}'.format(self.best_score))
+
+        # load best model weights
+        self.model.load_state_dict(self.best_model_wts)
+
+        self.writer.close()
+        return self.model
+
     def load_model(self, epoch_to_load):
         checkpoint = torch.load(os.path.join(self.path_to_save_model, '{}.pth'.format(epoch_to_load)), map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
@@ -108,12 +148,9 @@ class ETHEC2D(CIFAR10):
         self.epoch = checkpoint['epoch']
         print('Successfully loaded model epoch {} from {}'.format(self.epoch, self.path_to_save_model))
 
-    def plot_label_representations(self):
-        import matplotlib
-        matplotlib.use('pdf')
-        import matplotlib.pyplot as plt
-
-        self.load_model(epoch_to_load='best_model')
+    def plot_label_representations(self, to_load=True):
+        if to_load:
+            self.load_model(epoch_to_load='best_model')
         colors = ['c', 'm', 'y', 'k']
         embeddings_x, embeddings_y, annotation, color_list = {}, {}, {}, {}
 
@@ -148,14 +185,14 @@ class ETHEC2D(CIFAR10):
                              'b-', alpha=0.2)
 
         emb_info = {'x': embeddings_x, 'y': embeddings_y, 'annotation': annotation, 'color': color_list, 'connected_to': connected_to}
-        np.save(os.path.join(self.log_dir, 'embedding_info.npy'), emb_info)
+        np.save(os.path.join(self.log_dir, '{0:04d}_embedding_info.npy'.format(self.epoch)), emb_info)
 
         # if self.title_text:
         #     fig.suptitle(self.title_text, family='sans-serif')
         fig.set_size_inches(8, 7)
         ax.axis('equal')
-        fig.savefig(os.path.join(self.log_dir, 'embedding.pdf'), dpi=200)
-        fig.savefig(os.path.join(self.log_dir, 'embedding.png'), dpi=200)
+        fig.savefig(os.path.join(self.log_dir, '{0:04d}_embedding.pdf'.format(self.epoch)), dpi=200)
+        fig.savefig(os.path.join(self.log_dir, '{0:04d}_embedding.png'.format(self.epoch)), dpi=200)
         print('Successfully saved embedding to disk!')
 
 class ETHECExperiment(CIFAR10):

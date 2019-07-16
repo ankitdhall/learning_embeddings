@@ -131,6 +131,7 @@ class ToyOrderEmbedding(OrderEmbedding):
         self.save_model_every = 5
 
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
+        self.n_proc = 32 if torch.cuda.device_count() > 0 else 4
 
 def embed_toy_model(arguments):
     if not os.path.exists(os.path.join(arguments.experiment_dir, arguments.experiment_name)):

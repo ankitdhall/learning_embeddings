@@ -14,7 +14,6 @@ from network.experiment import Experiment, WeightedResampler
 from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
 from network.finetuner import CIFAR10
 from network.summarize import Summarize
-from network.order_embeddings_images import EmbeddingMetrics
 from network.inference import Inference
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
@@ -24,6 +23,7 @@ from PIL import Image
 import numpy as np
 import time
 from tqdm import tqdm
+import multiprocessing
 import itertools
 
 import copy
@@ -250,52 +250,60 @@ def my_collate(data):
 
 
 class EmbeddingMetrics:
-    def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase):
+    def __init__(self, e_for_u_v_positive, e_for_u_v_negative, threshold, phase, n_proc=4):
         self.e_for_u_v_positive = e_for_u_v_positive.view(-1)
         self.e_for_u_v_negative = e_for_u_v_negative.view(-1)
         self.threshold = threshold
         self.phase = phase
+        self.n_proc = n_proc
+
+    def calculate_best(self, threshold):
+        correct_positives = torch.sum(self.e_for_u_v_positive <= threshold).item()
+        correct_negatives = torch.sum(self.e_for_u_v_negative > threshold).item()
+        accuracy = (correct_positives + correct_negatives) / (
+                    self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
+        precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
+        recall = correct_positives / self.e_for_u_v_positive.shape[0]
+        if precision + recall == 0:
+            f1_score = 0.0
+        else:
+            f1_score = (2 * precision * recall) / (precision + recall)
+
+        return f1_score, threshold, accuracy, precision, recall
 
     def calculate_metrics(self):
         if self.phase == 'val':
-            possible_thresholds = np.unique(np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
-            best_score, best_threshold, best_accuracy = 0.0, 0.0, 0.0
-            for t_id in range(possible_thresholds.shape[0]):
-                correct_positives = torch.sum(self.e_for_u_v_positive <= possible_thresholds[t_id]).item()
-                correct_negatives = torch.sum(self.e_for_u_v_negative > possible_thresholds[t_id]).item()
-                accuracy = (correct_positives+correct_negatives)/(self.e_for_u_v_positive.shape[0]+self.e_for_u_v_negative.shape[0])
-                precision = correct_positives/(correct_positives+(self.e_for_u_v_negative.shape[0]-correct_negatives))
-                recall = correct_positives/self.e_for_u_v_positive.shape[0]
-                if precision+recall == 0:
-                    print('Encountered NaN for f1!')
-                    f1_score = 0.0
-                else:
-                    f1_score = (2*precision*recall)/(precision+recall)
-                if f1_score > best_score:
-                    best_accuracy = accuracy
-                    best_score = f1_score
-                    best_threshold = possible_thresholds[t_id]
+            possible_thresholds = np.unique(
+                np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
 
-            return best_score, best_threshold, best_accuracy
+            F = np.zeros((possible_thresholds.shape[0], 5))
+            pool = multiprocessing.Pool(processes=self.n_proc)
+
+            # if number of processes is not specified, it uses the number of core
+            F[:, :] = list(tqdm(pool.imap(self.calculate_best,
+                                          [possible_thresholds[t_id] for t_id in range(possible_thresholds.shape[0])]),
+                                total=possible_thresholds.shape[0]))
+            best_index = np.argmax(F[:, 0])
+            return F[best_index, :]
 
         else:
             correct_positives = torch.sum(self.e_for_u_v_positive <= self.threshold).item()
             correct_negatives = torch.sum(self.e_for_u_v_negative > self.threshold).item()
             accuracy = (correct_positives + correct_negatives) / (
-                        self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
+                    self.e_for_u_v_positive.shape[0] + self.e_for_u_v_negative.shape[0])
 
             if correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives) == 0:
                 print('Encountered NaN for precision!')
                 precision = 0.0
             else:
-                precision = correct_positives / (correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
+                precision = correct_positives / (
+                            correct_positives + (self.e_for_u_v_negative.shape[0] - correct_negatives))
             recall = correct_positives / self.e_for_u_v_positive.shape[0]
             if precision + recall == 0:
                 f1_score = 0.0
-                print('Encountered NaN for f1!')
             else:
                 f1_score = (2 * precision * recall) / (precision + recall)
-            return f1_score, self.threshold, accuracy
+            return f1_score, self.threshold, accuracy, precision, recall
 
 
 def create_combined_graphs(dataloaders, labelmap):
@@ -1106,6 +1114,7 @@ class JointEmbeddings:
         self.check_reconstr_every = 20
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
+        self.n_proc = 32 if torch.cuda.device_count() > 0 else 4
 
     @staticmethod
     def make_dir_if_non_existent(directory):
@@ -1653,28 +1662,9 @@ class JointEmbeddings:
         negative_e = torch.zeros(self.check_graph_embedding_neg_graph.size)
         negative_e = self.criterion.E_operator(label_embeddings[self.neg_u_list, :], label_embeddings[self.neg_v_list, :])
 
-        possible_thresholds = np.unique(np.concatenate((positive_e.detach().cpu().numpy(),
-                                                        negative_e.detach().cpu().numpy()), axis=None))
-
-        best_score, best_threshold, best_accuracy, best_precision, best_recall = 0.0, 0.0, 0.0, 0.0, 0.0
-        for t_id in range(possible_thresholds.shape[0]):
-            correct_positives = torch.sum(positive_e <= possible_thresholds[t_id]).item()
-            correct_negatives = torch.sum(negative_e > possible_thresholds[t_id]).item()
-            accuracy = (correct_positives + correct_negatives) / (
-                        positive_e.shape[0] + negative_e.shape[0])
-            precision = correct_positives / (
-                        correct_positives + (negative_e.shape[0] - correct_negatives))
-            recall = correct_positives / positive_e.shape[0]
-            if precision + recall == 0:
-                f1_score = 0.0
-            else:
-                f1_score = (2 * precision * recall) / (precision + recall)
-            if f1_score > best_score:
-                best_accuracy = accuracy
-                best_score = f1_score
-                best_threshold = possible_thresholds[t_id]
-                best_precision = precision
-                best_recall = recall
+        metrics = EmbeddingMetrics(positive_e.detach().cpu(), negative_e.detach().cpu(), 0.0,
+                                   'val', n_proc=self.n_proc)
+        best_score, best_threshold, best_accuracy, best_precision, best_recall = metrics.calculate_metrics()
 
         print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
                                                                                  self.check_graph_embedding_neg_graph.size))

@@ -41,6 +41,10 @@ import matplotlib
 matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 
+import math
+from matplotlib.patches import Wedge
+from matplotlib.collections import PatchCollection
+
 from network.oe import Embedder, FeatNet
 from network.oe import create_imageless_dataloaders, load_combined_graphs, EuclideanConesWithImagesHypernymLoss, OrderEmbeddingWithImagesHypernymLoss
 from network.oe import my_collate, ETHECHierarchyWithImages
@@ -49,9 +53,9 @@ from network.inference import Inference
 
 class VizualizeGraphRepresentation:
     def __init__(self, debug=False,
-                 dim=2, loss_fn='ec', title_text=None,
+                 dim=2, loss_fn='oe', title_text='',
                  # weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/ec_debug/d10/oe10d_debug/weights/best_model.pth'):
-                 weights_to_load='/home/ankit/Desktop/hypernym_viz/d2bs10/ec_n_10_lr_0.1/weights/best_model.pth'):
+                 weights_to_load='/home/ankit/Desktop/hypernym_viz/final_labels_5k/oe_2d/4300.pth'):
         torch.manual_seed(0)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -75,9 +79,16 @@ class VizualizeGraphRepresentation:
         elif loss_fn == 'oe':
             self.model = Embedder(embedding_dim=dim, labelmap=labelmap, normalize=False)#, K=3.0)
         self.model =nn.DataParallel(self.model)
+        self.loss_fn = loss_fn
 
         self.weights_to_load = weights_to_load
         self.load_model()
+
+        self.title_text = title_text
+        if self.title_text == '':
+            self.title_text = 'F1 score: {:.4f} Accuracy: {:.4f} \n Precision: {:.4f} Recall: {:.4f} | Threshold: {:.4f}'.format(
+                self.reconstruction_f1, self.reconstruction_accuracy, self.reconstruction_prec,
+                self.reconstruction_recall, self.reconstruction_threshold)
 
         # run vizualize
         self.vizualize()
@@ -89,10 +100,27 @@ class VizualizeGraphRepresentation:
         self.model = self.model.to(self.device)
         self.epoch = checkpoint['epoch']
         self.optimal_threshold = checkpoint['optimal_threshold']
+
+        self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = \
+            checkpoint['reconstruction_scores']['f1'], checkpoint['reconstruction_scores']['threshold'], \
+            checkpoint['reconstruction_scores']['accuracy'], checkpoint['reconstruction_scores']['precision'], \
+            checkpoint['reconstruction_scores']['recall']
+
         print('Using optimal threshold = {}'.format(self.optimal_threshold))
         print('Successfully loaded model and img_feat_net epoch {} from {}'.format(self.epoch, self.weights_to_load))
 
-    def vizualize(self):
+    def get_wedge(self, emb, radius=30):
+        if self.loss_fn == 'ec':
+            psi_x = math.asin((3 / math.sqrt(emb[0] ** 2 + emb[1] ** 2))) * 57.2958
+            angle_of_vec = math.atan2(emb[1], emb[0]) * 57.2958
+            patches = [Wedge((emb[0], emb[1]), radius,
+                             angle_of_vec - psi_x, angle_of_vec + psi_x, color='k')]
+        else:
+            patches = [Wedge((emb[0], emb[1]), radius, 0, 90, color='k')]
+        p = PatchCollection(patches, alpha=0.1)
+        return p
+
+    def vizualize(self, save_to_disk=True, filename='embeddings'):
         phase = 'test'
         self.model.eval()
 
@@ -103,7 +131,7 @@ class VizualizeGraphRepresentation:
 
         fig, ax = plt.subplots()
 
-        for level_id in range(4): #len(self.labelmap.levels)):
+        for level_id in range(3): #len(self.labelmap.levels)):
             level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
             level_color = colors[level_id]
             for label_ix in range(self.labelmap.levels[level_id]):
@@ -126,6 +154,11 @@ class VizualizeGraphRepresentation:
                     ax.scatter(emb[0], emb[1], c=level_color, alpha=1)
                 # ax.annotate(annotation[emb_id], (emb[0], emb[1]))
 
+                if level_id in [0, 1]:
+                    p = self.get_wedge(emb, radius=50)
+                    ax.add_collection(p)
+
+
         # fig, ax = plt.subplots()
         # ax.scatter(embeddings_x, embeddings_y, c=color_list)
 
@@ -138,12 +171,15 @@ class VizualizeGraphRepresentation:
         # for i, txt in enumerate(annotation):
         #     ax.annotate(txt, (embeddings_x[i], embeddings_y[i]))
 
+        ax.axis('equal')
         if self.title_text:
             fig.suptitle(self.title_text, family='sans-serif')
-        fig.set_size_inches(8, 7)
-        ax.axis('equal')
-        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.pdf'), dpi=200)
-        fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', 'embedding.png'), dpi=200)
+        if save_to_disk:
+            fig.set_size_inches(8, 7)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.pdf'.format(filename)), dpi=200)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.png'.format(filename)), dpi=200)
+
+        return ax
 
 
 class VizualizeGraphRepresentationWithImages:
@@ -313,5 +349,21 @@ class VizualizeGraphRepresentationWithImages:
 
         plt.show()
 
-obj = VizualizeGraphRepresentation(debug=False)
-# obj = VizualizeGraphRepresentationWithImages(debug=True)
+
+def create_images():
+    path_to_weights = '/cluster/scratch/adhall/exp/toy_trees/oe/l_5_b_3/weights'
+    loss_fn = 'oe'
+    files = os.listdir(path_to_weights)
+    files.sort()
+    for filename in files:
+        if 'best_model' in filename:
+            continue
+        viz = VizualizeGraphRepresentation(debug=False, dim=2, loss_fn=loss_fn, title_text=None,
+                                           weights_to_load=os.path.join(path_to_weights, filename))
+        viz.vizualize(save_to_disk=True, filename='{0:03d}'.format(int(filename[:-4])))
+
+
+if __name__ == '__main__':
+    obj = VizualizeGraphRepresentation(debug=False)
+    # obj = VizualizeGraphRepresentationWithImages(debug=True)
+    # create_images()

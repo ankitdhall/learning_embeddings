@@ -544,7 +544,7 @@ class OrderEmbedding:
         positive_e = self.criterion.E_operator(label_embeddings[self.pos_u_list, :], label_embeddings[self.pos_v_list, :])
         negative_e = self.criterion.E_operator(label_embeddings[self.neg_u_list, :], label_embeddings[self.neg_v_list, :])
 
-        metrics = EmbeddingMetrics(negative_e.detach().cpu(), positive_e.detach().cpu(), 0.0,
+        metrics = EmbeddingMetrics(positive_e.detach().cpu(), negative_e.detach().cpu(), 0.0,
                                    'val', n_proc=self.n_proc)
         best_score, best_threshold, best_accuracy, best_precision, best_recall = metrics.calculate_metrics()
 

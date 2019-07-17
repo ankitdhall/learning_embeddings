@@ -417,9 +417,9 @@ def ETHEC_train_model(arguments):
                                         optimizer_method=arguments.optimizer_method,
                                         use_grayscale=arguments.use_grayscale)
     ETHEC_trainer.prepare_model()
-    if arguments.use_2d and arguments.resume:
-        ETHEC_trainer.plot_label_representations()
-        return
+    #if arguments.use_2d and arguments.resume:
+    #    ETHEC_trainer.plot_label_representations()
+    #    return
     if arguments.set_mode == 'train':
         ETHEC_trainer.train()
     elif arguments.set_mode == 'test':

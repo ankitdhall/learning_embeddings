@@ -281,6 +281,8 @@ class EmbeddingMetrics:
             F[:, :] = list(tqdm(pool.imap(self.calculate_best,
                                           [possible_thresholds[t_id] for t_id in range(possible_thresholds.shape[0])]),
                                 total=possible_thresholds.shape[0]))
+            pool.close()
+            pool.join()
             best_index = np.argmax(F[:, 0])
             return F[best_index, :]
 

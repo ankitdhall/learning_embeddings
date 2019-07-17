@@ -283,6 +283,8 @@ class EmbeddingMetrics:
             F[:, :] = list(tqdm(pool.imap(self.calculate_best,
                                           [possible_thresholds[t_id] for t_id in range(possible_thresholds.shape[0])]),
                                 total=possible_thresholds.shape[0]))
+            pool.close()
+            pool.join()
             best_index = np.argmax(F[:, 0])
             return F[best_index, :]
 
@@ -1114,7 +1116,7 @@ class JointEmbeddings:
         self.check_reconstr_every = 20
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
-        self.n_proc = 32 if torch.cuda.device_count() > 0 else 4
+        self.n_proc = 512 if torch.cuda.device_count() > 0 else 4
 
     @staticmethod
     def make_dir_if_non_existent(directory):

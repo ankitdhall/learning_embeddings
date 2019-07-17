@@ -1,61 +1,40 @@
 from __future__ import print_function
 from __future__ import division
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision
-from torchvision import datasets, models, transforms
-
-from tensorboardX import SummaryWriter
+from torchvision import transforms
 
 import os
-from network.experiment import Experiment, WeightedResampler
-from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvaluationSingleThresh, MultiLevelEvaluation
-from network.finetuner import CIFAR10
 
-from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
-from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
-
-from PIL import Image
-import numpy as np
-import time
+from data.db import ETHECLabelMapMerged
 from tqdm import tqdm
-
-import copy
-import argparse
-import json
-import git
 
 import torch
 from torch import nn
-import torch.nn.functional as F
-from data.db import ETHECLabelMap, ETHECLabelMapMergedSmall
+from data.db import ETHECLabelMapMergedSmall
 
-from network.finetuner import CIFAR10
 import numpy as np
 import random
 random.seed(0)
 
 import networkx as nx
-import matplotlib
-matplotlib.use('tkagg')
-import matplotlib.pyplot as plt
 
 import math
 from matplotlib.patches import Wedge
 from matplotlib.collections import PatchCollection
 
 from network.oe import Embedder, FeatNet
-from network.oe import create_imageless_dataloaders, load_combined_graphs, EuclideanConesWithImagesHypernymLoss, OrderEmbeddingWithImagesHypernymLoss
+from network.oe import load_combined_graphs, EuclideanConesWithImagesHypernymLoss, OrderEmbeddingWithImagesHypernymLoss
 from network.oe import my_collate, ETHECHierarchyWithImages
-from network.inference import Inference
+
+import matplotlib
+matplotlib.use('tkagg')
+import matplotlib.pyplot as plt
 
 
 class VizualizeGraphRepresentation:
     def __init__(self, debug=False,
-                 dim=2, loss_fn='oe', title_text='',
+                 dim=2, loss_fn='ec', title_text='',
                  # weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/ec_debug/d10/oe10d_debug/weights/best_model.pth'):
-                 weights_to_load='/home/ankit/Desktop/hypernym_viz/final_labels_5k/oe_2d/4300.pth'):
+                 weights_to_load='/home/ankit/Desktop/emb_weights/joint_2xlr/best_model_model.pth'):
         torch.manual_seed(0)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -351,19 +330,20 @@ class VizualizeGraphRepresentationWithImages:
 
 
 def create_images():
-    path_to_weights = '/cluster/scratch/adhall/exp/toy_trees/oe/l_5_b_3/weights'
+    path_to_weights = '/home/ankit/Desktop/d2_bs10/oe_n_10_a_0.1_lr_0.1/weights'
     loss_fn = 'oe'
     files = os.listdir(path_to_weights)
     files.sort()
     for filename in files:
         if 'best_model' in filename:
             continue
-        viz = VizualizeGraphRepresentation(debug=False, dim=2, loss_fn=loss_fn, title_text=None,
+        viz = VizualizeGraphRepresentation(debug=False, dim=2, loss_fn=loss_fn, title_text='',
                                            weights_to_load=os.path.join(path_to_weights, filename))
-        viz.vizualize(save_to_disk=True, filename='{0:03d}'.format(int(filename[:-4])))
+        viz.vizualize(save_to_disk=True, filename='{0:04d}'.format(int(filename[:-4])))
+        plt.close('all')
 
 
 if __name__ == '__main__':
-    obj = VizualizeGraphRepresentation(debug=False)
+    # obj = VizualizeGraphRepresentation(debug=False)
     # obj = VizualizeGraphRepresentationWithImages(debug=True)
-    # create_images()
+    create_images()

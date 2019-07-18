@@ -716,10 +716,12 @@ class OrderEmbedding:
 
     def find_existing_weights(self):
         weights = sorted([filename for filename in os.listdir(self.path_to_save_model)])
-        if len(weights) < 2:
+        weights = weights[:-1]
+        weights.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+        if len(weights) < 1:
             print('Could not find weights to load from, will train from scratch.')
         else:
-            self.load_model(epoch_to_load=weights[-2].split('.')[0])
+            self.load_model(epoch_to_load=weights[-1].split('.')[0])
 
     def load_best_model(self, only_load=False):
         if only_load:

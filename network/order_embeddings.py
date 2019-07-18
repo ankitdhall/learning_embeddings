@@ -370,6 +370,7 @@ class OrderEmbedding:
         self.create_splits()
 
         self.criterion.set_negative_graph(self.G_train_neg, self.mapping_ix_to_node, self.mapping_node_to_ix)
+        self.criterion.set_graph_tc(self.G_tc)
 
         self.lr_decay = lr_decay
         self.check_graph_embedding_neg_graph = None
@@ -729,7 +730,7 @@ class OrderEmbedding:
 
 
 class OrderEmbeddingLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=True):
+    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=True, weigh_neg_term=False):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
@@ -737,11 +738,16 @@ class OrderEmbeddingLoss(torch.nn.Module):
         self.alpha = alpha
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pick_per_level = pick_per_level
+        self.weigh_neg_term = weigh_neg_term
 
         self.G_tc = None
-        self.reverse_G = None
-        self.nodes_in_graph = None
-        self.num_edges = None
+        self.nodes_in_G_tc = None
+        self.n_nodes_G_tc = None
+
+    def set_graph_tc(self, graph_tc):
+        self.G_tc = graph_tc
+        self.nodes_in_G_tc = set(list(self.G_tc))
+        self.n_nodes_G_tc = len(set(list(self.G_tc)))
 
     def set_negative_graph(self, n_G, mapping_from_node_to_ix, mapping_from_ix_to_node):
         """
@@ -827,6 +833,10 @@ class OrderEmbeddingLoss(torch.nn.Module):
             # loss for negative pairs
             negative_from = [None] * (2 * self.neg_to_pos_ratio * len(inputs_from))
             negative_to = [None] * (2 * self.neg_to_pos_ratio * len(inputs_to))
+            if self.weigh_neg_term:
+                negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))*self.n_nodes_G_tc/self.neg_to_pos_ratio
+            else:
+                negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))
 
             for sample_id in range(len(inputs_from)):
                 # loss for negative pairs
@@ -838,6 +848,11 @@ class OrderEmbeddingLoss(torch.nn.Module):
                     negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = self.mapping_from_ix_to_node[
                         corrupted_ix]
 
+                    if self.weigh_neg_term:
+                        deg_tc_u = len(self.G_tc.in_edges(negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix]))
+                        if deg_tc_u != 0:
+                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= deg_tc_u
+
                     corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
                     negative_from[
                         2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = \
@@ -845,9 +860,14 @@ class OrderEmbeddingLoss(torch.nn.Module):
                     negative_to[
                         2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
+                    if self.weigh_neg_term:
+                        deg_tc_v = len(self.G_tc.out_edges(negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio]))
+                        if deg_tc_v != 0:
+                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= deg_tc_v
+
             negative_from_embeddings, negative_to_embeddings = model(torch.tensor(negative_from).to(self.device)), model(torch.tensor(negative_to).to(self.device))
             neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
-            loss += torch.sum(neg_term)
+            loss += torch.sum(negative_weights.to(self.device) * neg_term)
             e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
 
 
@@ -855,7 +875,7 @@ class OrderEmbeddingLoss(torch.nn.Module):
 
 
 class EucConesLoss(torch.nn.Module):
-    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=False):
+    def __init__(self, labelmap, neg_to_pos_ratio, alpha=1.0, pick_per_level=False, weigh_neg_term=False):
         print('Using order-embedding loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
@@ -863,20 +883,19 @@ class EucConesLoss(torch.nn.Module):
         self.alpha = alpha
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pick_per_level = pick_per_level
+        self.weigh_neg_term = weigh_neg_term
 
         self.G_tc = None
-        self.reverse_G = None
-        self.nodes_in_graph = None
-        self.num_edges = None
+        self.nodes_in_G_tc = None
+        self.n_nodes_G_tc = None
 
         self.epsilon = 1e-5
         self.K = 3.0
 
     def set_graph_tc(self, graph_tc):
         self.G_tc = graph_tc
-        self.reverse_G = nx.reverse(self.G_tc)
-        self.nodes_in_graph = set(list(self.G_tc))
-        self.num_edges = self.G_tc.size()
+        self.nodes_in_G_tc = set(list(self.G_tc))
+        self.n_nodes_G_tc = len(set(list(self.G_tc)))
 
     def E_operator(self, x, y):
         original_shape = x.shape
@@ -971,6 +990,10 @@ class EucConesLoss(torch.nn.Module):
             # loss for negative pairs
             negative_from = [None] * (2 * self.neg_to_pos_ratio * len(inputs_from))
             negative_to = [None] * (2 * self.neg_to_pos_ratio * len(inputs_to))
+            if self.weigh_neg_term:
+                negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))*self.n_nodes_G_tc/self.neg_to_pos_ratio
+            else:
+                negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))
 
             for sample_id in range(len(inputs_from)):
                 # loss for negative pairs
@@ -982,6 +1005,11 @@ class EucConesLoss(torch.nn.Module):
                     negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = self.mapping_from_ix_to_node[
                         corrupted_ix]
 
+                    if self.weigh_neg_term:
+                        deg_tc_u = len(self.G_tc.in_edges(negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix]))
+                        if deg_tc_u != 0:
+                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= deg_tc_u
+
                     corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
                     negative_from[
                         2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = \
@@ -989,9 +1017,14 @@ class EucConesLoss(torch.nn.Module):
                     negative_to[
                         2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
+                    if self.weigh_neg_term:
+                        deg_tc_v = len(self.G_tc.out_edges(negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio]))
+                        if deg_tc_v != 0:
+                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= deg_tc_v
+
             negative_from_embeddings, negative_to_embeddings = model(torch.tensor(negative_from).to(self.device)), model(torch.tensor(negative_to).to(self.device))
             neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
-            loss += torch.sum(neg_term)
+            loss += torch.sum(negative_weights.to(self.device)*neg_term)
             e_for_u_v_negative_all = torch.cat((e_for_u_v_negative_all, e_for_u_v_negative))
 
         return predicted_from_embeddings_all, predicted_to_embeddings_all, loss, e_for_u_v_positive_all, e_for_u_v_negative_all
@@ -1206,10 +1239,12 @@ def order_embedding_train_model(arguments):
     use_criterion = None
     if arguments.loss == 'order_emb_loss':
         use_criterion = OrderEmbeddingLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio,
-                                           alpha=arguments.alpha, pick_per_level=arguments.pick_per_level)
+                                           alpha=arguments.alpha, pick_per_level=arguments.pick_per_level,
+                                           weigh_neg_term=arguments.weigh_neg_term)
     elif arguments.loss == 'euc_cones_loss':
         use_criterion = EucConesLoss(labelmap=labelmap, neg_to_pos_ratio=arguments.neg_to_pos_ratio,
-                                     alpha=arguments.alpha, pick_per_level=arguments.pick_per_level)
+                                     alpha=arguments.alpha, pick_per_level=arguments.pick_per_level,
+                                     weigh_neg_term=arguments.weigh_neg_term)
     else:
         print("== Invalid --loss argument")
 
@@ -1253,6 +1288,7 @@ if __name__ == '__main__':
     parser.add_argument("--resume", help='Continue training from last checkpoint.', action='store_true')
     parser.add_argument("--optimizer_method", help='[adam, sgd]', type=str, default='adam')
     parser.add_argument("--merged", help='Use dataset which has genus and species combined.', action='store_true')
+    parser.add_argument("--weigh_neg_term", help='Weigh neg term in loss.', action='store_true')
     parser.add_argument("--weight_strategy", help='Use inverse freq or inverse sqrt freq. ["inv", "inv_sqrt"]',
                         type=str, default='inv')
     parser.add_argument("--model", help='NN model to use.', type=str, default='alexnet')

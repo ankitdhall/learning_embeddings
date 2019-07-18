@@ -869,7 +869,7 @@ class OrderEmbeddingLoss(torch.nn.Module):
                     if self.weigh_neg_term:
                         deg_tc_u = len(self.G_tc.in_edges(negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix]))
                         if deg_tc_u != 0:
-                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= deg_tc_u
+                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= (1.0/deg_tc_u)
                     negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= level_weights_per_edge[sample_id]
 
                     corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
@@ -882,7 +882,7 @@ class OrderEmbeddingLoss(torch.nn.Module):
                     if self.weigh_neg_term:
                         deg_tc_v = len(self.G_tc.out_edges(negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio]))
                         if deg_tc_v != 0:
-                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= deg_tc_v
+                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= (1.0/deg_tc_v)
                     negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= level_weights_per_edge[sample_id]
 
             negative_from_embeddings, negative_to_embeddings = model(torch.tensor(negative_from).to(self.device)), model(torch.tensor(negative_to).to(self.device))

@@ -1168,13 +1168,13 @@ class JointEmbeddings:
         self.dataset_length = {'train': len(train_set), 'val': len(val_set), 'test': len(test_set)}
 
     def find_existing_weights(self):
-        files = os.listdir(self.path_to_save_model)
-        files = [int(t.split('_')[0]) for t in files if 'best' not in t]
-        files.sort()
-        if len(files) > 0:
-            self.load_model(epoch_to_load=files[-1])
+        weights = sorted([filename for filename in os.listdir(self.path_to_save_model)])
+        weights = weights[:-1]
+        weights.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+        if len(weights) < 1:
+            print('Could not find weights to load from, will train from scratch.')
         else:
-            print('=== Could not find any existing weight files, training from scratch.')
+            self.load_model(epoch_to_load=weights[-1].split('.')[0])
 
     def run_model(self, optimizer):
         self.optimizer = optimizer

@@ -472,7 +472,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
 
 class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
     def __init__(self, labelmap, neg_to_pos_ratio, feature_dict, alpha, pick_per_level=False, K=3.0, use_CNN=False):
-        print('Using order-embedding loss!')
+        print('Using Euclidean cones loss!')
         torch.nn.Module.__init__(self)
         self.labelmap = labelmap
         self.neg_to_pos_ratio = neg_to_pos_ratio

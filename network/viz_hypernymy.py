@@ -26,7 +26,7 @@ from network.oe import load_combined_graphs, EuclideanConesWithImagesHypernymLos
 from network.oe import my_collate, ETHECHierarchyWithImages
 
 import matplotlib
-matplotlib.use('tkagg')
+matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 
 
@@ -164,11 +164,11 @@ class VizualizeGraphRepresentation:
 class VizualizeGraphRepresentationWithImages:
     def __init__(self, debug=False,
                  dim=2,
-                 loss_fn='oe',
-                 weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb_lr_0.01/weights/best_model_model.pth',
-                 img_weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/oelwi_debug/ec_load_emb_lr_0.01/weights/best_model_img_feat_net.pth'):
+                 loss_fn='ec',
+                 weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/ec_2d_2xlr_feat4/weights/160_model.pth',
+                 img_weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/ec_2d_2xlr_feat4/weights/160_img_feat_net.pth'):
         torch.manual_seed(0)
-        self.load_split = 'train'
+        self.load_split = 'test'
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -192,6 +192,7 @@ class VizualizeGraphRepresentationWithImages:
         self.labelmap = labelmap
 
         if loss_fn == 'ec':
+            print('ec')
             self.model = Embedder(embedding_dim=dim, labelmap=labelmap, normalize=False, K=3.0)
             self.img_feat_net = FeatNet(output_dim=2, normalize=None,
                                         K=3).to(self.device)
@@ -218,6 +219,7 @@ class VizualizeGraphRepresentationWithImages:
         self.graph_dict = combined_graphs
 
         self.load_model(weights_to_load, img_weights_to_load)
+        self.weights_to_load = weights_to_load
 
         # prepare model
         self.testloader = self.create_loader()
@@ -316,34 +318,41 @@ class VizualizeGraphRepresentationWithImages:
 
         for key in self.img_to_emb:
             emb = self.img_to_emb[key]
-            ax.scatter(emb[0], emb[1], c=level_color, alpha=0.3)
+            e_norm = math.sqrt(emb[0]**2 + emb[1]**2)
+            if e_norm > 500:
+                emb = emb/e_norm*500.0
+            ax.scatter(emb[0], emb[1], c=level_color, alpha=0.1)
 
             from_ix = max([u for u, v in list(self.graph_dict['G_{}'.format(self.load_split)].in_edges(key))])
 
             if from_ix in embeddings_x:
                 plt.plot([embeddings_x[from_ix], emb[0]],
                          [embeddings_y[from_ix], emb[1]],
-                         'b-', alpha=0.2)
+                         'b-', alpha=0.01)
 
-
-        plt.show()
+        ax.axis('equal')
+        if True:
+            filename = 'combined_plot'
+            fig.set_size_inches(8, 7)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.pdf'.format(filename)), dpi=200)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.png'.format(filename)), dpi=200)
 
 
 def create_images():
-    path_to_weights = '/home/ankit/Desktop/d2_bs10/oe_n_10_a_0.1_lr_0.1/weights'
-    loss_fn = 'oe'
+    path_to_weights = '/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/ec_2d_2xlr_feat4_noinit/weights'
+    loss_fn = 'ec'
     files = os.listdir(path_to_weights)
     files.sort()
     for filename in files:
-        if 'best_model' in filename:
+        if 'best_model' in filename or 'img' in filename:
             continue
         viz = VizualizeGraphRepresentation(debug=False, dim=2, loss_fn=loss_fn, title_text='',
                                            weights_to_load=os.path.join(path_to_weights, filename))
-        viz.vizualize(save_to_disk=True, filename='{0:04d}'.format(int(filename[:-4])))
+        viz.vizualize(save_to_disk=True, filename='{0:04d}'.format(int(filename[:-10]) if 'model' in filename else int(filename[:-4])))
         plt.close('all')
 
 
 if __name__ == '__main__':
     # obj = VizualizeGraphRepresentation(debug=False)
-    # obj = VizualizeGraphRepresentationWithImages(debug=True)
-    create_images()
+    obj = VizualizeGraphRepresentationWithImages(debug=False)
+    # create_images()

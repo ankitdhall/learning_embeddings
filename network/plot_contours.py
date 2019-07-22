@@ -241,6 +241,7 @@ class ReconstructionMetricsCNN2D:
             label_embeddings[label_ix, 0], label_embeddings[label_ix, 1] = embeddings_x[label_ix], embeddings_y[label_ix]
 
         best_score, best_threshold, best_accuracy, best_precision, best_recall = self.load_graphs(label_embeddings)
+        print(best_score, best_threshold, best_accuracy, best_precision, best_recall)
 
         max_val = {}
         for label_ix in embeddings_x:

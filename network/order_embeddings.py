@@ -267,14 +267,14 @@ class EmbeddingMetrics:
         else:
             f1_score = (2 * precision * recall) / (precision + recall)
 
-        return f1_score, threshold, accuracy, precision, recall
+        return f1_score, threshold, accuracy, precision, recall, correct_positives, correct_negatives
 
     def calculate_metrics(self):
         if self.phase == 'val':
             possible_thresholds = np.unique(
                 np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
 
-            F = np.zeros((possible_thresholds.shape[0], 5))
+            F = np.zeros((possible_thresholds.shape[0], 7))
             pool = multiprocessing.Pool(processes=self.n_proc)
 
             # if number of processes is not specified, it uses the number of core
@@ -303,7 +303,7 @@ class EmbeddingMetrics:
                 f1_score = 0.0
             else:
                 f1_score = (2 * precision * recall) / (precision + recall)
-            return f1_score, self.threshold, accuracy, precision, recall
+            return f1_score, self.threshold, accuracy, precision, recall, correct_positives, correct_negatives
 
 class OrderEmbedding:
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
@@ -378,7 +378,7 @@ class OrderEmbedding:
         self.check_reconstr_every = 100
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
-        self.n_proc = 16 if torch.cuda.device_count() > 0 else 4
+        self.n_proc = 32 if torch.cuda.device_count() > 0 else 4
 
     def prepare_model(self):
         self.params_to_update = self.model.parameters()
@@ -550,11 +550,11 @@ class OrderEmbedding:
 
         metrics = EmbeddingMetrics(positive_e.detach().cpu(), negative_e.detach().cpu(), 0.0,
                                    'val', n_proc=self.n_proc)
-        best_score, best_threshold, best_accuracy, best_precision, best_recall = metrics.calculate_metrics()
+        best_score, best_threshold, best_accuracy, best_precision, best_recall, c_pos, c_neg = metrics.calculate_metrics()
 
         print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
-                                                                                 self.check_graph_embedding_neg_graph.size))
-        return best_score, best_threshold, best_accuracy, best_precision, best_recall
+                                                                                 np.sum(self.check_graph_embedding_neg_graph)))
+        return best_score, best_threshold, best_accuracy, best_precision, best_recall, c_pos, c_neg
 
     def train(self):
         if self.optimizer_method == 'sgd':
@@ -644,18 +644,19 @@ class OrderEmbedding:
 
         metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase, n_proc=self.n_proc)
 
-        f1_score, threshold, accuracy, precision, recall = metrics.calculate_metrics()
+        f1_score, threshold, accuracy, precision, recall, _, _ = metrics.calculate_metrics()
         if phase == 'val':
             self.optimal_threshold = threshold
 
         if phase == 'test' and (self.epoch % self.check_reconstr_every == 0 or not save_to_tensorboard):
-            reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall = self.check_graph_embedding()
+            reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall, c_pos, c_neg = self.check_graph_embedding()
             print('Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f}, Threshold: {:.4f}'.format(reconstruction_f1,
                                                                                                  reconstruction_accuracy,
                                                                                                  reconstruction_prec,
                                                                                                  reconstruction_recall,
                                                                                                  reconstruction_threshold))
             self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall
+            self.correct_pos, self.correct_neg = c_pos, c_neg
 
         epoch_loss = running_loss / self.dataset_length[phase]
 
@@ -671,6 +672,8 @@ class OrderEmbedding:
                 self.writer.add_scalar('reconstruction_precision', self.reconstruction_prec, self.epoch)
                 self.writer.add_scalar('reconstruction_recall', self.reconstruction_recall, self.epoch)
                 self.writer.add_scalar('reconstruction_accuracy', self.reconstruction_accuracy, self.epoch)
+                self.writer.add_scalar('correct_positives', self.correct_pos, self.epoch)
+                self.writer.add_scalar('correct_negatives', self.correct_neg, self.epoch)
 
         print('{} Loss: {:.4f} lr: {:.5f}, F1-score: {:.4f}, Accuracy: {:.4f}'.format(phase, epoch_loss, self.lr,
                                                                                       f1_score, accuracy))
@@ -1017,23 +1020,29 @@ class EucConesLoss(torch.nn.Module):
 
         else:
             # get level weights for each edge
-            level_weights_per_edge = self.get_level_weight_for_edge(to=inputs_to)
-            level_weights_per_edge = level_weights_per_edge.to(self.device)
+            # level_weights_per_edge = self.get_level_weight_for_edge(to=inputs_to)
+            # level_weights_per_edge = level_weights_per_edge.to(self.device)
+            pos_weights = torch.ones((len(inputs_to))).to(self.device)
+            negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to))).to(self.device)
+
+            pos_weights *= 1.0
+            negative_weights *= 1.0
 
             # loss for positive pairs
             positive_indices = (status == 1).nonzero().squeeze(dim=1)
             e_for_u_v_positive = self.positive_pair(predicted_from_embeddings[positive_indices],
                                                     predicted_to_embeddings[positive_indices])
-            loss += torch.sum(level_weights_per_edge*e_for_u_v_positive)
+            # loss += torch.sum(level_weights_per_edge*e_for_u_v_positive)
+            loss += torch.sum(pos_weights*e_for_u_v_positive)
             e_for_u_v_positive_all = torch.cat((e_for_u_v_positive_all, e_for_u_v_positive))
 
             # loss for negative pairs
             negative_from = [None] * (2 * self.neg_to_pos_ratio * len(inputs_from))
             negative_to = [None] * (2 * self.neg_to_pos_ratio * len(inputs_to))
-            if self.weigh_neg_term:
-                negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))*self.n_nodes_G_tc/self.neg_to_pos_ratio
-            else:
-                negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))
+            # if self.weigh_neg_term:
+            #     negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))*self.n_nodes_G_tc/self.neg_to_pos_ratio
+            # else:
+            #     negative_weights = torch.ones((2 * self.neg_to_pos_ratio * len(inputs_to)))
 
             for sample_id in range(len(inputs_from)):
                 # loss for negative pairs
@@ -1044,12 +1053,12 @@ class EucConesLoss(torch.nn.Module):
                     negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix] = self.mapping_from_ix_to_node[
                         corrupted_ix]
 
-                    if self.weigh_neg_term:
-                        deg_tc_u = len(self.G_tc.in_edges(negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix]))
-                        if deg_tc_u != 0:
-                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= (1.0/deg_tc_u)
-                    if not self.weigh_pos_term:
-                        negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= level_weights_per_edge[sample_id]
+                    # if self.weigh_neg_term:
+                    #     deg_tc_u = len(self.G_tc.in_edges(negative_to[2 * self.neg_to_pos_ratio * sample_id + pass_ix]))
+                    #     if deg_tc_u != 0:
+                    #         negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= (1.0/deg_tc_u)
+                    # if not self.weigh_pos_term:
+                    #     negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix] *= level_weights_per_edge[sample_id]
 
                     corrupted_ix = self.sample_negative_edge(u=None, v=sample_inputs_to, level_id=pass_ix)
                     negative_from[
@@ -1058,12 +1067,12 @@ class EucConesLoss(torch.nn.Module):
                     negative_to[
                         2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
 
-                    if self.weigh_neg_term:
-                        deg_tc_v = len(self.G_tc.out_edges(negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio]))
-                        if deg_tc_v != 0:
-                            negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= (1.0/deg_tc_v)
-                    if not self.weigh_pos_term:
-                        negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= level_weights_per_edge[sample_id]
+                    # if self.weigh_neg_term:
+                    #     deg_tc_v = len(self.G_tc.out_edges(negative_from[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio]))
+                    #     if deg_tc_v != 0:
+                    #         negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= (1.0/deg_tc_v)
+                    # if not self.weigh_pos_term:
+                    #     negative_weights[2 * self.neg_to_pos_ratio * sample_id + pass_ix + self.neg_to_pos_ratio] *= level_weights_per_edge[sample_id]
 
             negative_from_embeddings, negative_to_embeddings = model(torch.tensor(negative_from).to(self.device)), model(torch.tensor(negative_to).to(self.device))
             neg_term, e_for_u_v_negative = self.negative_pair(negative_from_embeddings, negative_to_embeddings)

@@ -269,14 +269,14 @@ class EmbeddingMetrics:
         else:
             f1_score = (2 * precision * recall) / (precision + recall)
 
-        return f1_score, threshold, accuracy, precision, recall
+        return f1_score, threshold, accuracy, precision, recall, correct_positives, correct_negatives
 
     def calculate_metrics(self):
         if self.phase == 'val':
             possible_thresholds = np.unique(
                 np.concatenate((self.e_for_u_v_positive, self.e_for_u_v_negative), axis=None))
 
-            F = np.zeros((possible_thresholds.shape[0], 5))
+            F = np.zeros((possible_thresholds.shape[0], 7))
             pool = multiprocessing.Pool(processes=self.n_proc)
 
             # if number of processes is not specified, it uses the number of core
@@ -305,7 +305,7 @@ class EmbeddingMetrics:
                 f1_score = 0.0
             else:
                 f1_score = (2 * precision * recall) / (precision + recall)
-            return f1_score, self.threshold, accuracy, precision, recall
+            return f1_score, self.threshold, accuracy, precision, recall, correct_positives, correct_negatives
 
 
 def create_combined_graphs(dataloaders, labelmap):
@@ -1168,13 +1168,13 @@ class JointEmbeddings:
         self.dataset_length = {'train': len(train_set), 'val': len(val_set), 'test': len(test_set)}
 
     def find_existing_weights(self):
-        weights = sorted([filename for filename in os.listdir(self.path_to_save_model)])
-        weights = weights[:-1]
+        weights = sorted([filename.split('_')[0] for filename in os.listdir(self.path_to_save_model)])
+        weights = weights[:-2]
         weights.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
         if len(weights) < 1:
             print('Could not find weights to load from, will train from scratch.')
         else:
-            self.load_model(epoch_to_load=weights[-1].split('.')[0])
+            self.load_model(epoch_to_load=weights[-1])
 
     def run_model(self, optimizer):
         self.optimizer = optimizer
@@ -1293,15 +1293,17 @@ class JointEmbeddings:
                     self.save_model(-9999.0, filename='best_model')
 
             if phase == 'test' and (self.epoch % self.check_reconstr_every == 0 or not save_to_tensorboard):
-                reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall = self.check_graph_embedding()
+                reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall, c_pos, c_neg = self.check_graph_embedding()
                 print(
-                    'Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f}, Threshold: {:.4f}'.format(
+                    'Reconstruction task: F1: {:.4f},  Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f}, Threshold: {:.4f} tp:{} tn:{}'.format(
                         reconstruction_f1,
                         reconstruction_accuracy,
                         reconstruction_prec,
                         reconstruction_recall,
-                        reconstruction_threshold))
+                        reconstruction_threshold,
+                        c_pos, c_neg))
                 self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = reconstruction_f1, reconstruction_threshold, reconstruction_accuracy, reconstruction_prec, reconstruction_recall
+                self.correct_pos, self.correct_neg = c_pos, c_neg
 
             if save_to_tensorboard:
                 self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
@@ -1311,6 +1313,8 @@ class JointEmbeddings:
                     self.writer.add_scalar('reconstruction_precision', self.reconstruction_prec, self.epoch)
                     self.writer.add_scalar('reconstruction_recall', self.reconstruction_recall, self.epoch)
                     self.writer.add_scalar('reconstruction_accuracy', self.reconstruction_accuracy, self.epoch)
+                    self.writer.add_scalar('correct_pos', self.correct_pos, self.epoch)
+                    self.writer.add_scalar('correct_neg', self.correct_neg, self.epoch)
 
         path_to_save_summary = os.path.join(self.log_dir, 'stats',
                                             ('best_' if not save_to_tensorboard else '') + phase + str(self.epoch))
@@ -1348,6 +1352,10 @@ class JointEmbeddings:
         if phase == 'test' and (self.epoch % self.check_reconstr_every == 0 or not save_to_tensorboard):
             self.summarizer.make_heading('Reconstruction Summary - Epoch {} {}'.format(self.epoch, phase), 1)
             self.summarizer.make_text(text='reconstruction f1: {}'.format(reconstruction_f1), bullet=False)
+            self.summarizer.make_text(text='reconstruction prec: {}'.format(reconstruction_prec), bullet=False)
+            self.summarizer.make_text(text='reconstruction rec: {}'.format(reconstruction_recall), bullet=False)
+            self.summarizer.make_text(text='reconstruction tp: {}'.format(c_pos), bullet=False)
+            self.summarizer.make_text(text='reconstruction tn: {}'.format(c_neg), bullet=False)
             self.summarizer.make_text(text='reconstruction thresh: {}'.format(reconstruction_threshold), bullet=False)
             self.summarizer.make_text(text='reconstruction accuracy: {}'.format(reconstruction_accuracy), bullet=False)
 
@@ -1666,11 +1674,11 @@ class JointEmbeddings:
 
         metrics = EmbeddingMetrics(positive_e.detach().cpu(), negative_e.detach().cpu(), 0.0,
                                    'val', n_proc=self.n_proc)
-        best_score, best_threshold, best_accuracy, best_precision, best_recall = metrics.calculate_metrics()
+        best_score, best_threshold, best_accuracy, best_precision, best_recall, c_pos, c_neg = metrics.calculate_metrics()
 
         print('Checking graph reconstruction: +ve edges {}, -ve edges {}'.format(len(self.edges_in_G),
-                                                                                 self.check_graph_embedding_neg_graph.size))
-        return best_score, best_threshold, best_accuracy, best_precision, best_recall
+                                                                                 np.sum(self.check_graph_embedding_neg_graph)))
+        return best_score, best_threshold, best_accuracy, best_precision, best_recall, c_pos, c_neg
 
 
 def load_combined_graphs(debug):

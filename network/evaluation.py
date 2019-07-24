@@ -134,6 +134,7 @@ class Metrics:
         self.precision = dict()
         self.recall = dict()
         self.f1 = dict()
+        self.accuracy = dict()
 
         self.cmat = dict()
 
@@ -144,6 +145,7 @@ class Metrics:
 
         self.macro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
         self.micro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
+        self.accuracy_score = 0.0
 
     def calculate_basic_metrics(self, list_of_indices):
 
@@ -158,6 +160,8 @@ class Metrics:
             self.cmat[label_ix] = confusion_matrix(self.correct_labels[:, label_ix],
                                                    self.predicted_labels[:, label_ix])
 
+            self.accuracy[label_ix] = (self.cmat[label_ix][1][1] + self.cmat[label_ix][0][0]) / (self.cmat[label_ix][0][0] + self.cmat[label_ix][0][1] + self.cmat[label_ix][1][0] + self.cmat[label_ix][1][1])
+
         for metric in ['precision', 'recall', 'f1']:
             self.macro_scores[metric] = 1.0 * sum([getattr(self, metric)[label_ix]
                                                    for label_ix in list_of_indices]) / len(list_of_indices)
@@ -171,9 +175,12 @@ class Metrics:
         self.micro_scores['recall'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[1][0])
         self.micro_scores['f1'] = 2 * self.micro_scores['precision'] * self.micro_scores['recall'] / (
                 self.micro_scores['precision'] + self.micro_scores['recall'])
+        self.accuracy_score = (combined_cmat[1][1] + combined_cmat[0][0]) / (
+                    combined_cmat[0][0] + combined_cmat[0][1] + combined_cmat[1][1] + combined_cmat[1][0])
 
         return {'macro': self.macro_scores, 'micro': self.micro_scores, 'precision': self.precision,
-                'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat}
+                'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat, 'accuracy': self.accuracy,
+                'accuracy_score': self.accuracy_score}
 
 
 class MultiLabelEvaluation(Evaluation):
@@ -229,35 +236,41 @@ class MultiLabelEvaluation(Evaluation):
         if phase in ['val', 'test']:
             # global metrics
             self.summarizer.make_heading('Global Metrics', 2)
+            tabular_data = [[global_metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
+                      ['macro', 'micro']]
+            tabular_data[0].append(global_metrics['accuracy_score'])
+            tabular_data[1].append(global_metrics['accuracy_score'])
             self.summarizer.make_table(
-                data=[[global_metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
-                      ['macro', 'micro']],
-                x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+                data=tabular_data,
+                x_labels=['Precision', 'Recall', 'F1', 'Accuracy'], y_labels=['Macro', 'Micro'])
 
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
                 data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                       global_metrics['f1'][label_ix], samples_split['train'][label_ix], samples_split['val'][label_ix],
+                       global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix], samples_split['train'][label_ix], samples_split['val'][label_ix],
                        samples_split['test'][label_ix]] for label_ix in range(self.labelmap.n_classes)],
-                x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                x_labels=['Precision', 'Recall', 'F1', 'Acc', 'train freq', 'val freq', 'test freq'],
                 y_labels=self.labelmap.classes)
 
             # level wise metrics
             for level_id, metrics_key in enumerate(level_wise_metrics):
                 metrics = level_wise_metrics[metrics_key]
+                tabular_data_lw = [[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
+                 ['macro', 'micro']]
+                tabular_data_lw[0].append(metrics['accuracy_score'])
+                tabular_data_lw[1].append(metrics['accuracy_score'])
                 self.summarizer.make_heading('{} Metrics'.format(metrics_key), 2)
                 self.summarizer.make_table(
-                    data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
-                          ['macro', 'micro']],
-                    x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+                    data=tabular_data_lw,
+                    x_labels=['Precision', 'Recall', 'F1', 'Accuracy'], y_labels=['Macro', 'Micro'])
 
                 self.summarizer.make_heading('Class-wise Metrics', 2)
                 self.summarizer.make_table(
                     data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                           global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]),
+                           global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix], int(samples_split['train'][label_ix]),
                            int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
                           for label_ix in range(level_start[level_id], level_stop[level_id])],
-                    x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                    x_labels=['Precision', 'Recall', 'F1', 'Acc', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
                 if self.generate_plots:
@@ -474,6 +487,7 @@ class MetricsMultiLevel:
         self.precision = dict()
         self.recall = dict()
         self.f1 = dict()
+        self.accuracy = dict()
 
         self.cmat = dict()
 
@@ -484,6 +498,7 @@ class MetricsMultiLevel:
 
         self.macro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
         self.micro_scores = {'precision': 0.0, 'recall': 0.0, 'f1': 0.0}
+        self.accuracy_score = 0.0
 
     def calculate_basic_metrics(self, list_of_indices):
 
@@ -507,6 +522,7 @@ class MetricsMultiLevel:
                 self.recall[label_ix] = 0.0
                 self.f1[label_ix] = 0.0
             else:
+                self.accuracy[label_ix] = (tp+tn)/(tp+tn+fp+fn)
                 self.precision[label_ix] = 1.0 * tp/(tp + fp)
                 self.recall[label_ix] = 1.0 * tp/(tp + fn)
                 self.f1[label_ix] = 2 * self.precision[label_ix] * self.recall[label_ix] /\
@@ -525,9 +541,11 @@ class MetricsMultiLevel:
         self.micro_scores['recall'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[1][0])
         self.micro_scores['f1'] = 2 * self.micro_scores['precision'] * self.micro_scores['recall'] / (
                 self.micro_scores['precision'] + self.micro_scores['recall'])
+        self.accuracy_score = (combined_cmat[1][1] + combined_cmat[0][0])/(combined_cmat[0][0] + combined_cmat[0][1] + combined_cmat[1][1] + combined_cmat[1][0])
 
         return {'macro': self.macro_scores, 'micro': self.micro_scores, 'precision': self.precision,
-                'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat}
+                'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat, 'accuracy': self.accuracy,
+                'accuracy_score': self.accuracy_score}
 
 
 class MultiLevelEvaluation(MultiLabelEvaluation):
@@ -580,36 +598,43 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
         if phase in ['val', 'test']:
             # global metrics
             self.summarizer.make_heading('Global Metrics', 2)
+            tabular_data = [[global_metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for
+                            score_type in ['macro', 'micro']]
+            tabular_data[0].append(global_metrics['accuracy_score'])
+            tabular_data[1].append(global_metrics['accuracy_score'])
             self.summarizer.make_table(
-                data=[[global_metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
-                      ['macro', 'micro']],
-                x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+                data=tabular_data,
+                x_labels=['Precision', 'Recall', 'F1', 'Accuracy'], y_labels=['Macro', 'Micro'])
 
             self.summarizer.make_heading('Class-wise Metrics', 2)
             self.summarizer.make_table(
                 data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                       global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]),
+                       global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix], int(samples_split['train'][label_ix]),
                        int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
                       for label_ix in range(self.labelmap.n_classes)],
-                x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                x_labels=['Precision', 'Recall', 'F1', 'Accuracy', 'train freq', 'val freq', 'test freq'],
                 y_labels=self.labelmap.classes)
 
             # level wise metrics
             for level_id, metrics_key in enumerate(level_wise_metrics):
                 metrics = level_wise_metrics[metrics_key]
+                tabular_data_lw = [[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for
+                                   score_type in
+                                   ['macro', 'micro']]
+                tabular_data_lw[0].append(metrics['accuracy_score'])
+                tabular_data_lw[1].append(metrics['accuracy_score'])
                 self.summarizer.make_heading('{} Metrics'.format(metrics_key), 2)
                 self.summarizer.make_table(
-                    data=[[metrics[score_type][score] for score in ['precision', 'recall', 'f1']] for score_type in
-                          ['macro', 'micro']],
-                    x_labels=['Precision', 'Recall', 'F1'], y_labels=['Macro', 'Micro'])
+                    data=tabular_data_lw,
+                    x_labels=['Precision', 'Recall', 'F1', 'Accuracy'], y_labels=['Macro', 'Micro'])
 
                 self.summarizer.make_heading('Class-wise Metrics', 2)
                 self.summarizer.make_table(
                     data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                           global_metrics['f1'][label_ix], int(samples_split['train'][label_ix]),
+                           global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix], int(samples_split['train'][label_ix]),
                            int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
                           for label_ix in range(level_start[level_id], level_stop[level_id])],
-                    x_labels=['Precision', 'Recall', 'F1', 'train freq', 'val freq', 'test freq'],
+                    x_labels=['Precision', 'Recall', 'F1', 'Accuracy', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
                 if self.generate_plots:

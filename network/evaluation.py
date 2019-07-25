@@ -267,10 +267,13 @@ class MultiLabelEvaluation(Evaluation):
                 self.summarizer.make_heading('Class-wise Metrics', 2)
                 self.summarizer.make_table(
                     data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                           global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix], int(samples_split['train'][label_ix]),
+                           global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix],
+                           global_metrics['cmat'][label_ix].ravel()[0], global_metrics['cmat'][label_ix].ravel()[1],
+                           global_metrics['cmat'][label_ix].ravel()[2], global_metrics['cmat'][label_ix].ravel()[3],
+                           int(samples_split['train'][label_ix]),
                            int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
                           for label_ix in range(level_start[level_id], level_stop[level_id])],
-                    x_labels=['Precision', 'Recall', 'F1', 'Acc', 'train freq', 'val freq', 'test freq'],
+                    x_labels=['Precision', 'Recall', 'F1', 'Acc', 'tn', 'fp', 'fn', 'tp', 'train freq', 'val freq', 'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
                 if self.generate_plots:
@@ -631,10 +634,14 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
                 self.summarizer.make_heading('Class-wise Metrics', 2)
                 self.summarizer.make_table(
                     data=[[global_metrics['precision'][label_ix], global_metrics['recall'][label_ix],
-                           global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix], int(samples_split['train'][label_ix]),
+                           global_metrics['f1'][label_ix], global_metrics['accuracy'][label_ix],
+                           global_metrics['cmat'][label_ix].ravel()[0], global_metrics['cmat'][label_ix].ravel()[1],
+                           global_metrics['cmat'][label_ix].ravel()[2], global_metrics['cmat'][label_ix].ravel()[3],
+                           int(samples_split['train'][label_ix]),
                            int(samples_split['val'][label_ix]), int(samples_split['test'][label_ix])]
                           for label_ix in range(level_start[level_id], level_stop[level_id])],
-                    x_labels=['Precision', 'Recall', 'F1', 'Accuracy', 'train freq', 'val freq', 'test freq'],
+                    x_labels=['Precision', 'Recall', 'F1', 'Acc', 'tn', 'fp', 'fn', 'tp', 'train freq', 'val freq',
+                              'test freq'],
                     y_labels=self.labelmap.classes[level_start[level_id]:level_stop[level_id]])
 
                 if self.generate_plots:

@@ -517,10 +517,12 @@ class MetricsMultiLevel:
 
             tn, fp, fn, tp = self.cmat[label_ix].ravel()
             if tp == 0 and fp == 0 and fn == 0:
+                self.accuracy[label_ix] = (tp + tn) / (tp + tn + fp + fn)
                 self.precision[label_ix] = 1.0
                 self.recall[label_ix] = 1.0
                 self.f1[label_ix] = 1.0
             elif tp == 0 and (fp > 0 or fn > 0):
+                self.accuracy[label_ix] = (tp + tn) / (tp + tn + fp + fn)
                 self.precision[label_ix] = 0.0
                 self.recall[label_ix] = 0.0
                 self.f1[label_ix] = 0.0

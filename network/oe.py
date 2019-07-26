@@ -1071,7 +1071,10 @@ class JointEmbeddings:
 
         # prepare models (embedding module and image feature extractor)
         self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize,
-                              K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None).to(self.device)
+                              K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None)
+        if load_cosine_emb:
+            self.load_inverted_cosine_emb(load_cosine_emb)
+        self.model.to(self.device)
 
         if self.use_CNN:
             self.img_feat_net = FeatCNN(image_dir=self.image_dir, output_dim=self.embedding_dim,
@@ -1108,9 +1111,6 @@ class JointEmbeddings:
         if load_emb_from:
             self.load_emb_model(load_emb_from)
 
-        if load_cosine_emb:
-            self.load_inverted_cosine_emb(load_cosine_emb)
-
         if not self.use_CNN:
             self.img_feat_net = nn.DataParallel(self.img_feat_net)
 
@@ -1127,7 +1127,8 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
-        self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.0001},
+        print(list(self.model.parameters()))
+        self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.001},
                                  {'params': self.img_feat_net.parameters()}]
 
     def create_splits(self):
@@ -1418,12 +1419,13 @@ class JointEmbeddings:
         max_norm = np.max(label_norms)
 
         for label_ix in embeddings_x:
-            embeddings_x[label_ix] = 3.0 * max_norm * embeddings_x[label_ix] / label_norms[label_ix] ** 2
-            embeddings_y[label_ix] = 3.0 * max_norm * embeddings_y[label_ix] / label_norms[label_ix] ** 2
+            label_embeddings[label_ix, :] *= (3.0 * max_norm / label_norms[label_ix] ** 2)
 
-            self.model.weight[label_ix][0] = embeddings_x
-            self.model.weight[label_ix][1] = embeddings_y
-
+            #self.model.embeddings.weight[label_ix][0] = nn.Parameter(torch.tensor(embeddings_x[label_ix], device=self.device))
+            #self.model.embeddings.weight[label_ix][1] = nn.Parameter(torch.tensor(embeddings_y[label_ix], device=self.device))
+        self.model.embeddings.from_pretrained(torch.FloatTensor(label_embeddings), freeze=False)
+        print(self.model.embeddings.weight.is_leaf)
+        print(list(self.model.parameters()))
         print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))
 
 

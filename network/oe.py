@@ -1421,14 +1421,10 @@ class JointEmbeddings:
         for label_ix in embeddings_x:
             label_embeddings[label_ix, :] *= (3.0 * max_norm / label_norms[label_ix] ** 2)
 
-            #self.model.embeddings.weight[label_ix][0] = nn.Parameter(torch.tensor(embeddings_x[label_ix], device=self.device))
-            #self.model.embeddings.weight[label_ix][1] = nn.Parameter(torch.tensor(embeddings_y[label_ix], device=self.device))
         self.model.embeddings.from_pretrained(torch.FloatTensor(label_embeddings), freeze=False)
         print(self.model.embeddings.weight.is_leaf)
         print(list(self.model.parameters()))
         print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))
-
-
 
     def load_model(self, epoch_to_load):
         checkpoint = torch.load(os.path.join(self.path_to_save_model, '{}_model.pth'.format(epoch_to_load)),

@@ -309,7 +309,7 @@ class OrderEmbedding:
     def __init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name, embedding_dim,
                  neg_to_pos_ratio, alpha, proportion_of_nb_edges_in_train, lr_step=[], pick_per_level=False,
                  experiment_dir='../exp/', n_epochs=10, eval_interval=2, feature_extracting=True, load_wt=False,
-                 optimizer_method='adam', lr_decay=1.0, random_seed=0):
+                 optimizer_method='adam', lr_decay=1.0, random_seed=0, load_cosine_emb=None):
         torch.manual_seed(random_seed)
 
         self.epoch = 0
@@ -352,6 +352,8 @@ class OrderEmbedding:
 
         if isinstance(criterion, EucConesLoss):
             self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, K=self.criterion.K)
+            if load_cosine_emb:
+                self.load_inverted_cosine_emb(load_cosine_emb)
         else:
             self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap)
         self.model = self.model.to(self.device)
@@ -716,6 +718,28 @@ class OrderEmbedding:
         checkpoint['reconstruction_scores']['accuracy'], checkpoint['reconstruction_scores']['precision'], \
         checkpoint['reconstruction_scores']['recall']
         print('Successfully loaded model epoch {} from {}'.format(self.epoch, self.path_to_save_model))
+
+    def load_inverted_cosine_emb(self, path_to_weights):
+        path_to_emb = path_to_weights
+        emb_info = np.load(path_to_emb).item()
+
+        embeddings_x, embeddings_y = emb_info['x'], emb_info['y']
+        label_embeddings = np.zeros((len(embeddings_x.keys()), self.embedding_dim))
+        for label_ix in embeddings_x:
+            label_embeddings[label_ix, 0], label_embeddings[label_ix, 1] = embeddings_x[label_ix], embeddings_y[
+                label_ix]
+
+        # invert embeddings
+        label_norms = np.linalg.norm(label_embeddings, axis=1, ord=2)
+        max_norm = np.max(label_norms)
+
+        for label_ix in embeddings_x:
+            label_embeddings[label_ix, :] *= (3.0 * max_norm / label_norms[label_ix] ** 2)
+
+        self.model.embeddings.from_pretrained(torch.FloatTensor(label_embeddings), freeze=False)
+        print(self.model.embeddings.weight.is_leaf)
+        print(list(self.model.parameters()))
+        print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))
 
     def find_existing_weights(self):
         weights = sorted([filename for filename in os.listdir(self.path_to_save_model)])
@@ -1310,7 +1334,7 @@ def order_embedding_train_model(arguments):
                         experiment_dir=arguments.experiment_dir, n_epochs=arguments.n_epochs, pick_per_level=arguments.pick_per_level,
                         eval_interval=arguments.eval_interval, feature_extracting=arguments.freeze_weights,
                         load_wt=arguments.resume, optimizer_method=arguments.optimizer_method, lr_decay=arguments.lr_decay,
-                        random_seed=arguments.random_seed)
+                        random_seed=arguments.random_seed, load_cosine_emb=arguments.load_cosine_emb)
     oe.prepare_model()
     if arguments.set_mode == 'train':
         reconstr_f1, acc = oe.train()
@@ -1362,6 +1386,8 @@ if __name__ == '__main__':
     parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
     parser.add_argument("--lr_decay", help='Decay lr by a factor.', default=1.0, type=float)
     parser.add_argument("--random_seed", help='Random seed for torch.', default=0, type=int)
+    parser.add_argument("--load_cosine_emb", help='Path to cosine embeddings .np file', type=str, default=None)
+
     args = parser.parse_args()
 
     order_embedding_train_model(args)

@@ -1018,7 +1018,7 @@ class JointEmbeddings:
                  load_wt=False,
                  model_name=None,
                  optimizer_method='adam',
-                 use_grayscale=False, load_emb_from=None):
+                 use_grayscale=False, load_emb_from=None, load_cosine_emb=None):
         torch.manual_seed(0)
 
         self.classes = labelmap.classes
@@ -1107,6 +1107,9 @@ class JointEmbeddings:
         self.model = nn.DataParallel(self.model)
         if load_emb_from:
             self.load_emb_model(load_emb_from)
+
+        if load_cosine_emb:
+            self.load_inverted_cosine_emb(load_cosine_emb)
 
         if not self.use_CNN:
             self.img_feat_net = nn.DataParallel(self.img_feat_net)
@@ -1400,6 +1403,30 @@ class JointEmbeddings:
                 checkpoint['reconstruction_scores']['recall']
         print('Successfully loaded model from {} epoch {} with thresh {}'.format(path_to_weights, checkpoint['epoch'],
                                                                                  self.optimal_threshold))
+
+    def load_inverted_cosine_emb(self, path_to_weights):
+        path_to_emb = path_to_weights
+        emb_info = np.load(path_to_emb).item()
+
+        embeddings_x, embeddings_y = emb_info['x'], emb_info['y']
+        label_embeddings = np.zeros((len(embeddings_x.keys()), self.embedding_dim))
+        for label_ix in embeddings_x:
+            label_embeddings[label_ix, 0], label_embeddings[label_ix, 1] = embeddings_x[label_ix], embeddings_y[label_ix]
+
+        # invert embeddings
+        label_norms = np.linalg.norm(label_embeddings, axis=1, ord=2)
+        max_norm = np.max(label_norms)
+
+        for label_ix in embeddings_x:
+            embeddings_x[label_ix] = 3.0 * max_norm * embeddings_x[label_ix] / label_norms[label_ix] ** 2
+            embeddings_y[label_ix] = 3.0 * max_norm * embeddings_y[label_ix] / label_norms[label_ix] ** 2
+
+            self.model.weight[label_ix][0] = embeddings_x
+            self.model.weight[label_ix][1] = embeddings_y
+
+        print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))
+
+
 
     def load_model(self, epoch_to_load):
         checkpoint = torch.load(os.path.join(self.path_to_save_model, '{}_model.pth'.format(epoch_to_load)),
@@ -1810,7 +1837,7 @@ def order_embedding_labels_with_images_train_model(arguments):
                             optimizer_method=arguments.optimizer_method,
                             use_grayscale=False,
                             lr_step=arguments.lr_step,
-                            load_emb_from=arguments.load_emb_from)
+                            load_emb_from=arguments.load_emb_from, load_cosine_emb=arguments.load_cosine_emb)
 
     if arguments.set_mode == 'train':
         oelwi.train()
@@ -1834,6 +1861,7 @@ if __name__ == '__main__':
         parser.add_argument("--experiment_name", help='Experiment name.', type=str, required=True)
         parser.add_argument("--experiment_dir", help='Experiment directory.', type=str, required=True)
         parser.add_argument("--load_emb_from", help='Path to embeddings .pth file', type=str, default=None)
+        parser.add_argument("--load_cosine_emb", help='Path to cosine embeddings .np file', type=str, default=None)
         parser.add_argument("--image_dir", help='Image parent directory.', type=str, required=True)
         parser.add_argument("--n_epochs", help='Number of epochs to run training for.', type=int, required=True)
         parser.add_argument("--n_workers", help='Number of workers.', type=int, default=8)

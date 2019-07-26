@@ -240,8 +240,9 @@ class ReconstructionMetricsCNN2D:
         for label_ix in embeddings_x:
             label_embeddings[label_ix, 0], label_embeddings[label_ix, 1] = embeddings_x[label_ix], embeddings_y[label_ix]
 
-        best_score, best_threshold, best_accuracy, best_precision, best_recall = self.load_graphs(label_embeddings)
-        print(best_score, best_threshold, best_accuracy, best_precision, best_recall)
+        # # calculate scores
+        # best_score, best_threshold, best_accuracy, best_precision, best_recall = self.load_graphs(label_embeddings)
+        # print(best_score, best_threshold, best_accuracy, best_precision, best_recall)
 
         max_val = {}
         for label_ix in embeddings_x:
@@ -251,40 +252,50 @@ class ReconstructionMetricsCNN2D:
 
         fig, ax = plt.subplots()
 
-        # dot product voronoi
-        extent = 0.0
-        points = []
+        # # dot product voronoi
+        # extent = 0.0
+        # points = []
+        # for label_ix in embeddings_x:
+        #     if extent < embeddings_x[label_ix]:
+        #         extent = embeddings_x[label_ix]
+        #     if extent < embeddings_y[label_ix]:
+        #         extent = embeddings_y[label_ix]
+        #     if color_list[label_ix] == 'k':
+        #         points.append([embeddings_x[label_ix], embeddings_y[label_ix]])
+        # points = np.array(points)
+        # print(points.shape)
+        # print(extent)
+        #
+        # delta = 0.05
+        # extent = extent + 1
+        # x = np.arange(-extent, extent, delta)
+        # y = np.arange(-extent, extent, delta)
+        # X, Y = np.meshgrid(x, y)
+        # Z = np.zeros((points.shape[0], X.shape[0], X.shape[1]))
+        # for point_ix in range(points.shape[0]):
+        #     Z[point_ix, :, :] = func(X, Y, np.array([points[point_ix, 0], points[point_ix, 1]]))
+        # closest_centroid = np.argmax(Z, axis=0)
+        #
+        # cmap = matplotlib.cm.get_cmap('gist_heat')
+        # from scipy.spatial import ConvexHull
+        # for point_ix in range(points.shape[0]):
+        #     loc = np.where(closest_centroid == point_ix)
+        #     x_hull, y_hull = X[loc], Y[loc]
+        #     if x_hull.shape != (0, ):
+        #         hull = ConvexHull(np.transpose(np.array([x_hull, y_hull])))
+        #         # ax.fill(x_hull[hull.vertices], y_hull[hull.vertices], c=cmap(point_ix/points.shape[0]), alpha=0.3)
+        #         ax.fill(x_hull[hull.vertices], y_hull[hull.vertices], point_ix, alpha=0.3)
+        #     # ax.scatter(X, Y, c=closest_centroid, alpha=0.6, cmap='gist_heat')
+
+        # invert embeddings
+        label_norms = np.linalg.norm(label_embeddings, axis=1, ord=2)
+        print(label_norms.shape)
+        print(np.max(label_norms))
+        max_norm = np.max(label_norms)
+
         for label_ix in embeddings_x:
-            if extent < embeddings_x[label_ix]:
-                extent = embeddings_x[label_ix]
-            if extent < embeddings_y[label_ix]:
-                extent = embeddings_y[label_ix]
-            if color_list[label_ix] == 'k':
-                points.append([embeddings_x[label_ix], embeddings_y[label_ix]])
-        points = np.array(points)
-        print(points.shape)
-        print(extent)
-
-        delta = 0.05
-        extent = extent + 1
-        x = np.arange(-extent, extent, delta)
-        y = np.arange(-extent, extent, delta)
-        X, Y = np.meshgrid(x, y)
-        Z = np.zeros((points.shape[0], X.shape[0], X.shape[1]))
-        for point_ix in range(points.shape[0]):
-            Z[point_ix, :, :] = func(X, Y, np.array([points[point_ix, 0], points[point_ix, 1]]))
-        closest_centroid = np.argmax(Z, axis=0)
-
-        cmap = matplotlib.cm.get_cmap('gist_heat')
-        from scipy.spatial import ConvexHull
-        for point_ix in range(points.shape[0]):
-            loc = np.where(closest_centroid == point_ix)
-            x_hull, y_hull = X[loc], Y[loc]
-            if x_hull.shape != (0, ):
-                hull = ConvexHull(np.transpose(np.array([x_hull, y_hull])))
-                # ax.fill(x_hull[hull.vertices], y_hull[hull.vertices], c=cmap(point_ix/points.shape[0]), alpha=0.3)
-                ax.fill(x_hull[hull.vertices], y_hull[hull.vertices], point_ix, alpha=0.3)
-            # ax.scatter(X, Y, c=closest_centroid, alpha=0.6, cmap='gist_heat')
+            embeddings_x[label_ix] = 3.0 * max_norm * embeddings_x[label_ix] / label_norms[label_ix]**2
+            embeddings_y[label_ix] = 3.0 * max_norm * embeddings_y[label_ix] / label_norms[label_ix]**2
 
         for label_ix in embeddings_x:
             # ax.scatter(embeddings_x[label_ix], embeddings_y[label_ix], c=color_list[label_ix], alpha=max(0.05, summary[annotation[label_ix]][1]))

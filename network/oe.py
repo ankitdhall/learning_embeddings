@@ -388,7 +388,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
     Creates a PyTorch dataset for order-embeddings with images.
     """
 
-    def __init__(self, graph, has_negative=False, neg_to_pos_ratio=1, imageless_dataloaders=None, transform=None):
+    def __init__(self, graph, labelmap, has_negative=False, neg_to_pos_ratio=1, imageless_dataloaders=None, transform=None):
         """
         Constructor.
         :param graph: <networkx.DiGraph> Graph to be used.
@@ -397,9 +397,14 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         self.num_edges = self.G.size()
         self.has_negative = has_negative
         self.neg_to_pos_ratio = neg_to_pos_ratio
-        self.edge_list = [e for e in self.G.edges()]
-        self.status = [1]*len(self.edge_list)
+        self.edge_list_complete = [e for e in self.G.edges()]
+        self.status_complete = [1]*len(self.edge_list_complete)
         self.negative_from, self.negative_to = None, None
+
+        self.edge_list = self.edge_list_complete
+        self.status = self.status_complete
+
+        self.labelmap = labelmap
 
         self.image_to_loc = {}
         self.transform = transform
@@ -417,6 +422,22 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
                                                        transforms.Resize((input_size, input_size)),
                                                        transforms.ToTensor(),
                                                        ])
+        self.levels_to_hide = []
+
+    def set_levels_to_hide(self, list_of_levels):
+        self.levels_to_hide = list_of_levels
+
+        self.edge_list = []
+        for u, v in self.edge_list_complete:
+            flag = True
+            for level_to_hide in self.levels_to_hide:
+                if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
+                    flag = False
+                    break
+            # add edge only if it does not have a node belonging to a level to hide
+            if flag:
+                self.edge_list.append((u, v))
+        self.status = [1]*len(self.edge_list)
 
     def get_image(self, filename):
         path_to_image = self.image_to_loc[filename]
@@ -491,6 +512,11 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
         self.use_CNN = use_CNN
         self.dataloader = None
+
+        self.levels_to_hide = []
+
+    def set_levels_to_hide(self, list_of_levels):
+        self.levels_to_hide = list_of_levels
 
     def set_dataloader(self, dataloader):
         self.dataloader = dataloader
@@ -567,29 +593,59 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
         return S
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
-        if level_id is not None:
-            level_id = level_id % (len(self.labelmap.level_names)+1)
-        if u is not None and v is None:
-            choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
-        elif u is None and v is not None:
-            choose_from = np.where(self.negative_G[:, self.mapping_from_node_to_ix[v]] == 1)[0]
-        else:
-            print('Error! Both (u, v) given or neither (u, v) given!')
+        if len(self.levels_to_hide) > 0:
+            # in order not to pick from the hidden level
+            if level_id is not None:
+                level_id = level_id % (len(self.labelmap.level_names) - len(self.levels_to_hide) + 1)
+                level_id = list(set(list(range(len(self.labelmap.level_names)))) - set(self.levels_to_hide))[level_id]
 
-        if self.pick_per_level:
-            if level_id < len(self.labelmap.levels):
-                level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
-                choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
+            if u is not None and v is None:
+                choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
+            elif u is None and v is not None:
+                choose_from = np.where(self.negative_G[:, self.mapping_from_node_to_ix[v]] == 1)[0]
             else:
-                level_start, level_stop = self.labelmap.level_stop[-1], None
-                if type(v) == str:
-                    choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
+                print('Error! Both (u, v) given or neither (u, v) given!')
+
+            if self.pick_per_level:
+                if level_id < len(self.labelmap.levels):
+                    level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+                    choose_from = choose_from[
+                        np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
                 else:
-                    choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+                    level_start, level_stop = self.labelmap.level_stop[-1], None
+                    if type(v) == str:
+                        choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
+                    else:
+                        choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+            else:
+                choose_from = choose_from.tolist()
+            corrupted_ix = random.choice(choose_from)
+            return corrupted_ix
+
         else:
-            choose_from = choose_from.tolist()
-        corrupted_ix = random.choice(choose_from)
-        return corrupted_ix
+            if level_id is not None:
+                level_id = level_id % (len(self.labelmap.level_names)+1)
+            if u is not None and v is None:
+                choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
+            elif u is None and v is not None:
+                choose_from = np.where(self.negative_G[:, self.mapping_from_node_to_ix[v]] == 1)[0]
+            else:
+                print('Error! Both (u, v) given or neither (u, v) given!')
+
+            if self.pick_per_level:
+                if level_id < len(self.labelmap.levels):
+                    level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+                    choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
+                else:
+                    level_start, level_stop = self.labelmap.level_stop[-1], None
+                    if type(v) == str:
+                        choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
+                    else:
+                        choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
+            else:
+                choose_from = choose_from.tolist()
+            corrupted_ix = random.choice(choose_from)
+            return corrupted_ix
 
     def forward(self, model, img_feat_net, inputs_from, inputs_to,  original_from, original_to, status, phase):
         loss = 0.0
@@ -639,7 +695,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
                     negative_from[
                         2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = self.mapping_from_ix_to_node[corrupted_ix]
                     negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
-
+                    
             # get embeddings for concepts and images
             negative_from_embeddings, negative_to_embeddings = self.calculate_from_and_to_emb(model, img_feat_net, negative_from, negative_to)
 
@@ -1018,7 +1074,7 @@ class JointEmbeddings:
                  load_wt=False,
                  model_name=None,
                  optimizer_method='adam',
-                 use_grayscale=False, load_emb_from=None, load_cosine_emb=None):
+                 use_grayscale=False, load_emb_from=None, load_cosine_emb=None, hide_levels=None):
         torch.manual_seed(0)
 
         self.classes = labelmap.classes
@@ -1037,6 +1093,7 @@ class JointEmbeddings:
         self.imageless_dataloaders = imageless_dataloaders
         self.use_CNN = use_CNN
         self.image_dir = image_dir
+        self.hide_levels = hide_levels
 
         self.best_model_wts = None
         self.best_score = 0.0
@@ -1072,7 +1129,9 @@ class JointEmbeddings:
         # prepare models (embedding module and image feature extractor)
         self.model = Embedder(embedding_dim=self.embedding_dim, labelmap=labelmap, normalize=self.normalize,
                               K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None)
+        print(list(self.model.parameters()))
         if load_cosine_emb:
+            print('loading cosine emb')
             self.load_inverted_cosine_emb(load_cosine_emb)
         self.model.to(self.device)
 
@@ -1127,6 +1186,7 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
+        print('inside preparemde')
         print(list(self.model.parameters()))
         self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.001},
                                  {'params': self.img_feat_net.parameters()}]
@@ -1145,13 +1205,15 @@ class JointEmbeddings:
         random.seed(0)
         train_set = ETHECHierarchyWithImages(self.graph_dict['G_train_skeleton_full'],
                                              imageless_dataloaders=self.imageless_dataloaders['train'] if self.use_CNN else None,
-                                             transform=train_data_transforms)
+                                             transform=train_data_transforms, labelmap=self.labelmap)
         val_set = ETHECHierarchyWithImages(self.graph_dict['G_val'],
                                            imageless_dataloaders=self.imageless_dataloaders['val'] if self.use_CNN else None,
-                                           transform=val_test_data_transforms)
+                                           transform=val_test_data_transforms, labelmap=self.labelmap)
         test_set = ETHECHierarchyWithImages(self.graph_dict['G_test'],
                                             imageless_dataloaders=self.imageless_dataloaders['test'] if self.use_CNN else None,
-                                            transform=val_test_data_transforms)
+                                            transform=val_test_data_transforms, labelmap=self.labelmap)
+
+        self.train_set = train_set
 
         # create dataloaders
         trainloader = torch.utils.data.DataLoader(train_set,
@@ -1190,12 +1252,45 @@ class JointEmbeddings:
         self.best_model_wts = copy.deepcopy(self.model.state_dict())
         self.best_score = 0.0
 
+        levels_to_hide_for_epoch = {}
+        if self.hide_levels:
+            levels_to_hide_for_epoch = {0: [1, 2, 3], 2: [2, 3], 30: [3], 50: []}
+
+        if True:
+            current_levels = None
+            for key in levels_to_hide_for_epoch:
+                if self.epoch >= key:
+                    current_levels = key
+            if current_levels is not None:
+                print('Set levels to hide to: {}'.format(levels_to_hide_for_epoch[current_levels]))
+                self.train_set.set_levels_to_hide(levels_to_hide_for_epoch[current_levels])
+                self.criterion.set_levels_to_hide(levels_to_hide_for_epoch[current_levels])
+                trainloader = torch.utils.data.DataLoader(self.train_set,
+                                                          batch_size=self.batch_size,
+                                                          num_workers=self.n_workers, collate_fn=my_collate,
+                                                          shuffle=True)
+                self.datasets['train'] = self.train_set
+                self.dataloaders['train'] = trainloader
+                self.dataset_length['train'] = len(self.train_set)
+
         since = time.time()
 
         for self.epoch in range(self.epoch, self.n_epochs):
             print('=' * 10)
             print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
             print('=' * 10)
+
+            if self.epoch in levels_to_hide_for_epoch:
+                print('Set levels to hide to: {}'.format(levels_to_hide_for_epoch[self.epoch]))
+                self.train_set.set_levels_to_hide(levels_to_hide_for_epoch[self.epoch])
+                self.criterion.set_levels_to_hide(levels_to_hide_for_epoch[self.epoch])
+                trainloader = torch.utils.data.DataLoader(self.train_set,
+                                                          batch_size=self.batch_size,
+                                                          num_workers=self.n_workers, collate_fn=my_collate,
+                                                          shuffle=True)
+                self.datasets['train'] = self.train_set
+                self.dataloaders['train'] = trainloader
+                self.dataset_length['train'] = len(self.train_set)
 
             epoch_start_time = time.time()
             self.pass_samples(phase='train')
@@ -1422,8 +1517,6 @@ class JointEmbeddings:
             label_embeddings[label_ix, :] *= (3.0 * max_norm / label_norms[label_ix] ** 2)
 
         self.model.embeddings.from_pretrained(torch.FloatTensor(label_embeddings), freeze=False)
-        print(self.model.embeddings.weight.is_leaf)
-        print(list(self.model.parameters()))
         print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))
 
     def load_model(self, epoch_to_load):
@@ -1833,7 +1926,7 @@ def order_embedding_labels_with_images_train_model(arguments):
                             load_wt=arguments.resume,
                             model_name=arguments.model,
                             optimizer_method=arguments.optimizer_method,
-                            use_grayscale=False,
+                            use_grayscale=False, hide_levels=arguments.hide_levels,
                             lr_step=arguments.lr_step,
                             load_emb_from=arguments.load_emb_from, load_cosine_emb=arguments.load_cosine_emb)
 
@@ -1878,6 +1971,7 @@ if __name__ == '__main__':
         parser.add_argument("--pick_per_level", help='If set, then picks samples from each level, for the remaining, picks from images.',
                             action='store_true')
         parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+        parser.add_argument("--hide_levels", help='This flag shows graph levels incrementally.', action='store_true')
         parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                             required=True)
         parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[],

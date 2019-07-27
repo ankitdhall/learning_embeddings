@@ -1516,7 +1516,11 @@ class JointEmbeddings:
         for label_ix in embeddings_x:
             label_embeddings[label_ix, :] *= (3.0 * max_norm / label_norms[label_ix] ** 2)
 
-        self.model.embeddings.from_pretrained(torch.FloatTensor(label_embeddings), freeze=False)
+        print(label_embeddings)
+        self.model.embeddings.weight.data.copy_(torch.from_numpy(label_embeddings))
+        print(self.model.embeddings.weight.is_leaf)
+        print(list(self.model.parameters()))
+
         print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))
 
     def load_model(self, epoch_to_load):

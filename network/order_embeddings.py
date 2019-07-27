@@ -726,8 +726,7 @@ class OrderEmbedding:
         embeddings_x, embeddings_y = emb_info['x'], emb_info['y']
         label_embeddings = np.zeros((len(embeddings_x.keys()), self.embedding_dim))
         for label_ix in embeddings_x:
-            label_embeddings[label_ix, 0], label_embeddings[label_ix, 1] = embeddings_x[label_ix], embeddings_y[
-                label_ix]
+            label_embeddings[label_ix, 0], label_embeddings[label_ix, 1] = embeddings_x[label_ix], embeddings_y[label_ix]
 
         # invert embeddings
         label_norms = np.linalg.norm(label_embeddings, axis=1, ord=2)
@@ -735,8 +734,8 @@ class OrderEmbedding:
 
         for label_ix in embeddings_x:
             label_embeddings[label_ix, :] *= (3.0 * max_norm / label_norms[label_ix] ** 2)
-
-        self.model.embeddings.from_pretrained(torch.FloatTensor(label_embeddings), freeze=False)
+        print(label_embeddings)
+        self.model.embeddings.weight.data.copy_(torch.from_numpy(label_embeddings))
         print(self.model.embeddings.weight.is_leaf)
         print(list(self.model.parameters()))
         print('Succesfully loaded inverted cosine embeddings from {}'.format(path_to_weights))

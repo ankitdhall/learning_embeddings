@@ -588,8 +588,12 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
     def negative_pair(self, x, y):
         return torch.clamp(self.alpha-self.E_operator(x, y), min=0.0), self.E_operator(x, y)
 
-    def get_image_label_loss(self, e_for_u_v_positive, e_for_u_v_negative):
-        S = torch.sum(e_for_u_v_positive) + torch.sum(torch.clamp(self.alpha - e_for_u_v_negative, min=0.0))
+    def get_image_label_loss(self, e_for_u_v_positive, e_for_u_v_negative, weights=None):
+        if weights is None:
+            S = torch.sum(e_for_u_v_positive) + torch.sum(torch.clamp(self.alpha - e_for_u_v_negative, min=0.0))
+        else:
+            weights = torch.tensor(weights).to(self.device)
+            S = torch.sum(weights*e_for_u_v_positive) + torch.sum(weights*torch.sum(torch.clamp(self.alpha - e_for_u_v_negative, min=0.0), dim=1))
         return S
 
     def sample_negative_edge(self, u=None, v=None, level_id=None):
@@ -597,7 +601,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
             # in order not to pick from the hidden level
             if level_id is not None:
                 level_id = level_id % (len(self.labelmap.level_names) - len(self.levels_to_hide) + 1)
-                level_id = list(set(list(range(len(self.labelmap.level_names)))) - set(self.levels_to_hide))[level_id]
+                level_id = list(set(list(range(len(self.labelmap.level_names)+1))) - set(self.levels_to_hide))[level_id]
 
             if u is not None and v is None:
                 choose_from = np.where(self.negative_G[self.mapping_from_node_to_ix[u], :] == 1)[0]
@@ -681,10 +685,16 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
             negative_from = [None] * (2 * self.neg_to_pos_ratio * len(inputs_from))
             negative_to = [None] * (2 * self.neg_to_pos_ratio * len(inputs_to))
+            weights = [1.0] * len(inputs_from)
 
             for batch_id in range(len(original_from)):
                 # loss for negative pairs
                 sample_inputs_from, sample_inputs_to = original_from[batch_id], original_to[batch_id]
+
+                # weigh (label, label) edges more
+                if type(sample_inputs_from) != str and type(sample_inputs_to) != str:
+                    weights[batch_id] = 100.0
+
                 for pass_ix in range(self.neg_to_pos_ratio):
 
                     corrupted_ix = self.sample_negative_edge(u=sample_inputs_from, v=None, level_id=pass_ix)
@@ -702,7 +712,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
             neg_term, e_for_u_v_negative_all = self.negative_pair(negative_from_embeddings, negative_to_embeddings)
             e_for_u_v_negative_all = e_for_u_v_negative_all.view(len(inputs_from), 2 * self.neg_to_pos_ratio, -1)
 
-            loss += torch.sum(self.get_image_label_loss(torch.squeeze(e_for_u_v_positive_all), torch.squeeze(e_for_u_v_negative_all)))
+            loss += torch.sum(self.get_image_label_loss(torch.squeeze(e_for_u_v_positive_all), torch.squeeze(e_for_u_v_negative_all), weights))
 
         return loss, e_for_u_v_positive_all, e_for_u_v_negative_all
 

@@ -397,12 +397,14 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         self.num_edges = self.G.size()
         self.has_negative = has_negative
         self.neg_to_pos_ratio = neg_to_pos_ratio
-        self.edge_list_complete = [e for e in self.G.edges()]
-        self.status_complete = [1]*len(self.edge_list_complete)
-        self.negative_from, self.negative_to = None, None
 
-        self.edge_list = self.edge_list_complete
-        self.status = self.status_complete
+        # (label, label) edges
+        self.edge_list_complete_ll = [e for e in self.G.edges() if type(e[0]) != str and type(e[1]) != str]
+        # (label, label) edges
+        self.edge_list_complete_li = [e for e in self.G.edges() if type(e[0]) == str or type(e[1]) == str]
+
+        self.edge_list_ll = self.edge_list_complete_ll
+        self.edge_list_li = self.edge_list_complete_li
 
         self.labelmap = labelmap
 
@@ -427,8 +429,8 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
     def set_levels_to_hide(self, list_of_levels):
         self.levels_to_hide = list_of_levels
 
-        self.edge_list = []
-        for u, v in self.edge_list_complete:
+        self.edge_list_ll, self.edge_list_li = [], []
+        for u, v in self.edge_list_complete_ll:
             flag = True
             for level_to_hide in self.levels_to_hide:
                 if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
@@ -436,8 +438,17 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
                     break
             # add edge only if it does not have a node belonging to a level to hide
             if flag:
-                self.edge_list.append((u, v))
-        self.status = [1]*len(self.edge_list)
+                self.edge_list_ll.append((u, v))
+
+        for u, v in self.edge_list_complete_li:
+            flag = True
+            for level_to_hide in self.levels_to_hide:
+                if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
+                    flag = False
+                    break
+            # add edge only if it does not have a node belonging to a level to hide
+            if flag:
+                self.edge_list_li.append((u, v))
 
     def get_image(self, filename):
         path_to_image = self.image_to_loc[filename]
@@ -450,6 +461,10 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
 
         return u
 
+    @staticmethod
+    def map_ranges(input, output_range, input_range):
+        return round(input*output_range/input_range)
+
     def __getitem__(self, item):
         """
         Fetch an entry based on index.
@@ -457,8 +472,16 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         :return: <dict> Consumable object (see schema.md)
                 {'from': <int>, 'to': <int>}
         """
+        if item % 2 == 0:
+            item_ix = self.map_ranges(item//2, len(self.edge_list_ll)-1, round(self.__len__()/2))
+            u, v = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
+            original_from, original_to = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
+        else:
+            item_ix = self.map_ranges(item // 2, len(self.edge_list_li)-1, self.__len__() // 2)
+            u, v = self.edge_list_li[item_ix][0], self.edge_list_li[item_ix][1]
+            original_from, original_to = self.edge_list_li[item_ix][0], self.edge_list_li[item_ix][1]
+
         if self.load_images:
-            u, v = self.edge_list[item][0], self.edge_list[item][1]
             if type(u) == str:
                 path_to_image = self.image_to_loc[u]
                 u = cv2.imread(path_to_image)
@@ -478,17 +501,17 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
                 if self.transform:
                     v = self.transform(v)
             return {'from': u, 'to': v, 'status': 1,
-                    'original_from': self.edge_list[item][0], 'original_to': self.edge_list[item][1]}
+                    'original_from': original_from, 'original_to': original_to}
         else:
-            return {'from': self.edge_list[item][0], 'to': self.edge_list[item][1], 'status': 1,
-                    'original_from': self.edge_list[item][0], 'original_to': self.edge_list[item][1]}
+            return {'from': u, 'to': v, 'status': 1,
+                    'original_from': original_from, 'original_to': original_to}
 
     def __len__(self):
         """
         Return number of entries in the database.
         :return: <int> length of database
         """
-        return len(self.status)
+        return max(2*len(self.edge_list_ll), 2*len(self.edge_list_li))
 
 
 class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):

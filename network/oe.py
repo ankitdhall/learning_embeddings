@@ -1236,7 +1236,7 @@ class JointEmbeddings:
                                                        transforms.ToTensor(),
                                                        ])
         random.seed(0)
-        train_set = ETHECHierarchyWithImages(self.graph_dict['G_train_skeleton_full'],
+        train_set = ETHECHierarchyWithImages(self.graph_dict['G_train_tc'],
                                              imageless_dataloaders=self.imageless_dataloaders['train'] if self.use_CNN else None,
                                              transform=train_data_transforms, labelmap=self.labelmap)
         val_set = ETHECHierarchyWithImages(self.graph_dict['G_val'],

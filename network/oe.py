@@ -716,7 +716,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
                 # weigh (label, label) edges more
                 if type(sample_inputs_from) != str and type(sample_inputs_to) != str:
-                    weights[batch_id] = 100.0
+                    weights[batch_id] = 1.0
 
                 for pass_ix in range(self.neg_to_pos_ratio):
 

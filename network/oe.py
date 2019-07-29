@@ -400,7 +400,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
 
         # (label, label) edges
         self.edge_list_complete_ll = [e for e in self.G.edges() if type(e[0]) != str and type(e[1]) != str]
-        # (label, label) edges
+        # (label, image) edges
         self.edge_list_complete_li = [e for e in self.G.edges() if type(e[0]) == str or type(e[1]) == str]
 
         self.edge_list_ll = self.edge_list_complete_ll
@@ -472,7 +472,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         :return: <dict> Consumable object (see schema.md)
                 {'from': <int>, 'to': <int>}
         """
-        if item % 2 == 0:
+        if item % 2 == 0 and len(self.edge_list_ll) != 0:
             item_ix = self.map_ranges(item//2, len(self.edge_list_ll)-1, round(self.__len__()/2))
             u, v = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
             original_from, original_to = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]

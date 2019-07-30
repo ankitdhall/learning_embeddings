@@ -388,7 +388,7 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
     Creates a PyTorch dataset for order-embeddings with images.
     """
 
-    def __init__(self, graph, labelmap, has_negative=False, neg_to_pos_ratio=1, imageless_dataloaders=None, transform=None):
+    def __init__(self, graph, labelmap, has_negative=False, neg_to_pos_ratio=1, imageless_dataloaders=None, transform=None, half_half=False):
         """
         Constructor.
         :param graph: <networkx.DiGraph> Graph to be used.
@@ -397,14 +397,19 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         self.num_edges = self.G.size()
         self.has_negative = has_negative
         self.neg_to_pos_ratio = neg_to_pos_ratio
+        self.half_half = half_half
 
-        # (label, label) edges
-        self.edge_list_complete_ll = [e for e in self.G.edges() if type(e[0]) != str and type(e[1]) != str]
-        # (label, image) edges
-        self.edge_list_complete_li = [e for e in self.G.edges() if type(e[0]) == str or type(e[1]) == str]
+        if self.half_half:
+            # (label, label) edges
+            self.edge_list_complete_ll = [e for e in self.G.edges() if type(e[0]) != str and type(e[1]) != str]
+            # (label, image) edges
+            self.edge_list_complete_li = [e for e in self.G.edges() if type(e[0]) == str or type(e[1]) == str]
 
-        self.edge_list_ll = self.edge_list_complete_ll
-        self.edge_list_li = self.edge_list_complete_li
+            self.edge_list_ll = self.edge_list_complete_ll
+            self.edge_list_li = self.edge_list_complete_li
+        else:
+            self.edge_list_complete = [e for e in self.G.edges()]
+            self.edge_list = self.edge_list_complete
 
         self.labelmap = labelmap
 
@@ -425,30 +430,43 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
                                                        transforms.ToTensor(),
                                                        ])
         self.levels_to_hide = []
+        self.half_half = half_half
 
     def set_levels_to_hide(self, list_of_levels):
         self.levels_to_hide = list_of_levels
 
-        self.edge_list_ll, self.edge_list_li = [], []
-        for u, v in self.edge_list_complete_ll:
-            flag = True
-            for level_to_hide in self.levels_to_hide:
-                if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
-                    flag = False
-                    break
-            # add edge only if it does not have a node belonging to a level to hide
-            if flag:
-                self.edge_list_ll.append((u, v))
+        if self.half_half:
+            self.edge_list_ll, self.edge_list_li = [], []
+            for u, v in self.edge_list_complete_ll:
+                flag = True
+                for level_to_hide in self.levels_to_hide:
+                    if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
+                        flag = False
+                        break
+                # add edge only if it does not have a node belonging to a level to hide
+                if flag:
+                    self.edge_list_ll.append((u, v))
 
-        for u, v in self.edge_list_complete_li:
-            flag = True
-            for level_to_hide in self.levels_to_hide:
-                if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
-                    flag = False
-                    break
-            # add edge only if it does not have a node belonging to a level to hide
-            if flag:
-                self.edge_list_li.append((u, v))
+            for u, v in self.edge_list_complete_li:
+                flag = True
+                for level_to_hide in self.levels_to_hide:
+                    if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
+                        flag = False
+                        break
+                # add edge only if it does not have a node belonging to a level to hide
+                if flag:
+                    self.edge_list_li.append((u, v))
+        else:
+            self.edge_list = []
+            for u, v in tqdm(self.edge_list_complete):
+                flag = True
+                for level_to_hide in self.levels_to_hide:
+                    if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
+                        flag = False
+                        break
+                # add edge only if it does not have a node belonging to a level to hide
+                if flag:
+                    self.edge_list.append((u, v))
 
     def get_image(self, filename):
         path_to_image = self.image_to_loc[filename]
@@ -472,14 +490,18 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         :return: <dict> Consumable object (see schema.md)
                 {'from': <int>, 'to': <int>}
         """
-        if item % 2 == 0 and len(self.edge_list_ll) != 0:
-            item_ix = self.map_ranges(item//2, len(self.edge_list_ll)-1, round(self.__len__()/2))
-            u, v = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
-            original_from, original_to = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
+        if self.half_half:
+            if item % 2 == 0 and len(self.edge_list_ll) != 0:
+                item_ix = self.map_ranges(item//2, len(self.edge_list_ll)-1, round(self.__len__()/2))
+                u, v = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
+                original_from, original_to = self.edge_list_ll[item_ix][0], self.edge_list_ll[item_ix][1]
+            else:
+                item_ix = self.map_ranges(item // 2, len(self.edge_list_li)-1, self.__len__() // 2)
+                u, v = self.edge_list_li[item_ix][0], self.edge_list_li[item_ix][1]
+                original_from, original_to = self.edge_list_li[item_ix][0], self.edge_list_li[item_ix][1]
         else:
-            item_ix = self.map_ranges(item // 2, len(self.edge_list_li)-1, self.__len__() // 2)
-            u, v = self.edge_list_li[item_ix][0], self.edge_list_li[item_ix][1]
-            original_from, original_to = self.edge_list_li[item_ix][0], self.edge_list_li[item_ix][1]
+            u, v = self.edge_list[item][0], self.edge_list[item][1]
+            original_from, original_to = self.edge_list[item][0], self.edge_list[item][1]
 
         if self.load_images:
             if type(u) == str:
@@ -511,7 +533,10 @@ class ETHECHierarchyWithImages(torch.utils.data.Dataset):
         Return number of entries in the database.
         :return: <int> length of database
         """
-        return max(2*len(self.edge_list_ll), 2*len(self.edge_list_li))
+        if self.half_half:
+            return max(2*len(self.edge_list_ll), 2*len(self.edge_list_li))
+        else:
+            return len(self.edge_list)
 
 
 class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
@@ -1107,7 +1132,7 @@ class JointEmbeddings:
                  load_wt=False,
                  model_name=None,
                  optimizer_method='adam',
-                 use_grayscale=False, load_emb_from=None, load_cosine_emb=None, hide_levels=None):
+                 use_grayscale=False, load_emb_from=None, load_cosine_emb=None, hide_levels=None, half_half=False):
         torch.manual_seed(0)
 
         self.classes = labelmap.classes
@@ -1127,6 +1152,7 @@ class JointEmbeddings:
         self.use_CNN = use_CNN
         self.image_dir = image_dir
         self.hide_levels = hide_levels
+        self.half_half = half_half
 
         self.best_model_wts = None
         self.best_score = 0.0
@@ -1238,13 +1264,13 @@ class JointEmbeddings:
         random.seed(0)
         train_set = ETHECHierarchyWithImages(self.graph_dict['G_train_tc'],
                                              imageless_dataloaders=self.imageless_dataloaders['train'] if self.use_CNN else None,
-                                             transform=train_data_transforms, labelmap=self.labelmap)
+                                             transform=train_data_transforms, labelmap=self.labelmap, half_half=self.half_half)
         val_set = ETHECHierarchyWithImages(self.graph_dict['G_val'],
                                            imageless_dataloaders=self.imageless_dataloaders['val'] if self.use_CNN else None,
-                                           transform=val_test_data_transforms, labelmap=self.labelmap)
+                                           transform=val_test_data_transforms, labelmap=self.labelmap, half_half=False)
         test_set = ETHECHierarchyWithImages(self.graph_dict['G_test'],
                                             imageless_dataloaders=self.imageless_dataloaders['test'] if self.use_CNN else None,
-                                            transform=val_test_data_transforms, labelmap=self.labelmap)
+                                            transform=val_test_data_transforms, labelmap=self.labelmap, half_half=False)
 
         self.train_set = train_set
 
@@ -1965,7 +1991,8 @@ def order_embedding_labels_with_images_train_model(arguments):
                             optimizer_method=arguments.optimizer_method,
                             use_grayscale=False, hide_levels=arguments.hide_levels,
                             lr_step=arguments.lr_step,
-                            load_emb_from=arguments.load_emb_from, load_cosine_emb=arguments.load_cosine_emb)
+                            load_emb_from=arguments.load_emb_from, load_cosine_emb=arguments.load_cosine_emb,
+                            half_half=arguments.half_half)
 
     if arguments.set_mode == 'train':
         oelwi.train()
@@ -2008,6 +2035,7 @@ if __name__ == '__main__':
         parser.add_argument("--pick_per_level", help='If set, then picks samples from each level, for the remaining, picks from images.',
                             action='store_true')
         parser.add_argument("--freeze_weights", help='This flag fine tunes only the last layer.', action='store_true')
+        parser.add_argument("--half_half", help='If show 50% (label, label) and 50% (label, image) edges.', action='store_true')
         parser.add_argument("--hide_levels", help='This flag shows graph levels incrementally.', action='store_true')
         parser.add_argument("--set_mode", help='If use training or testing mode (loads best model).', type=str,
                             required=True)

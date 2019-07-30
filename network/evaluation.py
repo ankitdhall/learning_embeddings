@@ -160,7 +160,7 @@ class Metrics:
             self.cmat[label_ix] = confusion_matrix(self.correct_labels[:, label_ix],
                                                    self.predicted_labels[:, label_ix])
 
-            self.accuracy[label_ix] = (self.cmat[label_ix][1][1] + self.cmat[label_ix][0][0]) / (self.cmat[label_ix][0][0] + self.cmat[label_ix][0][1] + self.cmat[label_ix][1][0] + self.cmat[label_ix][1][1])
+            self.accuracy[label_ix] = self.predicted_labels[:, label_ix][np.where(self.correct_labels[:, label_ix] == 1)].mean()
 
         for metric in ['precision', 'recall', 'f1']:
             self.macro_scores[metric] = 1.0 * sum([getattr(self, metric)[label_ix]
@@ -175,8 +175,7 @@ class Metrics:
         self.micro_scores['recall'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[1][0])
         self.micro_scores['f1'] = 2 * self.micro_scores['precision'] * self.micro_scores['recall'] / (
                 self.micro_scores['precision'] + self.micro_scores['recall'])
-        self.accuracy_score = (combined_cmat[1][1] + combined_cmat[0][0]) / (
-                    combined_cmat[0][0] + combined_cmat[0][1] + combined_cmat[1][1] + combined_cmat[1][0])
+        self.accuracy_score = self.predicted_labels[:, list_of_indices][np.where(self.correct_labels[:, list_of_indices] == 1)].mean()
 
         return {'macro': self.macro_scores, 'micro': self.micro_scores, 'precision': self.precision,
                 'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat, 'accuracy': self.accuracy,
@@ -517,17 +516,17 @@ class MetricsMultiLevel:
 
             tn, fp, fn, tp = self.cmat[label_ix].ravel()
             if tp == 0 and fp == 0 and fn == 0:
-                self.accuracy[label_ix] = (tp + tn) / (tp + tn + fp + fn)
+                self.accuracy[label_ix] = self.predicted_labels[:, label_ix][np.where(self.correct_labels[:, label_ix] == 1)].mean() #(tp + tn) / (tp + tn + fp + fn)
                 self.precision[label_ix] = 1.0
                 self.recall[label_ix] = 1.0
                 self.f1[label_ix] = 1.0
             elif tp == 0 and (fp > 0 or fn > 0):
-                self.accuracy[label_ix] = (tp + tn) / (tp + tn + fp + fn)
+                self.accuracy[label_ix] = self.predicted_labels[:, label_ix][np.where(self.correct_labels[:, label_ix] == 1)].mean()
                 self.precision[label_ix] = 0.0
                 self.recall[label_ix] = 0.0
                 self.f1[label_ix] = 0.0
             else:
-                self.accuracy[label_ix] = (tp+tn)/(tp+tn+fp+fn)
+                self.accuracy[label_ix] = self.predicted_labels[:, label_ix][np.where(self.correct_labels[:, label_ix] == 1)].mean()
                 self.precision[label_ix] = 1.0 * tp/(tp + fp)
                 self.recall[label_ix] = 1.0 * tp/(tp + fn)
                 self.f1[label_ix] = 2 * self.precision[label_ix] * self.recall[label_ix] /\
@@ -546,7 +545,7 @@ class MetricsMultiLevel:
         self.micro_scores['recall'] = 1.0 * combined_cmat[1][1] / (combined_cmat[1][1] + combined_cmat[1][0])
         self.micro_scores['f1'] = 2 * self.micro_scores['precision'] * self.micro_scores['recall'] / (
                 self.micro_scores['precision'] + self.micro_scores['recall'])
-        self.accuracy_score = (combined_cmat[1][1] + combined_cmat[0][0])/(combined_cmat[0][0] + combined_cmat[0][1] + combined_cmat[1][1] + combined_cmat[1][0])
+        self.accuracy_score = self.predicted_labels[:, list_of_indices][np.where(self.correct_labels[:, list_of_indices] == 1)].mean()
 
         return {'macro': self.macro_scores, 'micro': self.micro_scores, 'precision': self.precision,
                 'recall': self.recall, 'f1': self.f1, 'cmat': self.cmat, 'accuracy': self.accuracy,

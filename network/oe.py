@@ -1360,7 +1360,8 @@ class JointEmbeddings:
 
         levels_to_hide_for_epoch = {}
         if self.hide_levels:
-            levels_to_hide_for_epoch = {0: [1, 2, 3], 100: [2, 3], 200: [3], 500: []}
+            levels_to_hide_for_epoch = {0: [1, 2, 3], 20: [2, 3], 50: [3], 100: []}
+            #levels_to_hide_for_epoch = {0: [1, 2, 3], 100: [2, 3], 200: [3], 500: []}
 
         if True:
             current_levels = None

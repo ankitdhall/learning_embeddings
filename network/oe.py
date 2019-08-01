@@ -134,6 +134,55 @@ class FeatNet(nn.Module):
         return (direction * (norm + self.K)).view(original_shape)
 
 
+class FeatCNN18(nn.Module):
+    """
+    Fully connected NN to learn features on top of image features in the joint embedding space.
+    """
+    def __init__(self, image_dir, path_to_exp='../exp', input_dim=2048, output_dim=10,
+                 exp_name='ethec_resnet50_lr_1e-5_1_1_1_1/', K=None):
+        """
+        Constructor to prepare layers for the embedding.
+        """
+        super(FeatCNN18, self).__init__()
+        if 'cluster' in image_dir:
+            path_to_exp = '/cluster/scratch/adhall/exp/ethec/baseline3_wt_levels/resnet50/'
+        self.path_to_exp = os.path.join(path_to_exp, exp_name)
+        self.image_dir = image_dir
+        self.K = K
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = None
+        self.load_model()
+        self.model = nn.DataParallel(self.model)
+        self.model.module.fc = nn.Linear(self.model.module.fc.in_features, output_dim)
+
+        print(self.model)
+
+    def load_model(self):
+        """
+        Load the CNN model to generate embeddings for images.
+        :return: NA
+        """
+        self.model = models.resnet18(pretrained=True)
+
+    def forward(self, x):
+        """
+        Forward pass through the model.
+        """
+        x = self.model(x)
+        if self.K:
+            return self.soft_clip(x)
+        else:
+            return x
+
+    def soft_clip(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        direction = F.normalize(x, dim=1)
+        norm = torch.norm(x, dim=1, keepdim=True)
+        return (direction * (norm + self.K)).view(original_shape)
+
+
 class FeatCNN(nn.Module):
     """
     Fully connected NN to learn features on top of image features in the joint embedding space.
@@ -1195,7 +1244,7 @@ class JointEmbeddings:
         self.model.to(self.device)
 
         if self.use_CNN:
-            self.img_feat_net = FeatCNN(image_dir=self.image_dir, output_dim=self.embedding_dim,
+            self.img_feat_net = FeatCNN18(image_dir=self.image_dir, output_dim=self.embedding_dim,
                                         K=criterion.K if isinstance(criterion, EuclideanConesWithImagesHypernymLoss) else None).to(self.device)
         else:
             # load precomputed features as look-up table
@@ -1245,8 +1294,6 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
-        print('inside preparemde')
-        print(list(self.model.parameters()))
         self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.001},
                                  {'params': self.img_feat_net.parameters()}]
 

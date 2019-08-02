@@ -237,6 +237,11 @@ class CIFAR10(Experiment):
             correct_labels[self.batch_size * index:min(self.batch_size * (index + 1),
                                                        self.dataset_length[phase])] = labels.data
 
+        # save predicted and correct labels to post-process
+        if not save_to_tensorboard:
+            np.save(os.path.join(self.log_dir, 'predicted_scores.npy'), predicted_scores)
+            np.save(os.path.join(self.log_dir, 'correct_labels.npy'), correct_labels)
+
         metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard,
                                      self.samples_split)
         macro_f1, micro_f1, macro_p, micro_p, macro_r, micro_r = metrics['macro']['f1'], metrics['micro']['f1'], \

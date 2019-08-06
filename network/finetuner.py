@@ -137,23 +137,6 @@ class CIFAR10(Experiment):
         # modify last layers based on the model being used
         if not loading:
             if self.model_name in ['alexnet', 'vgg']:
-                num_features = self.model.classifier[6].in_features
-                if isinstance(self.criterion, LastLevelCELoss):
-                    self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
-                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
-                    self.model.classifier[6] = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
-                else:
-                    self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
-            elif 'resnet' in self.model_name:
-                num_features = self.model.fc.in_features
-                if isinstance(self.criterion, LastLevelCELoss):
-                    self.model.fc = nn.Linear(num_features, self.levels[-1])
-                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
-                    self.model.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
-                else:
-                    self.model.fc = nn.Linear(num_features, self.n_classes)
-        else:
-            if self.model_name in ['alexnet', 'vgg']:
                 num_features = self.model.module.classifier[6].in_features
                 if isinstance(self.criterion, LastLevelCELoss):
                     self.model.module.classifier[6] = nn.Linear(num_features, self.levels[-1])
@@ -165,6 +148,23 @@ class CIFAR10(Experiment):
                 num_features = self.model.module.fc.in_features
                 if isinstance(self.criterion, LastLevelCELoss):
                     self.model.module.fc = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.fc = nn.Linear(num_features, self.n_classes)
+        else:
+            if self.model_name in ['alexnet', 'vgg']:
+                num_features = self.model.module.module.classifier[6].in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.module.classifier[6] = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.module.classifier[6] = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.module.classifier[6] = nn.Linear(num_features, self.n_classes)
+            elif 'resnet' in self.model_name:
+                num_features = self.model.module.module.fc.in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.module.fc = nn.Linear(num_features, self.levels[-1])
                 elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
                     self.model.module.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
                 else:

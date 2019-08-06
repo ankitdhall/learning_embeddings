@@ -33,8 +33,8 @@ import matplotlib.pyplot as plt
 class VizualizeGraphRepresentation:
     def __init__(self, debug=False,
                  dim=2, loss_fn='ec', title_text='',
-                 # weights_to_load='/home/ankit/learning_embeddings/exp/ethec_debug/ec_debug/d10/oe10d_debug/weights/best_model.pth'):
-                 weights_to_load='/home/ankit/Desktop/emb_weights/joint_2xlr/best_model_model.pth'):
+                 weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/50-50_hide_levels/ec_2d_2xlr_init_5k/weights/best_model.pth'):
+                 # weights_to_load='/home/ankit/Desktop/emb_weights/joint_2xlr/best_model_model.pth'):
         torch.manual_seed(0)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -165,10 +165,11 @@ class VizualizeGraphRepresentationWithImages:
     def __init__(self, debug=False,
                  dim=2,
                  loss_fn='ec',
-                 weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/ec_2d_2xlr_feat4/weights/160_model.pth',
-                 img_weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/ec_2d_2xlr_feat4/weights/160_img_feat_net.pth'):
+                 weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/50-50_hide_levels/ec_2d_2xlr_init_5k/weights/250_model.pth',
+                 img_weights_to_load='/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/50-50_hide_levels/ec_2d_2xlr_init_5k/weights/250_img_feat_net.pth', filename='combined_plot'):
         torch.manual_seed(0)
         self.load_split = 'test'
+        self.filename = filename
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -247,7 +248,7 @@ class VizualizeGraphRepresentationWithImages:
                                                        ])
         test_set = ETHECHierarchyWithImages(self.graph_dict['G_{}'.format(self.load_split)],
                                             imageless_dataloaders=None,
-                                            transform=val_test_data_transforms)
+                                            transform=val_test_data_transforms, labelmap=self.labelmap)
 
         testloader = torch.utils.data.DataLoader(test_set, collate_fn=my_collate,
                                                  batch_size=10,
@@ -319,8 +320,8 @@ class VizualizeGraphRepresentationWithImages:
         for key in self.img_to_emb:
             emb = self.img_to_emb[key]
             e_norm = math.sqrt(emb[0]**2 + emb[1]**2)
-            if e_norm > 500:
-                emb = emb/e_norm*500.0
+            if e_norm > 10000:
+                emb = emb/e_norm*10000.0
             ax.scatter(emb[0], emb[1], c=level_color, alpha=0.1)
 
             from_ix = max([u for u, v in list(self.graph_dict['G_{}'.format(self.load_split)].in_edges(key))])
@@ -332,27 +333,28 @@ class VizualizeGraphRepresentationWithImages:
 
         ax.axis('equal')
         if True:
-            filename = 'combined_plot'
             fig.set_size_inches(8, 7)
-            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.pdf'.format(filename)), dpi=200)
-            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.png'.format(filename)), dpi=200)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.pdf'.format(self.filename)), dpi=200)
+            fig.savefig(os.path.join(os.path.dirname(self.weights_to_load), '..', '{}.png'.format(self.filename)), dpi=200)
 
 
 def create_images():
-    path_to_weights = '/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/ec_2d_2xlr_feat4_noinit/weights'
+    path_to_weights = '/cluster/scratch/adhall/exp/ethec/final_ec_full/load_emb_5k/50-50_hide_levels/ec_2d_2xlr_init_5k/weights'
     loss_fn = 'ec'
     files = os.listdir(path_to_weights)
     files.sort()
     for filename in files:
         if 'best_model' in filename or 'img' in filename:
             continue
-        viz = VizualizeGraphRepresentation(debug=False, dim=2, loss_fn=loss_fn, title_text='',
-                                           weights_to_load=os.path.join(path_to_weights, filename))
-        viz.vizualize(save_to_disk=True, filename='{0:04d}'.format(int(filename[:-10]) if 'model' in filename else int(filename[:-4])))
+        #viz = VizualizeGraphRepresentation(debug=False, dim=2, loss_fn=loss_fn, title_text='',
+        #                                   weights_to_load=os.path.join(path_to_weights, filename))
+        viz = VizualizeGraphRepresentationWithImages(debug=False, dim=2, loss_fn=loss_fn, filename='{0:04d}'.format(int(filename.split('_')[0])),
+                                           weights_to_load=os.path.join(path_to_weights, filename), img_weights_to_load=os.path.join(path_to_weights, '{}_img_feat_net.pth'.format(filename.split('_')[0])))
+        #viz.vizualize(save_to_disk=True, filename='{0:04d}'.format(int(filename[:-10]) if 'model' in filename else int(filename[:-4])))
         plt.close('all')
 
 
 if __name__ == '__main__':
     # obj = VizualizeGraphRepresentation(debug=False)
-    obj = VizualizeGraphRepresentationWithImages(debug=False)
-    # create_images()
+    #obj = VizualizeGraphRepresentationWithImages(debug=False)
+    create_images()

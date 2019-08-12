@@ -16,8 +16,8 @@ np.random.seed(0)
 def plot(predicted_level=3, gt_level=0):
     labelmap = ETHECLabelMapMerged()
 
-    predicted_scores = np.load('predicted_scores.npy')
-    correct_labels = np.load('correct_labels.npy')
+    predicted_scores = np.load('predicted_scores4x1.npy')
+    correct_labels = np.load('correct_labels4x1.npy')
 
     correct_labels_full = correct_labels
 
@@ -114,4 +114,4 @@ def plot(predicted_level=3, gt_level=0):
     plt.show()
 
 
-plot(predicted_level=3, gt_level=0)
+plot(predicted_level=0, gt_level=3)

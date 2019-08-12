@@ -132,17 +132,13 @@ class Experiment:
 
         mAP, _, _, _, _ = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard, )
 
-        # save predicted and correct labels to post-process
-        if save_to_tensorboard:
-            np.save(os.path.join(self.log_dir, 'predicted_scores.npy'), predicted_scores)
-            np.save(os.path.join(self.log_dir, 'correct_labels.npy'), correct_labels)
-
         epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
         epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
 
-        self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
-        self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
-        self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
+        if save_to_tensorboard:
+            self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
+            self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
+            self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
 
         print('{} Loss: {:.4f} Score: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 

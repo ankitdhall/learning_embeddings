@@ -513,18 +513,18 @@ class OrderEmbedding:
         if self.check_graph_embedding_neg_graph is None:
             start_time = time.time()
             # make negative graph
-            n_nodes = len(list(self.G.nodes()))
+            n_nodes = len(list(self.G_tc.nodes()))
 
             A = np.ones((n_nodes, n_nodes), dtype=np.bool)
 
-            for u, v in list(self.G.edges()):
+            for u, v in list(self.G_tc.edges()):
                 # remove edges that are in G_train_tc
                 A[u, v] = 0
             np.fill_diagonal(A, 0)
             self.check_graph_embedding_neg_graph = A
 
-            self.edges_in_G = self.G.edges()
-            self.n_nodes_in_G = len(self.G.nodes())
+            self.edges_in_G = self.G_tc.edges()
+            self.n_nodes_in_G = len(self.G_tc.nodes())
             self.nodes_in_G = [i for i in range(self.n_nodes_in_G)]
 
             self.pos_u_list, self.pos_v_list = [], []

@@ -89,10 +89,12 @@ class FeatNet(nn.Module):
         Constructor to prepare layers for the embedding.
         """
         super(FeatNet, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 4096)
-        self.fc2 = nn.Linear(4096, 2048)
-        self.fc3 = nn.Linear(2048, 1024)
-        self.fc4 = nn.Linear(1024, output_dim)
+        # self.fc1 = nn.Linear(input_dim, 4096)
+        # self.fc2 = nn.Linear(4096, 2048)
+        # self.fc3 = nn.Linear(2048, 1024)
+        # self.fc4 = nn.Linear(1024, output_dim)
+
+        self.fc1 = nn.Linear(input_dim, output_dim)
 
         self.normalize = normalize
         self.K = K
@@ -103,10 +105,12 @@ class FeatNet(nn.Module):
         """
         Forward pass through the model.
         """
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.fc4(x)
+        # x = F.relu(self.fc1(x))
+        # x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
+        # x = self.fc4(x)
+        
+        x = self.fc1(x)
 
         if self.normalize == 'unit_norm':
             original_shape = x.shape
@@ -318,7 +322,7 @@ class EmbeddingMetrics:
         else:
             f1_score = (2 * precision * recall) / (precision + recall)
 
-        return f1_score, threshold, accuracy, precision, recall, correct_positives, correct_negatives
+        return f1_score, threshold, accuracy, precision, recall, correct_positives/self.e_for_u_v_positive.shape[0], correct_negatives/self.e_for_u_v_negative.shape[0]
 
     def calculate_metrics(self):
         if self.phase == 'val':
@@ -354,7 +358,7 @@ class EmbeddingMetrics:
                 f1_score = 0.0
             else:
                 f1_score = (2 * precision * recall) / (precision + recall)
-            return f1_score, self.threshold, accuracy, precision, recall, correct_positives, correct_negatives
+            return f1_score, self.threshold, accuracy, precision, recall, correct_positives/self.e_for_u_v_positive.shape[0], correct_negatives/self.e_for_u_v_negative.shape[0]
 
 
 def create_combined_graphs(dataloaders, labelmap):
@@ -417,6 +421,7 @@ def create_combined_graphs(dataloaders, labelmap):
     np.save('neg_adjacency.npy', A)
 
     nx.write_gpickle(G, 'G')
+    nx.write_gpickle(nx.transitive_closure(G), 'G_tc')
     nx.write_gpickle(G_train, 'G_train')
     nx.write_gpickle(G_val, 'G_val')
     nx.write_gpickle(G_test, 'G_test')
@@ -424,6 +429,7 @@ def create_combined_graphs(dataloaders, labelmap):
     nx.write_gpickle(G_train_tc, 'G_train_tc')
 
     return {'graph': G,  # graph with labels only; edges between labels only
+            'graph_tc': nx.transitive_closure(G),  # tc(graph with labels only; edges between labels only)
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,  # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full, # graph with edge between labels + between labels and images
             'G_train_neg': A,  # adjacency labels and images but only negative edges
@@ -714,7 +720,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
                         np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
                 else:
                     level_start, level_stop = self.labelmap.level_stop[-1], None
-                    if type(v) == str:
+                    if type(v) == str or type(u) == str:
                         choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
                     else:
                         choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
@@ -739,7 +745,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
                     choose_from = choose_from[np.where(np.logical_and(choose_from >= level_start, choose_from < level_stop))].tolist()
                 else:
                     level_start, level_stop = self.labelmap.level_stop[-1], None
-                    if type(v) == str:
+                    if type(v) == str or type(u) == str:
                         choose_from = choose_from[np.where(choose_from < level_start)[0]].tolist()
                     else:
                         choose_from = choose_from[np.where(choose_from >= level_start)[0]].tolist()
@@ -802,7 +808,7 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
                     negative_from[
                         2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = self.mapping_from_ix_to_node[corrupted_ix]
                     negative_to[2 * self.neg_to_pos_ratio * batch_id + pass_ix + self.neg_to_pos_ratio] = sample_inputs_to
-                    
+
             # get embeddings for concepts and images
             negative_from_embeddings, negative_to_embeddings = self.calculate_from_and_to_emb(model, img_feat_net, negative_from, negative_to)
 
@@ -1283,7 +1289,7 @@ class JointEmbeddings:
 
         self.check_graph_embedding_neg_graph = None
 
-        self.check_reconstr_every = 10
+        self.check_reconstr_every = 1
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
         self.n_proc = 512 if torch.cuda.device_count() > 0 else 4
@@ -1294,8 +1300,8 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
-        self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.001},
-                                 {'params': self.img_feat_net.parameters()}]
+        self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.1},
+                                 {'params': self.img_feat_net.parameters(), 'weight_decay': 0.0}]
 
     def create_splits(self):
         input_size = 224
@@ -1350,7 +1356,7 @@ class JointEmbeddings:
 
     def run_model(self, optimizer):
         self.optimizer = optimizer
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
+        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
 
         if self.load_wt:
             self.find_existing_weights()
@@ -1358,20 +1364,19 @@ class JointEmbeddings:
         self.best_model_wts = copy.deepcopy(self.model.state_dict())
         self.best_score = 0.0
 
-        levels_to_hide_for_epoch = {}
+        self.levels_to_hide_for_epoch = {}
         if self.hide_levels:
-            levels_to_hide_for_epoch = {0: [1, 2, 3], 20: [2, 3], 50: [3], 100: []}
-            #levels_to_hide_for_epoch = {0: [1, 2, 3], 100: [2, 3], 200: [3], 500: []}
+            self.levels_to_hide_for_epoch = {0: [1, 2, 3], 20: [2, 3], 50: [3], 100: []}
 
         if True:
             current_levels = None
-            for key in levels_to_hide_for_epoch:
+            for key in self.levels_to_hide_for_epoch:
                 if self.epoch >= key:
                     current_levels = key
             if current_levels is not None:
-                print('Set levels to hide to: {}'.format(levels_to_hide_for_epoch[current_levels]))
-                self.train_set.set_levels_to_hide(levels_to_hide_for_epoch[current_levels])
-                self.criterion.set_levels_to_hide(levels_to_hide_for_epoch[current_levels])
+                print('Set levels to hide to: {}'.format(self.levels_to_hide_for_epoch[current_levels]))
+                self.train_set.set_levels_to_hide(self.levels_to_hide_for_epoch[current_levels])
+                self.criterion.set_levels_to_hide(self.levels_to_hide_for_epoch[current_levels])
                 trainloader = torch.utils.data.DataLoader(self.train_set,
                                                           batch_size=self.batch_size,
                                                           num_workers=self.n_workers, collate_fn=my_collate,
@@ -1387,10 +1392,10 @@ class JointEmbeddings:
             print('Epoch {}/{}'.format(self.epoch, self.n_epochs - 1))
             print('=' * 10)
 
-            if self.epoch in levels_to_hide_for_epoch:
-                print('Set levels to hide to: {}'.format(levels_to_hide_for_epoch[self.epoch]))
-                self.train_set.set_levels_to_hide(levels_to_hide_for_epoch[self.epoch])
-                self.criterion.set_levels_to_hide(levels_to_hide_for_epoch[self.epoch])
+            if self.epoch in self.levels_to_hide_for_epoch:
+                print('Set levels to hide to: {}'.format(self.levels_to_hide_for_epoch[self.epoch]))
+                self.train_set.set_levels_to_hide(self.levels_to_hide_for_epoch[self.epoch])
+                self.criterion.set_levels_to_hide(self.levels_to_hide_for_epoch[self.epoch])
                 trainloader = torch.utils.data.DataLoader(self.train_set,
                                                           batch_size=self.batch_size,
                                                           num_workers=self.n_workers, collate_fn=my_collate,
@@ -1412,7 +1417,7 @@ class JointEmbeddings:
                 self.pass_samples(phase='test')
                 self.writer.add_scalar('epoch_time_test', time.time() - test_start_time, self.epoch)
 
-            scheduler.step()
+            self.scheduler.step()
 
             epoch_time = time.time() - epoch_start_time
             self.writer.add_scalar('epoch_time', time.time() - epoch_start_time, self.epoch)
@@ -1469,7 +1474,6 @@ class JointEmbeddings:
                 # statistics
                 running_loss += loss.item()
 
-
             # metrics = EmbeddingMetrics(e_positive, e_negative, self.optimal_threshold, phase)
             # f1_score, threshold, accuracy = metrics.calculate_metrics()
             classification_metrics = self.calculate_classification_metrics(phase)
@@ -1478,6 +1482,9 @@ class JointEmbeddings:
             if save_to_tensorboard:
                 self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
                 self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
+                for pg_ix, param_group in enumerate(self.optimizer.param_groups):
+                    self.writer.add_scalar('lr_param_group_{}'.format(pg_ix), param_group['lr'], self.epoch)
+
             print('train loss: {}'.format(epoch_loss))
 
         else:
@@ -1689,6 +1696,8 @@ class JointEmbeddings:
                 img_rep[ix:min(ix + bs, len(images_in_graph) - 1), :] = self.img_feat_net(torch.stack(image_stack).to(self.device)).cpu().detach()
             else:
                 img_rep[ix:min(ix+bs, len(images_in_graph)-1), :] = self.img_feat_net(self.criterion.get_img_features(images_in_graph[ix:min(ix+bs, len(images_in_graph)-1)]).to(self.device)).cpu().detach()
+        calculated_metrics['median_img_norm'] = torch.median(torch.norm(img_rep, dim=1))
+
         img_rep = img_rep.unsqueeze(0)
 
         label_rep = torch.zeros((len(labels_in_graph), self.embedding_dim)).to(self.device)
@@ -1696,6 +1705,7 @@ class JointEmbeddings:
             label_rep[ix:min(ix + bs, len(labels_in_graph) - 1), :] = self.model(
                 torch.tensor(labels_in_graph[ix:min(ix + bs, len(labels_in_graph) - 1)], dtype=torch.long).to(
                     self.device))
+        calculated_metrics['median_label_norm'] = torch.median(torch.norm(label_rep, dim=1))
         label_rep = label_rep.cpu().detach().unsqueeze(0)
 
         for image_name in images_in_graph:
@@ -1858,20 +1868,37 @@ class JointEmbeddings:
         return calculated_metrics
 
     def check_graph_embedding(self):
-        if self.check_graph_embedding_neg_graph is None:
+        if self.check_graph_embedding_neg_graph is None or self.epoch in self.levels_to_hide_for_epoch:
+            # self.levels_to_hide_for_epoch = {0: [1, 2, 3], 20: [2, 3], 50: [3], 100: []}
             # make negative graph
+
+            sub_G = nx.DiGraph()
+            edge_list = [e for e in self.graph_dict['graph_tc'].edges() if type(e[0]) != str and type(e[1]) != str]
+            for u, v in edge_list:
+                flag = True
+                if self.hide_levels:
+                    for level_to_hide in self.levels_to_hide_for_epoch[self.epoch]:
+                        if (type(u) != str and self.labelmap.level_start[level_to_hide] <= u < self.labelmap.level_stop[level_to_hide]) or (type(v) != str and self.labelmap.level_start[level_to_hide] <= v < self.labelmap.level_stop[level_to_hide]):
+                            flag = False
+                            break
+                    # add edge only if it does not have a node belonging to a level to hide
+                    if flag:
+                        sub_G.add_edge(u, v)
+                else:
+                    sub_G.add_edge(u, v)
+
             start_time = time.time()
-            n_nodes = len(list(self.graph_dict['graph'].nodes()))
+            n_nodes = len(sub_G.nodes())
 
             A = np.ones((n_nodes, n_nodes), dtype=np.bool)
 
-            for u, v in list(self.graph_dict['graph'].edges()):
+            for u, v in list(sub_G.edges()):
                 # remove edges that are in G_train_tc
                 A[u, v] = 0
             np.fill_diagonal(A, 0)
             self.check_graph_embedding_neg_graph = A
 
-            self.edges_in_G = self.graph_dict['graph'].edges()
+            self.edges_in_G = sub_G.edges()
             self.n_nodes_in_G = n_nodes
             self.nodes_in_G = [i for i in range(self.n_nodes_in_G)]
 
@@ -1918,6 +1945,7 @@ def load_combined_graphs(debug):
         path_to_folder = '../database/ETHEC/ETHEC_embeddings/graphs'
 
     G = nx.read_gpickle(os.path.join(path_to_folder, 'G'))
+    G_tc = nx.read_gpickle(os.path.join(path_to_folder, 'G_tc'))
     G_train = nx.read_gpickle(os.path.join(path_to_folder, 'G_train'))
     G_val = nx.read_gpickle(os.path.join(path_to_folder, 'G_val'))
     G_test = nx.read_gpickle(os.path.join(path_to_folder, 'G_test'))
@@ -1948,6 +1976,7 @@ def load_combined_graphs(debug):
     mapping_node_to_ix = {mapping_ix_to_node[k]: k for k in mapping_ix_to_node}
 
     return {'graph': G,  # graph with labels only; edges between labels only
+            'graph_tc': G_tc,  # tc(graph with labels only; edges between labels only)
             'G_train': G_train, 'G_val': G_val, 'G_test': G_test,
             # graph with labels and images; edges between labels and images only
             'G_train_skeleton_full': G_train_skeleton_full,

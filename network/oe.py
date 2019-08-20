@@ -138,6 +138,59 @@ class FeatNet(nn.Module):
         return (direction * (norm + self.K)).view(original_shape)
 
 
+class MatrixApproximation(nn.Module):
+    """
+    Fully connected NN to learn features on top of image features in the joint embedding space.
+    """
+
+    def __init__(self, normalize, input_dim=2048, output_dim=10, K=None):
+        """
+        Constructor to prepare layers for the embedding.
+        """
+        super(MatrixApproximation, self).__init__()
+        self.u = nn.Parameter(torch.randn((input_dim)))
+        self.v = nn.Parameter(torch.randn((output_dim)))
+        self.d = nn.Parameter(torch.randn((output_dim)))
+        self.pad = nn.ZeroPad2d((0, 0, 0, input_dim - output_dim))
+
+        self.normalize = normalize
+        self.K = K
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    def forward(self, x):
+        """
+        Forward pass through the model.
+        """
+        W = self.pad(torch.diag(self.d)) + torch.ger(self.u, self.v)
+        x = torch.matmul(x, W)
+
+        if self.normalize == 'unit_norm':
+            original_shape = x.shape
+            x = x.view(-1, original_shape[-1])
+            x = F.normalize(x, p=2, dim=1)
+            x = x.view(original_shape)
+        elif self.normalize == 'max_norm':
+            original_shape = x.shape
+            x = x.view(-1, original_shape[-1])
+            norm_x = torch.norm(x, p=2, dim=1)
+            x[norm_x > 1.0] = F.normalize(x[norm_x > 1.0], p=2, dim=1)
+            x = x.view(original_shape)
+        else:
+            if self.K:
+                return self.soft_clip(x)
+            else:
+                return x
+        return x
+
+    def soft_clip(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        direction = F.normalize(x, dim=1)
+        norm = torch.norm(x, dim=1, keepdim=True)
+        return (direction * (norm + self.K)).view(original_shape)
+
+
 class FeatCNN18(nn.Module):
     """
     Fully connected NN to learn features on top of image features in the joint embedding space.

@@ -63,15 +63,23 @@ class Embedder(nn.Module):
         else:
             self.embeddings = nn.Embedding(self.labelmap.n_classes, self.embedding_dim)
         print('Embeds {} objects'.format(self.labelmap.n_classes))
-
-        # initialize embeddings within the ball
-        self.embeddings.from_pretrained(torch.FloatTensor(self.labelmap.n_classes, self.embedding_dim).uniform_(self.inner_radius, self.inner_radius+0.1))
         self.epsilon = 1e-5
-        self.embeddings.weight.data = self.soft_clip(self.embeddings.weight.data)
+
+        with torch.no_grad():
+            norm = torch.norm(self.embeddings.weight.data, dim=1, keepdim=True).repeat(1, self.embedding_dim)
+            # add to the inner radius a U[0, 0.05] for randomizing norm of embeddings
+            new_norm = self.inner_radius + torch.rand((self.embeddings.weight.data.shape[0]))*0.05
+            new_norm = torch.unsqueeze(new_norm, 1).repeat(1, self.embedding_dim)
+            self.embeddings.weight.data = new_norm*self.embeddings.weight.data/norm
 
     def forward(self, inputs):
         embeds = self.embeddings(inputs)#.view((1, -1))
         embeds = embeds + 1e-15
+
+        # perform exp0(x)
+        embeds_norm = torch.norm(embeds, p=2, dim=1, keepdim=True)
+        embeds = torch.tanh(torch.clamp(2 * embeds_norm, min=-15.0, max=15.0)) * embeds / embeds_norm
+
         if self.normalize == 'unit_norm':
             return F.normalize(embeds, p=2, dim=1)
         else:
@@ -89,8 +97,8 @@ class Embedder(nn.Module):
 
         with torch.no_grad():
             norm = torch.norm(x, dim=1, keepdim=True).repeat(1, self.embedding_dim)
-            x[norm < self.inner_radius] = x[norm < self.inner_radius] / norm[norm < self.inner_radius] * self.inner_radius
-            x[norm > 1.0] = x[norm > 1.0]/norm[norm > 1.0]*(1.0-self.epsilon)
+            x[norm <= self.inner_radius] = x[norm <= self.inner_radius] / norm[norm <= self.inner_radius] * self.inner_radius
+            x[norm >= 1.0] = x[norm >= 1.0]/norm[norm >= 1.0]*(1.0-self.epsilon)
         return x.view(original_shape)
 
 
@@ -114,7 +122,7 @@ class FeatNet(nn.Module):
         self.inner_radius = 2 * self.K / (1 + np.sqrt(1 + 4 * self.K * self.K))
 
         self.fc1 = nn.Linear(input_dim, output_dim)
-        torch.nn.init.uniform_(self.fc1.weight.data, a=self.inner_radius/10, b=self.inner_radius)
+        torch.nn.init.uniform_(self.fc1.weight.data, a=self.inner_radius, b=self.inner_radius+0.1)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.epsilon = 1e-5
@@ -173,8 +181,8 @@ class FeatNet(nn.Module):
 
         with torch.no_grad():
             norm = torch.norm(x, dim=1, keepdim=True).repeat(1, self.output_dim)
-            x[norm < self.inner_radius] = x[norm < self.inner_radius] / norm[norm < self.inner_radius] * self.inner_radius
-            x[norm > 1.0] = x[norm > 1.0]/norm[norm > 1.0]*(1.0-self.epsilon)
+            x[norm <= self.inner_radius] = x[norm <= self.inner_radius] / norm[norm <= self.inner_radius] * self.inner_radius
+            x[norm >= 1.0] = x[norm >= 1.0]/norm[norm >= 1.0]*(1.0-self.epsilon)
         return x.view(original_shape)
 
 
@@ -777,10 +785,12 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
         # theta_between_x_y = torch.acos(torch.clamp((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist),
         #                                            min=-1+self.epsilon, max=1-self.epsilon))
         acos_arg = (x_dot_y*(1+x_norm**2)-(x_norm**2)*(1+y_norm**2))/(x_norm*x_y_dist*torch.sqrt(1+x_norm**2*y_norm**2-2*x_dot_y))
-        theta_between_x_y = torch.acos(torch.clamp(acos_arg, min=-1+1e-7, max=1-1e-7))
-        psi_x = torch.asin(self.K*(1-x_norm**2)/x_norm)
+        # theta_between_x_y = torch.acos(torch.clamp(acos_arg, min=-1+1e-7, max=1-1e-7))
+        # psi_x = torch.asin(self.K*(1-x_norm**2)/x_norm)
 
         # in cos space
+        theta_between_x_y = acos_arg
+        psi_x = -torch.sqrt(1 - (self.K*(1-x_norm**2)/x_norm)**2)
         # theta_between_x_y = -torch.sum(F.normalize(x, dim=1) * F.normalize(y - x, dim=1), dim=1)
         # psi_x = -torch.sqrt(1 - (self.K * self.K / x_norm ** 2))
 
@@ -1401,7 +1411,7 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
-        self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.0001},
+        self.params_to_update = [{'params': self.model.parameters()}, #, 'lr': 0.0001},
                                  {'params': self.img_feat_net.parameters(), 'weight_decay': 0.0}]
 
     def create_splits(self):
@@ -1545,7 +1555,6 @@ class JointEmbeddings:
             e_positive, e_negative = torch.tensor([]), torch.tensor([])
 
             index = 0
-            print(self.model.module.embeddings.weight)
 
             # Iterate over data.
             for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
@@ -1572,10 +1581,7 @@ class JointEmbeddings:
                     if phase == 'train':
                         loss.backward()
                         # convert euclidean gradients to riemannian gradients for the label embeddings
-                        print([p.grad for p in self.model.module.parameters()])
-                        self.model.module.embeddings.weight.grad.data *= (((1-(torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True)**2))**2)/4).repeat(1, self.embedding_dim)
-                        # self.model.module.embeddings.weight.data.sub_(0.01 * self.model.module.embeddings.weight.grad)
-                        # self.model.module.embeddings.weight.grad.data.zero()
+                        # self.model.module.embeddings.weight.grad.data *= (((1-(torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True)**2))**2)/4).repeat(1, self.embedding_dim)
                         self.optimizer.step()
 
 

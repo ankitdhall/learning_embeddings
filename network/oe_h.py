@@ -76,10 +76,6 @@ class Embedder(nn.Module):
         embeds = self.embeddings(inputs)#.view((1, -1))
         embeds = embeds + 1e-15
 
-        # perform exp0(x)
-        embeds_norm = torch.norm(embeds, p=2, dim=1, keepdim=True)
-        embeds = torch.tanh(torch.clamp(2 * embeds_norm, min=-15.0, max=15.0)) * embeds / embeds_norm
-
         if self.normalize == 'unit_norm':
             return F.normalize(embeds, p=2, dim=1)
         else:
@@ -122,10 +118,32 @@ class FeatNet(nn.Module):
         self.inner_radius = 2 * self.K / (1 + np.sqrt(1 + 4 * self.K * self.K))
 
         self.fc1 = nn.Linear(input_dim, output_dim)
-        torch.nn.init.uniform_(self.fc1.weight.data, a=self.inner_radius, b=self.inner_radius+0.1)
+        torch.nn.init.uniform_(self.fc1.weight.data, a=-0.00001, b=0.00001)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.epsilon = 1e-5
+
+    def mob_add(self, u, v):
+        v = v + 1e-15
+        tf_dot_u_v = 2. * torch.sum(u*v, dim=1, keepdim=True)
+        tf_norm_u_sq = torch.sum(u*u, dim=1, keepdim=True)
+        tf_norm_v_sq = torch.sum(v*v, dim=1, keepdim=True)
+        denominator = 1. + tf_dot_u_v + tf_norm_v_sq * tf_norm_u_sq
+        tf_dot_u_v = tf_dot_u_v.repeat(1, self.embedding_dim)
+        tf_norm_u_sq = tf_norm_u_sq.repeat(1, self.output_dim)
+        tf_norm_v_sq = tf_norm_v_sq.repeat(1, self.output_dim)
+        denominator = denominator.repeat(1, self.output_dim)
+        result = (1. + tf_dot_u_v + tf_norm_v_sq) / denominator * u + (1. - tf_norm_u_sq) / denominator * v
+        return self.soft_clip(result)
+
+    def lambda_x(self, x):
+        return 2. / (1 - torch.norm(x, p=2, dim=1, keepdim=True).repeat(1, self.output_dim))
+
+    def exp_map_x(self, x, v):
+        v = v + 1e-15
+        norm_v = torch.norm(v, p=2, dim=1, keepdim=True).repeat(1, self.output_dim)
+        second_term = torch.tanh(self.lambda_x(x) * norm_v / 2) * v/norm_v
+        return self.mob_add(x, second_term)
 
     def forward(self, x):
         """
@@ -151,7 +169,6 @@ class FeatNet(nn.Module):
 
         # perform exp0(x)
         x = torch.tanh(torch.clamp(2*x_norm, min=-15.0, max=15.0))*x/x_norm
-
         x = x.view(original_shape)
 
         if self.normalize == 'unit_norm':
@@ -181,7 +198,7 @@ class FeatNet(nn.Module):
 
         with torch.no_grad():
             norm = torch.norm(x, dim=1, keepdim=True).repeat(1, self.output_dim)
-            x[norm <= self.inner_radius] = x[norm <= self.inner_radius] / norm[norm <= self.inner_radius] * self.inner_radius
+            x[norm <= self.inner_radius] = (1e-6+x[norm <= self.inner_radius]) / (1e-6+norm[norm <= self.inner_radius]) * self.inner_radius
             x[norm >= 1.0] = x[norm >= 1.0]/norm[norm >= 1.0]*(1.0-self.epsilon)
         return x.view(original_shape)
 
@@ -782,17 +799,15 @@ class EuclideanConesWithImagesHypernymLoss(torch.nn.Module):
 
         x_dot_y = torch.sum(x*y, dim=1)
 
-        # theta_between_x_y = torch.acos(torch.clamp((y_norm**2 - x_norm**2 - x_y_dist**2)/(2 * x_norm * x_y_dist),
-        #                                            min=-1+self.epsilon, max=1-self.epsilon))
-        acos_arg = (x_dot_y*(1+x_norm**2)-(x_norm**2)*(1+y_norm**2))/(x_norm*x_y_dist*torch.sqrt(1+x_norm**2*y_norm**2-2*x_dot_y))
-        # theta_between_x_y = torch.acos(torch.clamp(acos_arg, min=-1+1e-7, max=1-1e-7))
-        # psi_x = torch.asin(self.K*(1-x_norm**2)/x_norm)
+        acos_arg = (x_dot_y*(1+x_norm**2)-(x_norm**2)*(1+y_norm**2))/(x_norm*x_y_dist*torch.sqrt(1+(x_norm*y_norm)**2-2*x_dot_y))
+        
+        # in angle space (radians)
+        theta_between_x_y = torch.acos(torch.clamp(acos_arg, min=-1+1e-5, max=1-1e-5))
+        psi_x = torch.asin(torch.clamp(self.K*(1-x_norm**2)/x_norm, min=-1+1e-5, max=1-1e-5))
 
         # in cos space
-        theta_between_x_y = acos_arg
-        psi_x = -torch.sqrt(1 - (self.K*(1-x_norm**2)/x_norm)**2)
-        # theta_between_x_y = -torch.sum(F.normalize(x, dim=1) * F.normalize(y - x, dim=1), dim=1)
-        # psi_x = -torch.sqrt(1 - (self.K * self.K / x_norm ** 2))
+        # theta_between_x_y = acos_arg
+        # psi_x = -torch.sqrt(1 - (self.K*(1-x_norm**2)/x_norm)**2)
 
         return torch.clamp(theta_between_x_y - psi_x, min=0.0).view(original_shape[:-1])
 
@@ -1320,6 +1335,8 @@ class JointEmbeddings:
         self.hide_levels = hide_levels
         self.half_half = half_half
 
+        self.use_rsgd = True
+
         self.best_model_wts = None
         self.best_score = 0.0
 
@@ -1411,8 +1428,12 @@ class JointEmbeddings:
             os.makedirs(directory)
 
     def prepare_model(self):
-        self.params_to_update = [{'params': self.model.parameters()}, #, 'lr': 0.0001},
-                                 {'params': self.img_feat_net.parameters(), 'weight_decay': 0.0}]
+        if self.use_rsgd:
+            self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.0},
+                                     {'params': self.img_feat_net.parameters(), 'lr': self.lr}]#, 'lr': 1e-4}]
+        else:
+            self.params_to_update = [{'params': self.model.parameters()},  # , 'lr': 0.0001},
+                                     {'params': self.img_feat_net.parameters()}]
 
     def create_splits(self):
         input_size = 224
@@ -1544,6 +1565,123 @@ class JointEmbeddings:
         self.writer.close()
         return self.model
 
+    def soft_clip(self, x):
+        original_shape = x.shape
+        x = x.view(-1, original_shape[-1])
+        # direction = F.normalize(x, dim=1)
+        # norm = torch.norm(x, dim=1, keepdim=True)
+        # x = direction * (norm + self.inner_radius)
+
+        with torch.no_grad():
+            norm = torch.norm(x, dim=1, keepdim=True).repeat(1, self.embedding_dim)
+            # print('norm', norm)
+            # input()
+            x[norm <= self.criterion.inner_radius] = x[norm <= self.criterion.inner_radius] / norm[norm <= self.criterion.inner_radius] * self.criterion.inner_radius
+            x[norm >= 1.0] = x[norm >= 1.0]/norm[norm >= 1.0]*(1.0-1e-5)
+        return x.view(original_shape)
+
+    def mob_add(self, u, v):
+        v = v + 1e-6
+        tf_dot_u_v = 2. * torch.sum(u*v, dim=1, keepdim=True)
+        tf_norm_u_sq = torch.sum(u*u, dim=1, keepdim=True)
+        tf_norm_v_sq = torch.sum(v*v, dim=1, keepdim=True)
+        denominator = 1. + tf_dot_u_v + tf_norm_v_sq * tf_norm_u_sq
+        tf_dot_u_v = tf_dot_u_v.repeat(1, self.embedding_dim)
+        tf_norm_u_sq = tf_norm_u_sq.repeat(1, self.embedding_dim)
+        tf_norm_v_sq = tf_norm_v_sq.repeat(1, self.embedding_dim)
+        denominator = denominator.repeat(1, self.embedding_dim)
+        result = (1. + tf_dot_u_v + tf_norm_v_sq) / denominator * u + (1. - tf_norm_u_sq) / denominator * v
+        return self.soft_clip(result)
+
+    def lambda_x(self, x):
+        # print('lx norm', torch.norm(x, p=2, dim=1, keepdim=True))
+        # print((2. / (1 - torch.norm(x, p=2, dim=1, keepdim=True).repeat(1, self.embedding_dim)))**2)
+        # input()
+        return 2. / (1 - torch.norm(x, p=2, dim=1, keepdim=True).repeat(1, self.embedding_dim))
+
+    def exp_map_x(self, x, v):
+        v = v + 1e-15
+        norm_v = torch.norm(v, p=2, dim=1, keepdim=True).repeat(1, self.embedding_dim)
+        second_term = torch.tanh(torch.clamp(self.lambda_x(x) * norm_v / 2, min=-15.0, max=15.0)) * v/norm_v
+        # print('second_term', second_term)
+        # input()
+        return self.mob_add(x, second_term)
+
+    def plot_label_embeddings(self):
+        # labels = self.model.module.embeddings.weight.data
+        # plt.scatter(x=labels[:, 0].numpy(), y=labels[:, 1].numpy())
+        # plt.scatter(x=self.img_rep[0, :, 0].numpy(), y=self.img_rep[0, :, 1].numpy())
+        # print(self.img_rep.shape)
+        # plt.show()
+        self.vizualize()
+
+    def vizualize(self, save_to_disk=True):
+        filename = '{:04d}'.format(self.epoch)
+
+        labels = self.model.module.embeddings.weight.data
+
+        colors = ['c', 'm', 'y', 'k']
+        embeddings_x, embeddings_y, annotation, color_list = {}, {}, {}, {}
+
+        connected_to = {}
+
+        fig, ax = plt.subplots()
+
+        for level_id in range(len(self.labelmap.levels)):
+            level_start, level_stop = self.labelmap.level_start[level_id], self.labelmap.level_stop[level_id]
+            level_color = colors[level_id]
+            for label_ix in range(self.labelmap.levels[level_id]):
+                emb_id = label_ix + level_start
+                emb = labels[emb_id, :].numpy()
+
+                embeddings_x[emb_id] = emb[0]
+                embeddings_y[emb_id] = emb[1]
+                annotation[emb_id] = '{}'.format(getattr(self.labelmap,
+                                                      '{}_ix_to_str'.format(self.labelmap.level_names[level_id]))[label_ix]
+                                                 )
+                color_list[emb_id] = level_color
+
+                connected_to[emb_id] = [v for u, v in list(self.graph_dict['graph'].edges(emb_id))]
+
+                if level_id == 3:
+                    ax.scatter(emb[0], emb[1], c=level_color, alpha=0.5, linewidth='0')
+                else:
+                    ax.scatter(emb[0], emb[1], c=level_color, alpha=1)
+                # ax.annotate(annotation[emb_id], (emb[0], emb[1]))
+
+                # if level_id in [0, 1]:
+                #     p = self.get_wedge(emb, radius=50)
+                #     ax.add_collection(p)
+
+
+        # fig, ax = plt.subplots()
+        # ax.scatter(embeddings_x, embeddings_y, c=color_list)
+
+        for from_node in connected_to:
+            for to_node in connected_to[from_node]:
+                if to_node in embeddings_x:
+                    plt.plot([embeddings_x[from_node], embeddings_x[to_node]], [embeddings_y[from_node], embeddings_y[to_node]],
+                             'b-', alpha=0.2)
+        for img_ix in self.image_is_a_member_of:
+            image_is_a_member_of = self.image_is_a_member_of[img_ix]
+            connected_leaf = max(image_is_a_member_of)
+            plt.plot([embeddings_x[connected_leaf], self.img_rep[0, img_ix, 0].numpy()], [embeddings_y[connected_leaf], self.img_rep[0, img_ix, 1].numpy()],
+                     'b-', alpha=0.02)
+
+        ax.scatter(x=self.img_rep[0, :, 0].numpy(), y=self.img_rep[0, :, 1].numpy())
+        # for i, txt in enumerate(annotation):
+        #     ax.annotate(txt, (embeddings_x[i], embeddings_y[i]))
+
+        ax.axis('equal')
+        # if self.title_text:
+        #     fig.suptitle(self.title_text, family='sans-serif')
+        if save_to_disk:
+            fig.set_size_inches(8, 7)
+            fig.savefig(os.path.join(self.log_dir, '{}.pdf'.format(filename)), dpi=200)
+            fig.savefig(os.path.join(self.log_dir, '{}.png'.format(filename)), dpi=200)
+        plt.close(fig)
+        return ax
+
     def pass_samples(self, phase, save_to_tensorboard=True):
         self.criterion.set_dataloader(self.datasets[phase])
         if phase == 'train':
@@ -1579,10 +1717,30 @@ class JointEmbeddings:
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
-                        loss.backward()
-                        # convert euclidean gradients to riemannian gradients for the label embeddings
-                        # self.model.module.embeddings.weight.grad.data *= (((1-(torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True)**2))**2)/4).repeat(1, self.embedding_dim)
-                        self.optimizer.step()
+                        if self.use_rsgd:
+                            loss.backward()
+                            # convert euclidean gradients to riemannian gradients for the label embeddings
+                            # print('euc grad', self.model.module.embeddings.weight.grad.data)
+                            # print('lambda', (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2)
+                            self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2 #((1 - (torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True) ** 2)) ** 2) / 4).repeat(1, self.embedding_dim)
+                            # print('weights', self.model.module.embeddings.weight.data)
+                            # print('grad', self.model.module.embeddings.weight.grad.data)
+                            # input()
+                            self.model.module.embeddings.weight.data = self.exp_map_x(self.model.module.embeddings.weight.data, -self.lr*self.model.module.embeddings.weight.grad.data)
+                            # print('weights', self.model.module.embeddings.weight.data)
+                            # input()
+                            self.optimizer.step()
+                        else:
+                            loss.backward()
+                            print('weights', self.model.module.embeddings.weight.data)
+                            print('grad', self.model.module.embeddings.weight.grad.data)
+                            input()
+                            # convert euclidean gradients to riemannian gradients for the label embeddings
+                            self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2 #(((1-(torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True)**2))**2)/4).repeat(1, self.embedding_dim)
+                            print('weights', self.model.module.embeddings.weight.data)
+                            input()
+                            self.optimizer.step()
+                            self.model.module.embeddings.weight.data = self.soft_clip(self.model.module.embeddings.weight.data)
 
 
                 # statistics
@@ -1600,6 +1758,8 @@ class JointEmbeddings:
                     self.writer.add_scalar('lr_param_group_{}'.format(pg_ix), param_group['lr'], self.epoch)
 
             print('train loss: {}'.format(epoch_loss))
+
+            self.plot_label_embeddings()
 
         else:
             self.model.eval()
@@ -1802,6 +1962,7 @@ class JointEmbeddings:
                 hit_at_k[k_val][label_ix] = 0
 
         images_to_ix = {image_name: ix for ix, image_name in enumerate(images_in_graph)}
+
         img_rep = torch.zeros((len(images_in_graph), self.embedding_dim))
         for ix in range(0, len(images_in_graph), bs):
             if self.use_CNN:
@@ -1814,6 +1975,9 @@ class JointEmbeddings:
         calculated_metrics['median_img_norm'] = torch.median(torch.norm(img_rep, dim=1))
 
         img_rep = img_rep.unsqueeze(0)
+        if phase == 'train':
+            self.img_rep = img_rep
+        self.image_is_a_member_of = {}
 
         label_rep = torch.zeros((len(labels_in_graph), self.embedding_dim)).to(self.device)
         for ix in range(0, len(labels_in_graph), bs):
@@ -1829,6 +1993,9 @@ class JointEmbeddings:
 
             image_is_a_member_of = [v for u, v in list(G_rev.edges(image_name))]
             image_is_a_member_of.sort()
+
+            if phase == 'train':
+                self.image_is_a_member_of[img_ix] = image_is_a_member_of
 
             img_emb = img_emb.repeat(1, label_rep.shape[1]).view(-1, label_rep.shape[1], img_emb.shape[1])
 

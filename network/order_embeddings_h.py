@@ -403,7 +403,7 @@ class OrderEmbedding:
         self.lr_decay = lr_decay
         self.check_graph_embedding_neg_graph = None
 
-        self.check_reconstr_every = 1
+        self.check_reconstr_every = 10
         self.save_model_every = 10
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
         self.n_proc = 32 if torch.cuda.device_count() > 0 else 4
@@ -677,7 +677,7 @@ class OrderEmbedding:
     def vizualize(self, save_to_disk=True):
         filename = '{:04d}'.format(self.epoch)
 
-        labels = self.model.module.embeddings.weight.data
+        labels = self.model.module.embeddings.weight.data.cpu()
 
         colors = ['c', 'm', 'y', 'k']
         embeddings_x, embeddings_y, annotation, color_list = {}, {}, {}, {}

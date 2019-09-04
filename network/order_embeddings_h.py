@@ -703,7 +703,7 @@ class OrderEmbedding:
                 connected_to[emb_id] = [v for u, v in list(self.G.edges(emb_id))]
 
                 if level_id == 3:
-                    ax.scatter(emb[0], emb[1], c=level_color, alpha=0.5, linewidth='0')
+                    ax.scatter(emb[0], emb[1], c=level_color, alpha=0.5, linewidth=0)
                 else:
                     ax.scatter(emb[0], emb[1], c=level_color, alpha=1)
                 # ax.annotate(annotation[emb_id], (emb[0], emb[1]))

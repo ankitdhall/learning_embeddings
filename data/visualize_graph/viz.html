@@ -7365,7 +7365,9 @@ var link_force =  d3.forceLink(links_data)
                         .id(function(d) { return d.name; });            
          
 var charge_force = d3.forceManyBody()
-    .strength(-1000); 
+    .distanceMin(10)
+    .distanceMax(500)
+    .strength(-2000); 
     
 var center_force = d3.forceCenter(width / 2, height / 2);  
                       
@@ -7390,7 +7392,7 @@ var link = g.append("g")
     .data(links_data)
     .enter().append("line")
       .attr("stroke-width", 4)
-      .style("stroke", "red");        
+      .style("stroke", "black");        
 
 //draw circles for the nodes 
 var node = g.append("g")
@@ -7437,22 +7439,35 @@ zoom_handler(svg);
 //Let's return blue for males and red for females
 function circleColour(d){
 	if(d.color == "b"){
-		return "blue";
+		return "#1A5276";
 	}
     else if(d.color == "r"){
-		return "red";
+		return "#17A589";
 	}
     else if(d.color == "y"){
         return "black";
     }
     else{
-        return "orange";
+        return "#D68910";
     }
 
 }
 
 function circleRadius(d){
-    return Math.max(20*Math.log10(d.count), 5);
+    //return 25
+    //return Math.max(20*Math.log10(d.count), 5);
+    if(d.color == "b"){
+        return 50;
+    }
+    else if(d.color == "r"){
+        return 35;
+    }
+    else if(d.color == "y"){
+        return 25;
+    }
+    else{
+        return 15;
+    }
 
 }
 

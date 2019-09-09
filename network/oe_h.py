@@ -1428,8 +1428,8 @@ class JointEmbeddings:
 
         self.check_graph_embedding_neg_graph = None
 
-        self.check_reconstr_every = 10
-        self.save_model_every = 10
+        self.check_reconstr_every = 1
+        self.save_model_every = 1
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = 0.0, 0.0, 0.0, 0.0, 0.0
         self.n_proc = 512 if torch.cuda.device_count() > 0 else 4
 

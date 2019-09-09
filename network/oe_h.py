@@ -118,10 +118,18 @@ class FeatNet(nn.Module):
         self.inner_radius = 2 * self.K / (1 + np.sqrt(1 + 4 * self.K * self.K))
 
         self.fc1 = nn.Linear(input_dim, output_dim)
-        torch.nn.init.uniform_(self.fc1.weight.data, a=-0.00001, b=0.00001)
+        # torch.nn.init.uniform_(self.fc1.weight.data, a=-0.00001, b=0.00001)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.epsilon = 1e-5
+
+        self.inner_radius_h = self.arctanh(torch.tensor(self.inner_radius))
+
+    @staticmethod
+    def arctanh(x):
+        x = x.clamp(-1 + 1e-5, 1 - 1e-5)
+        res = (torch.log_(1 + x).sub_(torch.log_(1 - x))).mul_(0.5)
+        return res
 
     def mob_add(self, u, v):
         v = v + 1e-15
@@ -168,7 +176,8 @@ class FeatNet(nn.Module):
         # x_norm[x_norm > 15.0] = 15.0
 
         # perform exp0(x)
-        x = torch.tanh(torch.clamp(2*x_norm, min=-15.0, max=15.0))*x/x_norm
+        x = torch.tanh(torch.clamp(self.inner_radius_h + x_norm, min=-15.0, max=15.0))*F.normalize(x)
+
         x = x.view(original_shape)
 
         if self.normalize == 'unit_norm':
@@ -1336,6 +1345,8 @@ class JointEmbeddings:
         self.half_half = half_half
 
         self.use_rsgd = True
+        self.lr_labels = self.lr
+        self.lr_images = 1e-4
 
         self.best_model_wts = None
         self.best_score = 0.0
@@ -1430,7 +1441,7 @@ class JointEmbeddings:
     def prepare_model(self):
         if self.use_rsgd:
             self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.0},
-                                     {'params': self.img_feat_net.parameters(), 'lr': self.lr}]#, 'lr': 1e-4}]
+                                     {'params': self.img_feat_net.parameters(), 'lr': self.lr_images}]#, 'lr': 1e-4}]
         else:
             self.params_to_update = [{'params': self.model.parameters()},  # , 'lr': 0.0001},
                                      {'params': self.img_feat_net.parameters()}]
@@ -1487,8 +1498,10 @@ class JointEmbeddings:
             self.load_model(epoch_to_load=weights[-1])
 
     def run_model(self, optimizer):
-        self.optimizer = optimizer
-        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
+        self.optimizer_labels = optim.SGD([{'params': self.model.parameters(), 'lr': 0.0}], lr=self.lr_labels, momentum=0.0)
+        self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
+
+        # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
 
         if self.load_wt:
             self.find_existing_weights()
@@ -1549,7 +1562,7 @@ class JointEmbeddings:
                 self.pass_samples(phase='test')
                 self.writer.add_scalar('epoch_time_test', time.time() - test_start_time, self.epoch)
 
-            self.scheduler.step()
+            # self.scheduler.step()
 
             epoch_time = time.time() - epoch_start_time
             self.writer.add_scalar('epoch_time', time.time() - epoch_start_time, self.epoch)
@@ -1700,7 +1713,8 @@ class JointEmbeddings:
                 original_from, original_to = data_item['original_from'], data_item['original_to']
 
                 # zero the parameter gradients
-                self.optimizer.zero_grad()
+                self.optimizer_labels.zero_grad()
+                self.optimizer_images.zero_grad()
 
                 # forward
                 # track history if only in train
@@ -1726,10 +1740,11 @@ class JointEmbeddings:
                             # print('weights', self.model.module.embeddings.weight.data)
                             # print('grad', self.model.module.embeddings.weight.grad.data)
                             # input()
-                            self.model.module.embeddings.weight.data = self.exp_map_x(self.model.module.embeddings.weight.data, -self.lr*self.model.module.embeddings.weight.grad.data)
+                            self.model.module.embeddings.weight.data = self.exp_map_x(self.model.module.embeddings.weight.data, -self.lr_labels*self.model.module.embeddings.weight.grad.data)
                             # print('weights', self.model.module.embeddings.weight.data)
                             # input()
-                            self.optimizer.step()
+                            self.optimizer_labels.step()
+                            self.optimizer_images.step()
                         else:
                             loss.backward()
                             print('weights', self.model.module.embeddings.weight.data)
@@ -1739,7 +1754,8 @@ class JointEmbeddings:
                             self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2 #(((1-(torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True)**2))**2)/4).repeat(1, self.embedding_dim)
                             print('weights', self.model.module.embeddings.weight.data)
                             input()
-                            self.optimizer.step()
+                            self.optimizer_labels.step()
+                            self.optimizer_images.step()
                             self.model.module.embeddings.weight.data = self.soft_clip(self.model.module.embeddings.weight.data)
 
 
@@ -1754,8 +1770,8 @@ class JointEmbeddings:
             if save_to_tensorboard:
                 self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
                 self.writer.add_scalar('{}_thresh'.format(phase), self.optimal_threshold, self.epoch)
-                for pg_ix, param_group in enumerate(self.optimizer.param_groups):
-                    self.writer.add_scalar('lr_param_group_{}'.format(pg_ix), param_group['lr'], self.epoch)
+                # for pg_ix, param_group in enumerate(self.optimizer.param_groups):
+                #     self.writer.add_scalar('lr_param_group_{}'.format(pg_ix), param_group['lr'], self.epoch)
 
             print('train loss: {}'.format(epoch_loss))
 
@@ -1850,7 +1866,7 @@ class JointEmbeddings:
         torch.save({
             'epoch': self.epoch,
             'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
+            'optimizer_state_dict': self.optimizer_labels.state_dict(),
             'loss': loss,
             'optimal_threshold': self.optimal_threshold,
             'reconstruction_scores': {'f1': self.reconstruction_f1, 'precision': self.reconstruction_prec,
@@ -1863,7 +1879,7 @@ class JointEmbeddings:
         torch.save({
             'epoch': self.epoch,
             'model_state_dict': self.img_feat_net.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
+            'optimizer_state_dict': self.optimizer_images.state_dict(),
             'loss': loss,
             'optimal_threshold': self.optimal_threshold,
             'reconstruction_scores': {'f1': self.reconstruction_f1, 'precision': self.reconstruction_prec,
@@ -1916,7 +1932,7 @@ class JointEmbeddings:
                                 map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model = self.model.to(self.device)
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.optimizer_labels.load_state_dict(checkpoint['optimizer_state_dict'])
         self.epoch = checkpoint['epoch']
         self.optimal_threshold = checkpoint['optimal_threshold']
         self.reconstruction_f1, self.reconstruction_threshold, self.reconstruction_accuracy, self.reconstruction_prec, self.reconstruction_recall = \
@@ -1926,11 +1942,12 @@ class JointEmbeddings:
         checkpoint = torch.load(os.path.join(self.path_to_save_model, '{}_img_feat_net.pth'.format(epoch_to_load)),
                                 map_location=self.device)
         self.img_feat_net.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer_images.load_state_dict(checkpoint['optimizer_state_dict'])
         print('Successfully loaded model and img_feat_net epoch {} from {}'.format(self.epoch, self.path_to_save_model))
 
     def train(self):
         if self.optimizer_method == 'sgd':
-            self.run_model(optim.SGD(self.params_to_update, lr=self.lr, momentum=0.0))
+            self.run_model(optim.SGD(self.params_to_update, lr=self.lr_labels, momentum=0.0))
         elif self.optimizer_method == 'adam':
             # self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
             print('Invalid optimizer')

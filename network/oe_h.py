@@ -1346,7 +1346,7 @@ class JointEmbeddings:
 
         self.use_rsgd = True
         self.lr_labels = self.lr
-        self.lr_images = 1e-4
+        self.lr_images = 1e-3
 
         self.best_model_wts = None
         self.best_score = 0.0
@@ -1498,7 +1498,7 @@ class JointEmbeddings:
             self.load_model(epoch_to_load=weights[-1])
 
     def run_model(self, optimizer):
-        self.optimizer_labels = optim.SGD([{'params': self.model.parameters(), 'lr': 0.0}], lr=self.lr_labels, momentum=0.0)
+        self.optimizer_labels = optim.SGD([{'params': self.model.parameters(), 'lr': 0.0}], momentum=0.0)
         self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
 
         # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
@@ -1734,16 +1734,10 @@ class JointEmbeddings:
                         if self.use_rsgd:
                             loss.backward()
                             # convert euclidean gradients to riemannian gradients for the label embeddings
-                            # print('euc grad', self.model.module.embeddings.weight.grad.data)
-                            # print('lambda', (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2)
-                            self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2 #((1 - (torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True) ** 2)) ** 2) / 4).repeat(1, self.embedding_dim)
-                            # print('weights', self.model.module.embeddings.weight.data)
-                            # print('grad', self.model.module.embeddings.weight.grad.data)
-                            # input()
-                            self.model.module.embeddings.weight.data = self.exp_map_x(self.model.module.embeddings.weight.data, -self.lr_labels*self.model.module.embeddings.weight.grad.data)
-                            # print('weights', self.model.module.embeddings.weight.data)
-                            # input()
-                            self.optimizer_labels.step()
+                            if self.lr_labels > 0:
+                                self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2
+                                self.model.module.embeddings.weight.data = self.exp_map_x(self.model.module.embeddings.weight.data, -self.lr_labels*self.model.module.embeddings.weight.grad.data)
+
                             self.optimizer_images.step()
                         else:
                             loss.backward()
@@ -1757,7 +1751,6 @@ class JointEmbeddings:
                             self.optimizer_labels.step()
                             self.optimizer_images.step()
                             self.model.module.embeddings.weight.data = self.soft_clip(self.model.module.embeddings.weight.data)
-
 
                 # statistics
                 running_loss += loss.item()

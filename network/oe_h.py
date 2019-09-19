@@ -72,9 +72,15 @@ class Embedder(nn.Module):
             new_norm = torch.unsqueeze(new_norm, 1).repeat(1, self.embedding_dim)
             self.embeddings.weight.data = new_norm*self.embeddings.weight.data/norm
 
+        self.inner_radius_h = self.arctanh(torch.tensor(self.inner_radius))
+
     def forward(self, inputs):
         embeds = self.embeddings(inputs)#.view((1, -1))
         embeds = embeds + 1e-15
+
+        x_norm = torch.norm(embeds, p=2, dim=1, keepdim=True)
+        x_norm = x_norm.repeat(1, self.embedding_dim)
+        embeds = torch.tanh(torch.clamp(self.inner_radius_h + x_norm, min=-15.0, max=15.0)) * F.normalize(embeds)
 
         if self.normalize == 'unit_norm':
             return F.normalize(embeds, p=2, dim=1)
@@ -96,6 +102,12 @@ class Embedder(nn.Module):
             x[norm <= self.inner_radius] = x[norm <= self.inner_radius] / norm[norm <= self.inner_radius] * self.inner_radius
             x[norm >= 1.0] = x[norm >= 1.0]/norm[norm >= 1.0]*(1.0-self.epsilon)
         return x.view(original_shape)
+
+    @staticmethod
+    def arctanh(x):
+        x = x.clamp(-1 + 1e-5, 1 - 1e-5)
+        res = (torch.log_(1 + x).sub_(torch.log_(1 - x))).mul_(0.5)
+        return res
 
 
 class FeatNet(nn.Module):
@@ -1344,7 +1356,7 @@ class JointEmbeddings:
         self.hide_levels = hide_levels
         self.half_half = half_half
 
-        self.use_rsgd = True
+        self.use_rsgd = False
         self.lr_labels = self.lr
         self.lr_images = 1e-3
 
@@ -1443,8 +1455,8 @@ class JointEmbeddings:
             self.params_to_update = [{'params': self.model.parameters(), 'lr': 0.0},
                                      {'params': self.img_feat_net.parameters(), 'lr': self.lr_images}]#, 'lr': 1e-4}]
         else:
-            self.params_to_update = [{'params': self.model.parameters()},  # , 'lr': 0.0001},
-                                     {'params': self.img_feat_net.parameters()}]
+            self.params_to_update = [{'params': self.model.parameters(), 'lr': self.lr_labels},  # , 'lr': 0.0001},
+                                     {'params': self.img_feat_net.parameters(), 'lr': self.lr_images}]
 
     def create_splits(self):
         input_size = 224
@@ -1498,10 +1510,15 @@ class JointEmbeddings:
             self.load_model(epoch_to_load=weights[-1])
 
     def run_model(self, optimizer):
-        self.optimizer_labels = optim.SGD([{'params': self.model.parameters(), 'lr': 0.0}], momentum=0.0)
-        self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
+        if self.use_rsgd:
+            self.optimizer_labels = optim.SGD([{'params': self.model.parameters(), 'lr': 0.0}], momentum=0.0)
+            self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
+        else:
+            self.optimizer_labels = optim.Adam([{'params': self.model.parameters()}], lr=self.lr_labels)
+            self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
 
-        # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
+            self.scheduler_labels = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_labels, milestones=self.lr_step, gamma=0.1)
+            self.scheduler_images = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_images, milestones=self.lr_step, gamma=0.1)
 
         if self.load_wt:
             self.find_existing_weights()
@@ -1562,7 +1579,8 @@ class JointEmbeddings:
                 self.pass_samples(phase='test')
                 self.writer.add_scalar('epoch_time_test', time.time() - test_start_time, self.epoch)
 
-            # self.scheduler.step()
+            self.scheduler_labels.step()
+            self.scheduler_images.step()
 
             epoch_time = time.time() - epoch_start_time
             self.writer.add_scalar('epoch_time', time.time() - epoch_start_time, self.epoch)
@@ -1741,13 +1759,8 @@ class JointEmbeddings:
                             self.optimizer_images.step()
                         else:
                             loss.backward()
-                            print('weights', self.model.module.embeddings.weight.data)
-                            print('grad', self.model.module.embeddings.weight.grad.data)
-                            input()
                             # convert euclidean gradients to riemannian gradients for the label embeddings
-                            self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2 #(((1-(torch.norm(self.model.module.embeddings.weight.grad.data, p=2, dim=1, keepdim=True)**2))**2)/4).repeat(1, self.embedding_dim)
-                            print('weights', self.model.module.embeddings.weight.data)
-                            input()
+                            self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2
                             self.optimizer_labels.step()
                             self.optimizer_images.step()
                             self.model.module.embeddings.weight.data = self.soft_clip(self.model.module.embeddings.weight.data)
@@ -1942,8 +1955,8 @@ class JointEmbeddings:
         if self.optimizer_method == 'sgd':
             self.run_model(optim.SGD(self.params_to_update, lr=self.lr_labels, momentum=0.0))
         elif self.optimizer_method == 'adam':
-            # self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
-            print('Invalid optimizer')
+            self.run_model(optim.Adam(self.params_to_update, lr=self.lr))
+            # print('Invalid optimizer')
         self.load_best_model()
 
     def load_best_model(self):

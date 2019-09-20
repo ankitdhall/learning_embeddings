@@ -1416,7 +1416,7 @@ class JointEmbeddings:
 
         # set this graph to use for generating corrupt pairs on the fly
         # so this graph should correspond to the graph: fully connected graph - tc graph
-        # for the train set
+        # for the train setf
         self.criterion.set_negative_graph(self.graph_dict['G_train_neg'], self.graph_dict['mapping_node_to_ix'],
                                           self.graph_dict['mapping_ix_to_node'])
         #
@@ -1514,8 +1514,13 @@ class JointEmbeddings:
             self.optimizer_labels = optim.SGD([{'params': self.model.parameters(), 'lr': 0.0}], momentum=0.0)
             self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
         else:
+            params_to_update = [{'params': self.model.parameters()},
+                                {'params': self.img_feat_net.parameters()}]
+
             self.optimizer_labels = optim.Adam([{'params': self.model.parameters()}], lr=self.lr_labels)
             self.optimizer_images = optim.Adam([{'params': self.img_feat_net.parameters()}], lr=self.lr_images)
+
+            self.optimizer_labels = optim.Adam([{'params': list(self.model.parameters()) + list(self.img_feat_net.parameters())}], lr=self.lr_labels)
 
             self.scheduler_labels = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_labels, milestones=self.lr_step, gamma=0.1)
             self.scheduler_images = torch.optim.lr_scheduler.MultiStepLR(self.optimizer_images, milestones=self.lr_step, gamma=0.1)
@@ -1732,7 +1737,7 @@ class JointEmbeddings:
 
                 # zero the parameter gradients
                 self.optimizer_labels.zero_grad()
-                self.optimizer_images.zero_grad()
+                # self.optimizer_images.zero_grad()
 
                 # forward
                 # track history if only in train
@@ -1762,7 +1767,7 @@ class JointEmbeddings:
                             # convert euclidean gradients to riemannian gradients for the label embeddings
                             self.model.module.embeddings.weight.grad.data *= (1.0/self.lambda_x(self.model.module.embeddings.weight.data))**2
                             self.optimizer_labels.step()
-                            self.optimizer_images.step()
+                            # self.optimizer_images.step()
                             self.model.module.embeddings.weight.data = self.soft_clip(self.model.module.embeddings.weight.data)
 
                 # statistics

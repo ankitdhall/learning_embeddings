@@ -2358,11 +2358,11 @@ class ETHECLabelMap:
             ]
         }
 
-        self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.specific_epithet)]
+        self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.genus_specific_epithet)]
         self.n_classes = sum(self.levels)
-        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.specific_epithet] for key
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet] for key
                         in class_list]
-        self.level_names = ['family', 'subfamily', 'genus', 'specific_epithet']
+        self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
 
         self.convert_child_of()
 

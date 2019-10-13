@@ -135,9 +135,10 @@ class Experiment:
         epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
         epoch_acc = running_corrects.double() / len(self.dataloaders[phase].dataset)
 
-        self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
-        self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
-        self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
+        if save_to_tensorboard:
+            self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
+            self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
+            self.writer.add_scalar('{}_mAP'.format(phase), mAP, self.epoch)
 
         print('{} Loss: {:.4f} Score: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 

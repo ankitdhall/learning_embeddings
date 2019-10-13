@@ -128,6 +128,7 @@ class MaskedCELoss(torch.nn.Module):
         # print('level_labels shape in loss.py:', level_labels.shape)
         for sample_id in range(outputs.shape[0]):
             possible_children_dict_orig, new_level_labels = self.labelmap.decode_children(level_labels[sample_id, :])
+            found_incorrect_prediction = False
             # print(possible_children_dict_orig, new_level_labels)
             # print(outputs)
             possible_children_dict = {}
@@ -135,7 +136,10 @@ class MaskedCELoss(torch.nn.Module):
                 possible_children_dict[k] = [ix+self.level_start[level_id] for ix in possible_children_dict_orig[k]]
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]))
                 # print(outputs[sample_id, possible_children_dict[k]].unsqueeze(0).shape, torch.tensor([new_level_labels[level_id]]).shape)
-                loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]).to(self.device))
+                if not found_incorrect_prediction:
+                    loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, possible_children_dict[k]].unsqueeze(0), torch.tensor([new_level_labels[level_id]]).to(self.device))
+                else:
+                    loss += self.level_weights[level_id] * self.criterion[level_id](outputs[sample_id, self.level_start[level_id]:self.level_stop[level_id]].unsqueeze(0), torch.tensor([level_labels[sample_id, level_id]]).to(self.device))
                 # if phase == 'train':
                 #     outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
                 # else:
@@ -151,6 +155,9 @@ class MaskedCELoss(torch.nn.Module):
                     outputs_new[sample_id, children_of_prev_level_pred_absolute] = outputs[sample_id, children_of_prev_level_pred_absolute]
                     # labels_at_eval.append(predicted_class)
                     # outputs_new[sample_id, possible_children_dict[k]] = outputs[sample_id, possible_children_dict[k]]
+
+                if predicted_class != new_level_labels[level_id]:
+                    found_incorrect_prediction = True
 
 
 

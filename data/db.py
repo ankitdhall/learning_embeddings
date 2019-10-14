@@ -14,6 +14,1106 @@ import numpy as np
 import random
 
 
+class Butterfly200LabelMap:
+
+    def __init__(self):
+        self.family = {
+            "Papilionidae": 0,
+            "Pieridae": 1,
+            "Nymphalidae": 2,
+            "Lycaenidae": 3,
+            "Hesperiidae": 4
+        }
+
+        self.subfamily = {
+            "Papilionidae": 0,
+            "Parnassiinae": 1,
+            "Coliadinae": 2,
+            "Pierinae": 3,
+            "Dismorphiinae": 4,
+            "Danainae": 5,
+            "Satyrinae": 6,
+            "Apaturinae": 7,
+            "Biblidinae": 8,
+            "Limenitinae": 9,
+            "Cyrestinae": 10,
+            "Calinaginae": 11,
+            "Heliconiinae": 12,
+            "Charaxinae": 13,
+            "Nymphalinae": 14,
+            "Libytheinae": 15,
+            "Riodininae": 16,
+            "Miletinae": 17,
+            "Curetinae": 18,
+            "Lycaeninae": 19,
+            "Hesperiinae": 20,
+            "Pyrginae": 21,
+            "Coeliadinae": 22
+        }
+
+        self.genus = {
+            "Atrophaneura": 0,
+            "Byasa": 1,
+            "Graphium": 2,
+            "Iphiclides": 3,
+            "Lamproptera": 4,
+            "Losaria": 5,
+            "Meandrusa": 6,
+            "Pachliopta": 7,
+            "Papilio": 8,
+            "Pathysa": 9,
+            "Pazala": 10,
+            "Teinopalpus": 11,
+            "Troides": 12,
+            "Bhutanitis": 13,
+            "Luehdorfia": 14,
+            "Sericinus": 15,
+            "Parnassius": 16,
+            "Catopsilia": 17,
+            "Colias": 18,
+            "Eurema": 19,
+            "Gandaca": 20,
+            "Gonepteryx": 21,
+            "Hebomoia": 22,
+            "Delias": 23,
+            "Cepora": 24,
+            "Pieris": 25,
+            "Leptidea": 26,
+            "Danaus": 27,
+            "Euploea": 28,
+            "Idea": 29,
+            "Ideopsis": 30,
+            "Parantica": 31,
+            "Tirumala": 32,
+            "Elymnias": 33,
+            "Lethe": 34,
+            "Mandarinia": 35,
+            "Melanitis": 36,
+            "Mycalesis": 37,
+            "Neope": 38,
+            "Penthema": 39,
+            "Ypthima": 40,
+            "Aemona": 41,
+            "Faunis": 42,
+            "Stichophthalma": 43,
+            "Apatura": 44,
+            "Chitoria": 45,
+            "Hestina": 46,
+            "Rohana": 47,
+            "Sasakia": 48,
+            "Sephisa": 49,
+            "Timelaea": 50,
+            "Ariadne": 51,
+            "Euthalia": 52,
+            "Athyma": 53,
+            "Limenitis": 54,
+            "Neptis": 55,
+            "Cyrestis": 56,
+            "Stibochiona": 57,
+            "Calinaga": 58,
+            "Clossiana": 59,
+            "Cethosia": 60,
+            "Damora": 61,
+            "Issoria": 62,
+            "Proclossiana": 63,
+            "Acraea": 64,
+            "Charaxes": 65,
+            "Polyura": 66,
+            "Doleschallia": 67,
+            "Hypolimnas": 68,
+            "Junonia": 69,
+            "Kallima": 70,
+            "Kaniska": 71,
+            "Polygonia": 72,
+            "Symbrenthia": 73,
+            "Vanessa": 74,
+            "Libythea": 75,
+            "Abisara": 76,
+            "Dodona": 77,
+            "Zemeros": 78,
+            "Allotinus": 79,
+            "Miletus": 80,
+            "Taraka": 81,
+            "Curetis": 82,
+            "Amblopala": 83,
+            "Arhopala": 84,
+            "Artipe": 85,
+            "Horaga": 86,
+            "Iraota": 87,
+            "Jamides": 88,
+            "Lampides": 89,
+            "Loxura": 90,
+            "Mahathala": 91,
+            "Rapala": 92,
+            "Spindasis": 93,
+            "Tongeia": 94,
+            "Ussuriana": 95,
+            "Zizeeria": 96,
+            "Ampittia": 97,
+            "Ancistroides": 98,
+            "Astictopterus": 99,
+            "Erionota": 100,
+            "Iambrix": 101,
+            "Isoteinon": 102,
+            "Parnara": 103,
+            "Notocrypta": 104,
+            "Udaspes": 105,
+            "Seseria": 106,
+            "Celaenorrhinus": 107,
+            "Daimio": 108,
+            "Pseudocoladenia": 109,
+            "Tagiades": 110,
+            "Abraximorpha": 111,
+            "Odontoptilum": 112,
+            "Badamia": 113,
+            "Burara": 114,
+            "Hasora": 115
+        }
+
+        self.genus_specific_epithet = {
+            "001.Atrophaneura_horishanus": 0,
+            "002.Atrophaneura_varuna": 1,
+            "003.Byasa_alcinous": 2,
+            "004.Byasa_dasarada": 3,
+            "005.Byasa_polyeuctes": 4,
+            "006.Graphium_agamemnon": 5,
+            "007.Graphium_cloanthus": 6,
+            "008.Graphium_sarpedon": 7,
+            "009.Iphiclides_podalirius": 8,
+            "010.Lamproptera_curius": 9,
+            "011.Lamproptera_meges": 10,
+            "012.Losaria_coon": 11,
+            "013.Meandrusa_payeni": 12,
+            "014.Meandrusa_sciron": 13,
+            "015.Pachliopta_aristolochiae": 14,
+            "016.Papilio_alcmenor": 15,
+            "017.Papilio_arcturus": 16,
+            "018.Papilio_bianor": 17,
+            "019.Papilio_dialis": 18,
+            "020.Papilio_hermosanus": 19,
+            "021.Papilio_hoppo": 20,
+            "022.Papilio_Krishna": 21,
+            "023.Papilio_maackii": 22,
+            "024.Papilio_machaon": 23,
+            "025.Papilio_memnon": 24,
+            "026.Papilio_nephelus": 25,
+            "027.Papilio_paris": 26,
+            "028.Papilio_polytes": 27,
+            "029.Papilio_prexaspes": 28,
+            "030.Papilio_protenor": 29,
+            "031.Papilio_xuthus": 30,
+            "032.Pathysa_antiphates": 31,
+            "033.Pazala_eurous": 32,
+            "034.Pazala_mullah": 33,
+            "035.Teinopalpus_aureus": 34,
+            "036.Teinopalpus_imperialis": 35,
+            "037.Troides_helena": 36,
+            "038.Troides_aeacus": 37,
+            "039.Troides_magellanus": 38,
+            "040.Bhutanitis_lidderdalii": 39,
+            "041.Luehdorfia_chinensis": 40,
+            "042.Sericinus_montelus": 41,
+            "043.Parnassius_apollo": 42,
+            "044.Parnassius_nomion": 43,
+            "045.Parnassius_phoebus": 44,
+            "046.Catopsilia_pomona": 45,
+            "047.Catopsilia_pyranthe": 46,
+            "048.Catopsilia_scylla": 47,
+            "049.Colias_erate": 48,
+            "050.Colias_fieldii": 49,
+            "051.Colias_hyale": 50,
+            "052.Colias_palaeno": 51,
+            "053.Eurema_blanda": 52,
+            "054.Eurema_andersoni": 53,
+            "055.Eurema_brigitta": 54,
+            "056.Eurema_hecabe": 55,
+            "057.Eurema_laeta": 56,
+            "058.Eurema_mandarina": 57,
+            "059.Gandaca_harina": 58,
+            "060.Gonepteryx_amintha": 59,
+            "061.Gonepteryx_rhamni": 60,
+            "062.Hebomoia_glaucippe": 61,
+            "063.Delias_acalis": 62,
+            "064.Delias_belladonna": 63,
+            "065.Delias_descombesi": 64,
+            "066.Delias_pasithoe": 65,
+            "067.Cepora_nerissa": 66,
+            "068.Pieris_canidia": 67,
+            "069.Pieris_melete": 68,
+            "070.Pieris_napi": 69,
+            "071.Pieris_rapae": 70,
+            "072.Leptidea_amurensis": 71,
+            "073.Leptidea_morsei": 72,
+            "074.Leptidea_sinapis": 73,
+            "075.Danaus_chrysippus": 74,
+            "076.Danaus_genutia": 75,
+            "077.Danaus_plexippus": 76,
+            "078.Euploea_core": 77,
+            "079.Euploea_midamus": 78,
+            "080.Euploea_sylvester": 79,
+            "081.Euploea_tulliolus": 80,
+            "082.Idea_leuconoe": 81,
+            "083.Ideopsis_similis": 82,
+            "084.Ideopsis_vulgaris": 83,
+            "085.Parantica_aglea": 84,
+            "086.Parantica_melaneus": 85,
+            "087.Parantica_sita": 86,
+            "088.Tirumala_limniace": 87,
+            "089.Tirumala_septentrionis": 88,
+            "090.Elymnias_hypermnestra": 89,
+            "091.Lethe_chandica": 90,
+            "092.Lethe_confusa": 91,
+            "093.Lethe_syrcis": 92,
+            "094.Mandarinia_regalis": 93,
+            "095.Melanitis_leda": 94,
+            "096.Melanitis_phedima": 95,
+            "097.Mycalesis_gotama": 96,
+            "098.Mycalesis_intermedia": 97,
+            "099.Mycalesis_perseus": 98,
+            "100.Neope_pulaha": 99,
+            "101.Penthema_darlisa": 100,
+            "102.Penthema_formosanum": 101,
+            "103.Ypthima_baldus": 102,
+            "104.Ypthima_praenubila": 103,
+            "105.Aemona_amathusia": 104,
+            "106.Faunis_eumeus": 105,
+            "107.Stichophthalma_howqua": 106,
+            "108.Apatura_ilia": 107,
+            "109.Apatura_iris": 108,
+            "110.Chitoria_ulupi": 109,
+            "111.Hestina_assimilis": 110,
+            "112.Rohana_parisatis": 111,
+            "113.Sasakia_charonda": 112,
+            "114.Sephisa_chandra": 113,
+            "115.Timelaea_albescens": 114,
+            "116.Ariadne_ariadne": 115,
+            "117.Ariadne_merione": 116,
+            "118.Euthalia_niepelti": 117,
+            "119.Athyma_perius": 118,
+            "120.Athyma_ranga": 119,
+            "121.Limenitis_sulpitia": 120,
+            "122.Neptis_hylas": 121,
+            "123.Neptis_miah": 122,
+            "124.Cyrestis_thyodamas": 123,
+            "125.Stibochiona_nicea": 124,
+            "126.Calinaga_buddha": 125,
+            "127.Clossiana_dia": 126,
+            "128.Clossiana_euphrosyne": 127,
+            "129.Clossiana_freija": 128,
+            "130.Clossiana_titania": 129,
+            "131.Cethosia_biblis": 130,
+            "132.Cethosia_cyane": 131,
+            "133.Damora_sagana": 132,
+            "134.Issoria_lathonia": 133,
+            "135.Proclossiana_eunomia": 134,
+            "136.Acraea_issoria": 135,
+            "137.Acraea_terpsicore": 136,
+            "138.Charaxes_bernardus": 137,
+            "139.Polyura_athamas": 138,
+            "140.Polyura_eudamippus": 139,
+            "141.Polyura_narcaea": 140,
+            "142.Doleschallia_bisaltide": 141,
+            "143.Hypolimnas_bolina": 142,
+            "144.Junonia_almana": 143,
+            "145.Junonia_atlites": 144,
+            "146.Junonia_hierta": 145,
+            "147.Junonia_iphita": 146,
+            "148.Junonia_orithya": 147,
+            "149.Kallima_inachus": 148,
+            "150.Kaniska_canace": 149,
+            "151.Polygonia_caureum": 150,
+            "152.Symbrenthia_lilaea": 151,
+            "153.Vanessa_cardui": 152,
+            "154.Vanessa_indica": 153,
+            "155.Libythea_myrrha": 154,
+            "156.Libythea_lepita": 155,
+            "157.Abisara_echerius": 156,
+            "158.Dodona_eugenes": 157,
+            "159.Zemeros_flegyas": 158,
+            "160.Allotinus_drumila": 159,
+            "161.Miletus_chinensis": 160,
+            "162.Taraka_hamada": 161,
+            "163.Curetis_acuta": 162,
+            "164.Amblopala_avidiena": 163,
+            "165.Arhopala_paramuta": 164,
+            "166.Arhopala_rama": 165,
+            "167.Artipe_eryx": 166,
+            "168.Horaga_albimacula": 167,
+            "169.Horaga_onyx": 168,
+            "170.Iraota_timoleon": 169,
+            "171.Jamides_bochus": 170,
+            "172.Lampides_boeticus": 171,
+            "173.Loxura_atymnus": 172,
+            "174.Mahathala_ameria": 173,
+            "175.Rapala_nissa": 174,
+            "176.SpinDasis_syama": 175,
+            "177.Tongeia_potanini": 176,
+            "178.Ussuriana_michaelis": 177,
+            "179.Zizeeria_maha": 178,
+            "180.Ampittia_virgata": 179,
+            "181.Ancistroides_nigrita": 180,
+            "182.Astictopterus_jama": 181,
+            "183.Erionota_torus": 182,
+            "184.Iambrix_salsala": 183,
+            "185.Isoteinon_lamprospilus": 184,
+            "186.Parnara_guttata": 185,
+            "187.Notocrypta_curvifascia": 186,
+            "188.Udaspes_folus": 187,
+            "189.Seseria_dohertyi": 188,
+            "190.Celaenorrhinus_maculosus": 189,
+            "191.Daimio_tethys": 190,
+            "192.Pseudocoladenia_dan": 191,
+            "193.Tagiades_menaka": 192,
+            "194.Abraximorpha_davidii": 193,
+            "195.Odontoptilum_angulatum": 194,
+            "196.Badamia_exclamationis": 195,
+            "197.Burara_gomata": 196,
+            "198.Hasora_anura": 197,
+            "199.Hasora_badra": 198,
+            "200.Hasora_vitta": 199
+        }
+
+        self.child_of_family = {
+            "Papilionidae": [
+                "Papilionidae",
+                "Parnassiinae"
+            ],
+            "Pieridae": [
+                "Coliadinae",
+                "Pierinae",
+                "Dismorphiinae"
+            ],
+            "Nymphalidae": [
+                "Danainae",
+                "Satyrinae",
+                "Apaturinae",
+                "Biblidinae",
+                "Limenitinae",
+                "Cyrestinae",
+                "Calinaginae",
+                "Heliconiinae",
+                "Charaxinae",
+                "Nymphalinae",
+                "Libytheinae"
+            ],
+            "Lycaenidae": [
+                "Riodininae",
+                "Miletinae",
+                "Curetinae",
+                "Lycaeninae"
+            ],
+            "Hesperiidae": [
+                "Hesperiinae",
+                "Pyrginae",
+                "Coeliadinae"
+            ]
+        }
+
+        self.child_of_subfamily = {
+            "Papilionidae": [
+                "Atrophaneura",
+                "Byasa",
+                "Graphium",
+                "Iphiclides",
+                "Lamproptera",
+                "Losaria",
+                "Meandrusa",
+                "Pachliopta",
+                "Papilio",
+                "Pathysa",
+                "Pazala",
+                "Teinopalpus",
+                "Troides"
+            ],
+            "Parnassiinae": [
+                "Bhutanitis",
+                "Luehdorfia",
+                "Sericinus",
+                "Parnassius"
+            ],
+            "Coliadinae": [
+                "Catopsilia",
+                "Colias",
+                "Eurema",
+                "Gandaca",
+                "Gonepteryx"
+            ],
+            "Pierinae": [
+                "Hebomoia",
+                "Delias",
+                "Cepora",
+                "Pieris"
+            ],
+            "Dismorphiinae": [
+                "Leptidea"
+            ],
+            "Danainae": [
+                "Danaus",
+                "Euploea",
+                "Idea",
+                "Ideopsis",
+                "Parantica",
+                "Tirumala"
+            ],
+            "Satyrinae": [
+                "Elymnias",
+                "Lethe",
+                "Mandarinia",
+                "Melanitis",
+                "Mycalesis",
+                "Neope",
+                "Penthema",
+                "Ypthima",
+                "Aemona",
+                "Faunis",
+                "Stichophthalma"
+            ],
+            "Apaturinae": [
+                "Apatura",
+                "Chitoria",
+                "Hestina",
+                "Rohana",
+                "Sasakia",
+                "Sephisa",
+                "Timelaea"
+            ],
+            "Biblidinae": [
+                "Ariadne"
+            ],
+            "Limenitinae": [
+                "Euthalia",
+                "Athyma",
+                "Limenitis",
+                "Neptis"
+            ],
+            "Cyrestinae": [
+                "Cyrestis",
+                "Stibochiona"
+            ],
+            "Calinaginae": [
+                "Calinaga"
+            ],
+            "Heliconiinae": [
+                "Clossiana",
+                "Cethosia",
+                "Damora",
+                "Issoria",
+                "Proclossiana",
+                "Acraea"
+            ],
+            "Charaxinae": [
+                "Charaxes",
+                "Polyura"
+            ],
+            "Nymphalinae": [
+                "Doleschallia",
+                "Hypolimnas",
+                "Junonia",
+                "Kallima",
+                "Kaniska",
+                "Polygonia",
+                "Symbrenthia",
+                "Vanessa"
+            ],
+            "Libytheinae": [
+                "Libythea"
+            ],
+            "Riodininae": [
+                "Abisara",
+                "Dodona",
+                "Zemeros"
+            ],
+            "Miletinae": [
+                "Allotinus",
+                "Miletus",
+                "Taraka"
+            ],
+            "Curetinae": [
+                "Curetis"
+            ],
+            "Lycaeninae": [
+                "Amblopala",
+                "Arhopala",
+                "Artipe",
+                "Horaga",
+                "Iraota",
+                "Jamides",
+                "Lampides",
+                "Loxura",
+                "Mahathala",
+                "Rapala",
+                "Spindasis",
+                "Tongeia",
+                "Ussuriana",
+                "Zizeeria"
+            ],
+            "Hesperiinae": [
+                "Ampittia",
+                "Ancistroides",
+                "Astictopterus",
+                "Erionota",
+                "Iambrix",
+                "Isoteinon",
+                "Parnara",
+                "Notocrypta",
+                "Udaspes"
+            ],
+            "Pyrginae": [
+                "Seseria",
+                "Celaenorrhinus",
+                "Daimio",
+                "Pseudocoladenia",
+                "Tagiades",
+                "Abraximorpha",
+                "Odontoptilum"
+            ],
+            "Coeliadinae": [
+                "Badamia",
+                "Burara",
+                "Hasora"
+            ]
+        }
+
+        self.child_of_genus = {
+            "Atrophaneura": [
+                "001.Atrophaneura_horishanus",
+                "002.Atrophaneura_varuna"
+            ],
+            "Byasa": [
+                "003.Byasa_alcinous",
+                "004.Byasa_dasarada",
+                "005.Byasa_polyeuctes"
+            ],
+            "Graphium": [
+                "006.Graphium_agamemnon",
+                "007.Graphium_cloanthus",
+                "008.Graphium_sarpedon"
+            ],
+            "Iphiclides": [
+                "009.Iphiclides_podalirius"
+            ],
+            "Lamproptera": [
+                "010.Lamproptera_curius",
+                "011.Lamproptera_meges"
+            ],
+            "Losaria": [
+                "012.Losaria_coon"
+            ],
+            "Meandrusa": [
+                "013.Meandrusa_payeni",
+                "014.Meandrusa_sciron"
+            ],
+            "Pachliopta": [
+                "015.Pachliopta_aristolochiae"
+            ],
+            "Papilio": [
+                "016.Papilio_alcmenor",
+                "017.Papilio_arcturus",
+                "018.Papilio_bianor",
+                "019.Papilio_dialis",
+                "020.Papilio_hermosanus",
+                "021.Papilio_hoppo",
+                "022.Papilio_Krishna",
+                "023.Papilio_maackii",
+                "024.Papilio_machaon",
+                "025.Papilio_memnon",
+                "026.Papilio_nephelus",
+                "027.Papilio_paris",
+                "028.Papilio_polytes",
+                "029.Papilio_prexaspes",
+                "030.Papilio_protenor",
+                "031.Papilio_xuthus"
+            ],
+            "Pathysa": [
+                "032.Pathysa_antiphates"
+            ],
+            "Pazala": [
+                "033.Pazala_eurous",
+                "034.Pazala_mullah"
+            ],
+            "Teinopalpus": [
+                "035.Teinopalpus_aureus",
+                "036.Teinopalpus_imperialis"
+            ],
+            "Troides": [
+                "037.Troides_helena",
+                "038.Troides_aeacus",
+                "039.Troides_magellanus"
+            ],
+            "Bhutanitis": [
+                "040.Bhutanitis_lidderdalii"
+            ],
+            "Luehdorfia": [
+                "041.Luehdorfia_chinensis"
+            ],
+            "Sericinus": [
+                "042.Sericinus_montelus"
+            ],
+            "Parnassius": [
+                "043.Parnassius_apollo",
+                "044.Parnassius_nomion",
+                "045.Parnassius_phoebus"
+            ],
+            "Catopsilia": [
+                "046.Catopsilia_pomona",
+                "047.Catopsilia_pyranthe",
+                "048.Catopsilia_scylla"
+            ],
+            "Colias": [
+                "049.Colias_erate",
+                "050.Colias_fieldii",
+                "051.Colias_hyale",
+                "052.Colias_palaeno"
+            ],
+            "Eurema": [
+                "053.Eurema_blanda",
+                "054.Eurema_andersoni",
+                "055.Eurema_brigitta",
+                "056.Eurema_hecabe",
+                "057.Eurema_laeta",
+                "058.Eurema_mandarina"
+            ],
+            "Gandaca": [
+                "059.Gandaca_harina"
+            ],
+            "Gonepteryx": [
+                "060.Gonepteryx_amintha",
+                "061.Gonepteryx_rhamni"
+            ],
+            "Hebomoia": [
+                "062.Hebomoia_glaucippe"
+            ],
+            "Delias": [
+                "063.Delias_acalis",
+                "064.Delias_belladonna",
+                "065.Delias_descombesi",
+                "066.Delias_pasithoe"
+            ],
+            "Cepora": [
+                "067.Cepora_nerissa"
+            ],
+            "Pieris": [
+                "068.Pieris_canidia",
+                "069.Pieris_melete",
+                "070.Pieris_napi",
+                "071.Pieris_rapae"
+            ],
+            "Leptidea": [
+                "072.Leptidea_amurensis",
+                "073.Leptidea_morsei",
+                "074.Leptidea_sinapis"
+            ],
+            "Danaus": [
+                "075.Danaus_chrysippus",
+                "076.Danaus_genutia",
+                "077.Danaus_plexippus"
+            ],
+            "Euploea": [
+                "078.Euploea_core",
+                "079.Euploea_midamus",
+                "080.Euploea_sylvester",
+                "081.Euploea_tulliolus"
+            ],
+            "Idea": [
+                "082.Idea_leuconoe"
+            ],
+            "Ideopsis": [
+                "083.Ideopsis_similis",
+                "084.Ideopsis_vulgaris"
+            ],
+            "Parantica": [
+                "085.Parantica_aglea",
+                "086.Parantica_melaneus",
+                "087.Parantica_sita"
+            ],
+            "Tirumala": [
+                "088.Tirumala_limniace",
+                "089.Tirumala_septentrionis"
+            ],
+            "Elymnias": [
+                "090.Elymnias_hypermnestra"
+            ],
+            "Lethe": [
+                "091.Lethe_chandica",
+                "092.Lethe_confusa",
+                "093.Lethe_syrcis"
+            ],
+            "Mandarinia": [
+                "094.Mandarinia_regalis"
+            ],
+            "Melanitis": [
+                "095.Melanitis_leda",
+                "096.Melanitis_phedima"
+            ],
+            "Mycalesis": [
+                "097.Mycalesis_gotama",
+                "098.Mycalesis_intermedia",
+                "099.Mycalesis_perseus"
+            ],
+            "Neope": [
+                "100.Neope_pulaha"
+            ],
+            "Penthema": [
+                "101.Penthema_darlisa",
+                "102.Penthema_formosanum"
+            ],
+            "Ypthima": [
+                "103.Ypthima_baldus",
+                "104.Ypthima_praenubila"
+            ],
+            "Aemona": [
+                "105.Aemona_amathusia"
+            ],
+            "Faunis": [
+                "106.Faunis_eumeus"
+            ],
+            "Stichophthalma": [
+                "107.Stichophthalma_howqua"
+            ],
+            "Apatura": [
+                "108.Apatura_ilia",
+                "109.Apatura_iris"
+            ],
+            "Chitoria": [
+                "110.Chitoria_ulupi"
+            ],
+            "Hestina": [
+                "111.Hestina_assimilis"
+            ],
+            "Rohana": [
+                "112.Rohana_parisatis"
+            ],
+            "Sasakia": [
+                "113.Sasakia_charonda"
+            ],
+            "Sephisa": [
+                "114.Sephisa_chandra"
+            ],
+            "Timelaea": [
+                "115.Timelaea_albescens"
+            ],
+            "Ariadne": [
+                "116.Ariadne_ariadne",
+                "117.Ariadne_merione"
+            ],
+            "Euthalia": [
+                "118.Euthalia_niepelti"
+            ],
+            "Athyma": [
+                "119.Athyma_perius",
+                "120.Athyma_ranga"
+            ],
+            "Limenitis": [
+                "121.Limenitis_sulpitia"
+            ],
+            "Neptis": [
+                "122.Neptis_hylas",
+                "123.Neptis_miah"
+            ],
+            "Cyrestis": [
+                "124.Cyrestis_thyodamas"
+            ],
+            "Stibochiona": [
+                "125.Stibochiona_nicea"
+            ],
+            "Calinaga": [
+                "126.Calinaga_buddha"
+            ],
+            "Clossiana": [
+                "127.Clossiana_dia",
+                "128.Clossiana_euphrosyne",
+                "129.Clossiana_freija",
+                "130.Clossiana_titania"
+            ],
+            "Cethosia": [
+                "131.Cethosia_biblis",
+                "132.Cethosia_cyane"
+            ],
+            "Damora": [
+                "133.Damora_sagana"
+            ],
+            "Issoria": [
+                "134.Issoria_lathonia"
+            ],
+            "Proclossiana": [
+                "135.Proclossiana_eunomia"
+            ],
+            "Acraea": [
+                "136.Acraea_issoria",
+                "137.Acraea_terpsicore"
+            ],
+            "Charaxes": [
+                "138.Charaxes_bernardus"
+            ],
+            "Polyura": [
+                "139.Polyura_athamas",
+                "140.Polyura_eudamippus",
+                "141.Polyura_narcaea"
+            ],
+            "Doleschallia": [
+                "142.Doleschallia_bisaltide"
+            ],
+            "Hypolimnas": [
+                "143.Hypolimnas_bolina"
+            ],
+            "Junonia": [
+                "144.Junonia_almana",
+                "145.Junonia_atlites",
+                "146.Junonia_hierta",
+                "147.Junonia_iphita",
+                "148.Junonia_orithya"
+            ],
+            "Kallima": [
+                "149.Kallima_inachus"
+            ],
+            "Kaniska": [
+                "150.Kaniska_canace"
+            ],
+            "Polygonia": [
+                "151.Polygonia_caureum"
+            ],
+            "Symbrenthia": [
+                "152.Symbrenthia_lilaea"
+            ],
+            "Vanessa": [
+                "153.Vanessa_cardui",
+                "154.Vanessa_indica"
+            ],
+            "Libythea": [
+                "155.Libythea_myrrha",
+                "156.Libythea_lepita"
+            ],
+            "Abisara": [
+                "157.Abisara_echerius"
+            ],
+            "Dodona": [
+                "158.Dodona_eugenes"
+            ],
+            "Zemeros": [
+                "159.Zemeros_flegyas"
+            ],
+            "Allotinus": [
+                "160.Allotinus_drumila"
+            ],
+            "Miletus": [
+                "161.Miletus_chinensis"
+            ],
+            "Taraka": [
+                "162.Taraka_hamada"
+            ],
+            "Curetis": [
+                "163.Curetis_acuta"
+            ],
+            "Amblopala": [
+                "164.Amblopala_avidiena"
+            ],
+            "Arhopala": [
+                "165.Arhopala_paramuta",
+                "166.Arhopala_rama"
+            ],
+            "Artipe": [
+                "167.Artipe_eryx"
+            ],
+            "Horaga": [
+                "168.Horaga_albimacula",
+                "169.Horaga_onyx"
+            ],
+            "Iraota": [
+                "170.Iraota_timoleon"
+            ],
+            "Jamides": [
+                "171.Jamides_bochus"
+            ],
+            "Lampides": [
+                "172.Lampides_boeticus"
+            ],
+            "Loxura": [
+                "173.Loxura_atymnus"
+            ],
+            "Mahathala": [
+                "174.Mahathala_ameria"
+            ],
+            "Rapala": [
+                "175.Rapala_nissa"
+            ],
+            "Spindasis": [
+                "176.SpinDasis_syama"
+            ],
+            "Tongeia": [
+                "177.Tongeia_potanini"
+            ],
+            "Ussuriana": [
+                "178.Ussuriana_michaelis"
+            ],
+            "Zizeeria": [
+                "179.Zizeeria_maha"
+            ],
+            "Ampittia": [
+                "180.Ampittia_virgata"
+            ],
+            "Ancistroides": [
+                "181.Ancistroides_nigrita"
+            ],
+            "Astictopterus": [
+                "182.Astictopterus_jama"
+            ],
+            "Erionota": [
+                "183.Erionota_torus"
+            ],
+            "Iambrix": [
+                "184.Iambrix_salsala"
+            ],
+            "Isoteinon": [
+                "185.Isoteinon_lamprospilus"
+            ],
+            "Parnara": [
+                "186.Parnara_guttata"
+            ],
+            "Notocrypta": [
+                "187.Notocrypta_curvifascia"
+            ],
+            "Udaspes": [
+                "188.Udaspes_folus"
+            ],
+            "Seseria": [
+                "189.Seseria_dohertyi"
+            ],
+            "Celaenorrhinus": [
+                "190.Celaenorrhinus_maculosus"
+            ],
+            "Daimio": [
+                "191.Daimio_tethys"
+            ],
+            "Pseudocoladenia": [
+                "192.Pseudocoladenia_dan"
+            ],
+            "Tagiades": [
+                "193.Tagiades_menaka"
+            ],
+            "Abraximorpha": [
+                "194.Abraximorpha_davidii"
+            ],
+            "Odontoptilum": [
+                "195.Odontoptilum_angulatum"
+            ],
+            "Badamia": [
+                "196.Badamia_exclamationis"
+            ],
+            "Burara": [
+                "197.Burara_gomata"
+            ],
+            "Hasora": [
+                "198.Hasora_anura",
+                "199.Hasora_badra",
+                "200.Hasora_vitta"
+            ]
+        }
+
+        self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.genus_specific_epithet)]
+        self.n_classes = sum(self.levels)
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet] for
+                        key
+                        in class_list]
+        self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
+
+        self.convert_child_of()
+
+
+    def convert_child_of(self):
+        self.level_stop, self.level_start = [], []
+        for level_id, level_len in enumerate(self.levels):
+            if level_id == 0:
+                self.level_start.append(0)
+                self.level_stop.append(level_len)
+            else:
+                self.level_start.append(self.level_stop[level_id - 1])
+                self.level_stop.append(self.level_stop[level_id - 1] + level_len)
+
+        self.child_of_family_ix, self.child_of_subfamily_ix, self.child_of_genus_ix = {}, {}, {}
+        for family_name in self.child_of_family:
+            if family_name not in self.family:
+                continue
+            self.child_of_family_ix[self.family[family_name]] = []
+            for subfamily_name in self.child_of_family[family_name]:
+                if subfamily_name not in self.subfamily:
+                    continue
+                self.child_of_family_ix[self.family[family_name]].append(self.subfamily[subfamily_name])
+
+        for subfamily_name in self.child_of_subfamily:
+            if subfamily_name not in self.subfamily:
+                continue
+            self.child_of_subfamily_ix[self.subfamily[subfamily_name]] = []
+            for genus_name in self.child_of_subfamily[subfamily_name]:
+                if genus_name not in self.genus:
+                    continue
+                self.child_of_subfamily_ix[self.subfamily[subfamily_name]].append(self.genus[genus_name])
+
+        for genus_name in self.child_of_genus:
+            if genus_name not in self.genus:
+                continue
+            self.child_of_genus_ix[self.genus[genus_name]] = []
+            for genus_specific_epithet_name in self.child_of_genus[genus_name]:
+                if genus_specific_epithet_name not in self.genus_specific_epithet:
+                    continue
+                self.child_of_genus_ix[self.genus[genus_name]].append(
+                    self.genus_specific_epithet[genus_specific_epithet_name])
+
+        self.family_ix_to_str = {self.family[k]: k for k in self.family}
+        self.subfamily_ix_to_str = {self.subfamily[k]: k for k in self.subfamily}
+        self.genus_ix_to_str = {self.genus[k]: k for k in self.genus}
+        self.genus_specific_epithet_ix_to_str = {self.genus_specific_epithet[k]: k for k in self.genus_specific_epithet}
+
+    def get_one_hot(self, family, subfamily, genus, specific_epithet):
+        retval = np.zeros(self.n_classes)
+        retval[self.family[family]] = 1
+        retval[self.subfamily[subfamily] + self.levels[0]] = 1
+        retval[self.genus[genus] + self.levels[0] + self.levels[1]] = 1
+        retval[self.genus_specific_epithet[specific_epithet] + self.levels[0] + self.levels[1] + self.levels[2]] = 1
+        return retval
+
+    def get_label_id(self, level_name, label_name):
+        return getattr(self, level_name)[label_name]
+
+    def get_level_labels(self, family, subfamily, genus, specific_epithet):
+        return np.array([
+            self.get_label_id('family', family),
+            self.get_label_id('subfamily', subfamily),
+            self.get_label_id('genus', genus),
+            self.get_label_id('genus_specific_epithet', specific_epithet)
+        ])
+
+    def get_children_of(self, c_ix, level_id):
+        if level_id == 0:
+            # possible family
+            return [self.family[k] for k in self.family]
+        elif level_id == 1:
+            # possible_subfamily
+            return self.child_of_family_ix[c_ix]
+        elif level_id == 2:
+            # possible_genus
+            return self.child_of_subfamily_ix[c_ix]
+        elif level_id == 3:
+            # possible_genus_specific_epithet
+            return self.child_of_genus_ix[c_ix]
+        else:
+            return None
+
+    def decode_children(self, level_labels):
+        level_labels = level_labels.cpu().numpy()
+        possible_family = [self.family[k] for k in self.family]
+        possible_subfamily = self.child_of_family_ix[level_labels[0]]
+        possible_genus = self.child_of_subfamily_ix[level_labels[1]]
+        possible_genus_specific_epithet = self.child_of_genus_ix[level_labels[2]]
+        new_level_labels = [
+            level_labels[0],
+            possible_subfamily.index(level_labels[1]),
+            possible_genus.index(level_labels[2]),
+            possible_genus_specific_epithet.index(level_labels[3])
+        ]
+        return {'family': possible_family, 'subfamily': possible_subfamily, 'genus': possible_genus,
+                'genus_specific_epithet': possible_genus_specific_epithet}, new_level_labels
+
+
 class ETHECLabelMap:
     """
     Implements map from labels to hot vectors for ETHEC database.
@@ -2360,7 +3460,8 @@ class ETHECLabelMap:
 
         self.levels = [len(self.family), len(self.subfamily), len(self.genus), len(self.genus_specific_epithet)]
         self.n_classes = sum(self.levels)
-        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet] for key
+        self.classes = [key for class_list in [self.family, self.subfamily, self.genus, self.genus_specific_epithet] for
+                        key
                         in class_list]
         self.level_names = ['family', 'subfamily', 'genus', 'genus_specific_epithet']
 
@@ -2402,7 +3503,8 @@ class ETHECLabelMap:
             for genus_specific_epithet_name in self.child_of_genus[genus_name]:
                 if genus_specific_epithet_name not in self.genus_specific_epithet:
                     continue
-                self.child_of_genus_ix[self.genus[genus_name]].append(self.genus_specific_epithet[genus_specific_epithet_name])
+                self.child_of_genus_ix[self.genus[genus_name]].append(
+                    self.genus_specific_epithet[genus_specific_epithet_name])
 
         self.family_ix_to_str = {self.family[k]: k for k in self.family}
         self.subfamily_ix_to_str = {self.subfamily[k]: k for k in self.subfamily}
@@ -2672,10 +3774,8 @@ class ETHECDB(torch.utils.data.Dataset):
                 {'image': <np.array> image, 'labels': <np.array(n_classes)> hot vector, 'leaf_label': <int>}
         """
         sample = self.ETHEC.__getitem__(item)
-        image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][
-                                                                                                11:21] + "R"
-        path_to_image = os.path.join(self.path_to_images, image_folder,
-                                     sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
+        image_folder = sample['image_path']
+        path_to_image = os.path.join(self.path_to_images, image_folder, sample['image_name'])
         img = cv2.imread(path_to_image)
         if img is None:
             print('This image is None: {} {}'.format(path_to_image, sample['token']))
@@ -2738,10 +3838,8 @@ class ETHECDBMerged(ETHECDB):
 
         sample = self.ETHEC.__getitem__(item)
         if self.with_images:
-            image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample['image_name'][
-                                                                                                    11:21] + "R"
-            path_to_image = os.path.join(self.path_to_images, image_folder,
-                                         sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'])
+            image_folder = sample['image_path']
+            path_to_image = os.path.join(self.path_to_images, image_folder, sample['image_name'])
             img = cv2.imread(path_to_image)
             if img is None:
                 print('This image is None: {} {}'.format(path_to_image, sample['token']))
@@ -2750,26 +3848,18 @@ class ETHECDBMerged(ETHECDB):
             if self.transform:
                 img = self.transform(img)
         else:
-            image_folder = sample['image_path'][11:21] + "R" if '.JPG' in sample['image_path'] else sample[
-                                                                                                        'image_name'][
-                                                                                                    11:21] + "R"
+            image_folder = sample['image_path']
             path_to_image = os.path.join(self.path_to_images, image_folder,
-                                         sample['image_path'] if '.JPG' in sample['image_path'] else sample[
-                                             'image_name'])
+                                         sample['image_path'])
             img = 0
 
         ret_sample = {
             'image': img,
             'image_filename': sample['image_path'] if '.JPG' in sample['image_path'] else sample['image_name'],
-            'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'],
-                                                                 '{}_{}'.format(sample['genus'],
-                                                                                sample['specific_epithet']))).float(),
-            'leaf_label': self.labelmap.get_label_id('genus_specific_epithet',
-                                                     '{}_{}'.format(sample['genus'], sample['specific_epithet'])),
+            'labels': torch.from_numpy(self.labelmap.get_one_hot(sample['family'], sample['subfamily'], sample['genus'], sample['specific_epithet'])).float(),
+            'leaf_label': self.labelmap.get_label_id('genus_specific_epithet', sample['specific_epithet']),
             'level_labels': torch.from_numpy(self.labelmap.get_level_labels(sample['family'], sample['subfamily'],
-                                                                            sample['genus'],
-                                                                            '{}_{}'.format(sample['genus'], sample[
-                                                                                'specific_epithet']))).long(),
+                                                                            sample['genus'], sample['specific_epithet'])).long(),
             'path_to_image': path_to_image
         }
         return ret_sample

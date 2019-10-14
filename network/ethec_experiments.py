@@ -12,6 +12,7 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 from network.finetuner import CIFAR10
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
+from data.db import Butterfly200LabelMap
 from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
 
 from PIL import Image
@@ -249,9 +250,9 @@ def ETHEC_train_model(arguments):
 
     # initial_crop = 324
     input_size = 224
-    labelmap = ETHECLabelMap()
+    labelmap = Butterfly200LabelMap()
     if arguments.merged:
-        labelmap = ETHECLabelMapMerged()
+        labelmap = Butterfly200LabelMap()
     if arguments.debug:
         labelmap = ETHECLabelMapMergedSmall()
 
@@ -284,34 +285,34 @@ def ETHEC_train_model(arguments):
                                                        ])
 
     if not arguments.merged:
-        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
+        train_set = ETHECDB(path_to_json='../database/butterfly200/train.json',
                             path_to_images=arguments.image_dir,
                             labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
+        val_set = ETHECDB(path_to_json='../database/butterfly200/val.json',
                           path_to_images=arguments.image_dir,
                           labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
+        test_set = ETHECDB(path_to_json='../database/butterfly200/test.json',
                            path_to_images=arguments.image_dir,
                            labelmap=labelmap, transform=val_test_data_transforms)
     elif not arguments.debug:
-        train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
+        train_set = ETHECDBMerged(path_to_json='../database/butterfly200/train.json',
                                   path_to_images=arguments.image_dir,
                                   labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDBMerged(path_to_json='../database/ETHEC/val.json',
+        val_set = ETHECDBMerged(path_to_json='../database/butterfly200/val.json',
                                 path_to_images=arguments.image_dir,
                                 labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDBMerged(path_to_json='../database/ETHEC/test.json',
+        test_set = ETHECDBMerged(path_to_json='../database/butterfly200/test.json',
                                  path_to_images=arguments.image_dir,
                                  labelmap=labelmap, transform=val_test_data_transforms)
     else:
         labelmap = ETHECLabelMapMergedSmall(single_level=False)
-        train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
+        train_set = ETHECDBMergedSmall(path_to_json='../database/butterfly200/train.json',
                                        path_to_images=arguments.image_dir,
                                        labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
+        val_set = ETHECDBMergedSmall(path_to_json='../database/butterfly200/val.json',
                                      path_to_images=arguments.image_dir,
                                      labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
+        test_set = ETHECDBMergedSmall(path_to_json='../database/butterfly200/test.json',
                                       path_to_images=arguments.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
 

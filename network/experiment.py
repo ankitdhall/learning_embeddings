@@ -99,7 +99,7 @@ class Experiment:
         correct_labels = np.zeros((len(self.dataloaders[phase].dataset)))
 
         # Iterate over data.
-        for index, data_item in enumerate(self.dataloaders[phase]):
+        for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
             inputs, labels = data_item
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)

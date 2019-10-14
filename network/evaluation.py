@@ -654,7 +654,7 @@ class MultiLevelEvaluation(MultiLabelEvaluation):
                                                               str(epoch)),
                                                  '{} {}'.format(self.labelmap.level_names[level_id], 'F1'))
 
-        return global_metrics
+        return global_metrics, level_wise_metrics
 
     def set_optimal_thresholds(self, best_f1_score):
         pass

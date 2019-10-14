@@ -262,8 +262,8 @@ class CIFAR10(Experiment):
             np.save(os.path.join(self.log_dir, 'predicted_scores.npy'), predicted_scores)
             np.save(os.path.join(self.log_dir, 'correct_labels.npy'), correct_labels)
 
-        metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard,
-                                     self.samples_split)
+        metrics, level_wise_metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard,
+                                                         self.samples_split)
         macro_f1, micro_f1, macro_p, micro_p, macro_r, micro_r = metrics['macro']['f1'], metrics['micro']['f1'], \
                                                                  metrics['macro']['precision'], \
                                                                  metrics['micro']['precision'], \
@@ -276,8 +276,12 @@ class CIFAR10(Experiment):
         epoch_acc = running_corrects / self.dataset_length[phase]
 
         if save_to_tensorboard:
+            # level wise metrics
+            for level_id, metrics_key in enumerate(level_wise_metrics):
+                metrics = level_wise_metrics[metrics_key]
+                self.writer.add_scalar('{}_{}_accuracy'.format(phase, metrics_key), metrics['accuracy_score'], self.epoch)
+
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
-            self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
             self.writer.add_scalar('{}_micro_f1'.format(phase), micro_f1, self.epoch)
             self.writer.add_scalar('{}_macro_f1'.format(phase), macro_f1, self.epoch)
             self.writer.add_scalar('{}_micro_precision'.format(phase), micro_p, self.epoch)

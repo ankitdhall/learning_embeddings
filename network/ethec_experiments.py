@@ -248,8 +248,8 @@ def ETHEC_train_model(arguments):
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(arguments), indent=4)))
 
-    # initial_crop = 324
-    input_size = 224
+    initial_crop = 512
+    input_size = 448
     labelmap = Butterfly200LabelMap()
     if arguments.merged:
         labelmap = Butterfly200LabelMap()
@@ -257,8 +257,8 @@ def ETHEC_train_model(arguments):
         labelmap = ETHECLabelMapMergedSmall()
 
     train_data_transforms = transforms.Compose([transforms.ToPILImage(),
-                                                transforms.Resize((input_size, input_size)),
-                                                # RandomCrop((input_size, input_size)),
+                                                transforms.Resize((initial_crop, initial_crop)),
+                                                transforms.RandomCrop((input_size, input_size)),
                                                 transforms.RandomHorizontalFlip(),
                                                 # ColorJitter(brightness=0.2, contrast=0.2),
                                                 transforms.ToTensor(),
@@ -266,7 +266,8 @@ def ETHEC_train_model(arguments):
                                                 #                      std=(66.7762, 59.2524, 51.5077))
                                                 ])
     val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
-                                                   transforms.Resize((input_size, input_size)),
+                                                   transforms.Resize((initial_crop, initial_crop)),
+                                                   transforms.CenterCrop((input_size, input_size)),
                                                    transforms.ToTensor(),
                                                    # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
                                                    #                      std=(66.7762, 59.2524, 51.5077))

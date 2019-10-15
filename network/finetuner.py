@@ -98,7 +98,8 @@ class CIFAR10(Experiment):
                  use_pretrained=True,
                  load_wt=False,
                  model_name=None,
-                 optimizer_method='adam'):
+                 optimizer_method='adam',
+                 lr_step=[]):
 
         self.classes = labelmap.classes
         self.n_classes = labelmap.n_classes
@@ -111,6 +112,7 @@ class CIFAR10(Experiment):
         self.optimal_thresholds = np.zeros(self.n_classes)
         self.optimizer_method = optimizer_method
         self.labelmap = labelmap
+        self.lr_step = lr_step
 
         if model_name == 'alexnet':
             model = models.alexnet(pretrained=use_pretrained)
@@ -127,7 +129,7 @@ class CIFAR10(Experiment):
 
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs,
                             eval_interval,
-                            batch_size, experiment_dir, load_wt, evaluator)
+                            batch_size, experiment_dir, load_wt, evaluator, lr_step=self.lr_step)
         self.model_name = model_name
 
     def prepare_model(self, loading=False):

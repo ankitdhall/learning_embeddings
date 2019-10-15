@@ -212,11 +212,12 @@ class ETHECExperiment(CIFAR10):
                  load_wt=False,
                  model_name=None,
                  optimizer_method='adam',
-                 use_grayscale=False):
+                 use_grayscale=False,
+                 lr_step=[]):
 
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained,
-                         load_wt, model_name, optimizer_method)
+                         load_wt, model_name, optimizer_method, lr_step=lr_step)
 
         if use_grayscale:
             if model_name in ['alexnet', 'vgg']:
@@ -421,7 +422,8 @@ def ETHEC_train_model(arguments):
                                         load_wt=arguments.resume,
                                         model_name=arguments.model,
                                         optimizer_method=arguments.optimizer_method,
-                                        use_grayscale=arguments.use_grayscale)
+                                        use_grayscale=arguments.use_grayscale,
+                                        lr_step=arguments.lr_step)
     ETHEC_trainer.prepare_model()
     #if arguments.use_2d and arguments.resume:
     #    ETHEC_trainer.plot_label_representations()
@@ -458,6 +460,7 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     parser.add_argument("--use_2d", help='Use model with 2d features', action='store_true')
+    parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
     args = parser.parse_args()
 
     ETHEC_train_model(args)

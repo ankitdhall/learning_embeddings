@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.nn as nn
 import torch.optim as optim
 import torchvision

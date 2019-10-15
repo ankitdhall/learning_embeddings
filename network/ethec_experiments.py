@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import division
 import torch
 torch.multiprocessing.set_sharing_strategy('file_system')
+torch.manual_seed(0)
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
@@ -18,6 +19,7 @@ from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, Ma
 
 from PIL import Image
 import numpy as np
+np.random.seed(0)
 
 import copy
 import argparse

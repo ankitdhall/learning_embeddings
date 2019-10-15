@@ -269,8 +269,9 @@ def ETHEC_train_model(arguments):
                                                 #                      std=(66.7762, 59.2524, 51.5077))
                                                 ])
     val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
-                                                   transforms.Resize((initial_crop, initial_crop)),
-                                                   transforms.CenterCrop((input_size, input_size)),
+                                                   # transforms.Resize((initial_crop, initial_crop)),
+                                                   # transforms.CenterCrop((input_size, input_size)),
+                                                   transforms.Resize((input_size, input_size)),
                                                    transforms.ToTensor(),
                                                    # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
                                                    #                      std=(66.7762, 59.2524, 51.5077))

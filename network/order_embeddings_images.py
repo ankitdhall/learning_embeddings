@@ -31,6 +31,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from data.db import ETHECLabelMap, ETHECLabelMapMergedSmall
+from data.db import Butterfly200LabelMap
 
 from network.finetuner import CIFAR10
 import numpy as np
@@ -55,9 +56,9 @@ class Identity(nn.Module):
 
 
 class ImageEmb:
-    def __init__(self, path_to_exp='../exp/ethec_resnet50_lr_1e-5_1_1_1_1/',
-                 image_dir='/media/ankit/DataPartition/IMAGO_build_test_resized',
-                 path_to_db='../database/ETHEC/', debug=False):
+    def __init__(self, path_to_exp='../exp/b200/marg_r50_448/ethec_resnet50_lr1e-5/',
+                 image_dir='/cluster/scratch/adhall/data/butterfly200/images_small/',
+                 path_to_db='../database/butterfly200/', debug=False):
         self.path_to_exp = path_to_exp
         self.image_dir = image_dir
         self.path_to_db = path_to_db
@@ -78,10 +79,15 @@ class ImageEmb:
         Generates embeddings using self.model and saves them to disk to be used for downstream tasks.
         :return: NA
         """
-        input_size = 224
+        initial_crop = 512
+        input_size = 448
         val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                       # transforms.Resize((initial_crop, initial_crop)),
+                                                       # transforms.CenterCrop((input_size, input_size)),
                                                        transforms.Resize((input_size, input_size)),
                                                        transforms.ToTensor(),
+                                                       # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
+                                                       #                      std=(66.7762, 59.2524, 51.5077))
                                                        ])
         if self.debug:
             labelmap = ETHECLabelMapMergedSmall()
@@ -95,7 +101,7 @@ class ImageEmb:
                                           path_to_images=self.image_dir,
                                           labelmap=labelmap, transform=val_test_data_transforms)
         else:
-            labelmap = ETHECLabelMapMerged()
+            labelmap = Butterfly200LabelMap()
             train_set = ETHECDBMerged(path_to_json=os.path.join(self.path_to_db, 'train.json'),
                                       path_to_images=self.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
@@ -1309,10 +1315,10 @@ def order_embedding_labels_with_images_train_model(arguments):
 
 
 if __name__ == '__main__':
-    generate_emb = False
+    generate_emb = True
     if generate_emb:
-        # ImageEmb().load_generate_and_save()
-        ValidateGraphRepresentation()
+        ImageEmb().load_generate_and_save()
+        # ValidateGraphRepresentation()
     else:
         parser = argparse.ArgumentParser()
         parser.add_argument("--debug", help='Use DEBUG mode.', action='store_true')

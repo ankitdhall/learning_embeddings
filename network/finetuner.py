@@ -98,7 +98,8 @@ class CIFAR10(Experiment):
                  use_pretrained=True,
                  load_wt=False,
                  model_name=None,
-                 optimizer_method='adam'):
+                 optimizer_method='adam',
+                 lr_step=[]):
 
         self.classes = labelmap.classes
         self.n_classes = labelmap.n_classes
@@ -110,6 +111,8 @@ class CIFAR10(Experiment):
         self.feature_extracting = feature_extracting
         self.optimal_thresholds = np.zeros(self.n_classes)
         self.optimizer_method = optimizer_method
+        self.labelmap = labelmap
+        self.lr_step = lr_step
 
         if model_name == 'alexnet':
             model = models.alexnet(pretrained=use_pretrained)
@@ -126,29 +129,49 @@ class CIFAR10(Experiment):
 
         Experiment.__init__(self, model, data_loaders, criterion, self.classes, experiment_name, n_epochs,
                             eval_interval,
-                            batch_size, experiment_dir, load_wt, evaluator)
+                            batch_size, experiment_dir, load_wt, evaluator, lr_step=self.lr_step)
+        self.model_name = model_name
 
+    def prepare_model(self, loading=False):
         self.dataset_length = {phase: len(self.dataloaders[phase].dataset) for phase in ['train', 'val', 'test']}
 
         self.set_parameter_requires_grad(self.feature_extracting)
 
         # modify last layers based on the model being used
-        if model_name in ['alexnet', 'vgg']:
-            num_features = self.model.classifier[6].in_features
-            if isinstance(criterion, LastLevelCELoss):
-                self.model.classifier[6] = nn.Linear(num_features, self.levels[-1])
-            elif isinstance(criterion, HierarchicalSoftmaxLoss):
-                self.model.classifier[6] = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            else:
-                self.model.classifier[6] = nn.Linear(num_features, self.n_classes)
-        elif 'resnet' in model_name:
-            num_features = self.model.fc.in_features
-            if isinstance(criterion, LastLevelCELoss):
-                self.model.fc = nn.Linear(num_features, self.levels[-1])
-            elif isinstance(criterion, HierarchicalSoftmaxLoss):
-                self.model.fc = HierarchicalSoftmax(labelmap=labelmap, input_size=num_features)
-            else:
-                self.model.fc = nn.Linear(num_features, self.n_classes)
+        if not loading:
+            if self.model_name in ['alexnet', 'vgg']:
+                num_features = self.model.module.classifier[6].in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.classifier[6] = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.classifier[6] = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.classifier[6] = nn.Linear(num_features, self.n_classes)
+            elif 'resnet' in self.model_name:
+                num_features = self.model.module.fc.in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.fc = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.fc = nn.Linear(num_features, self.n_classes)
+        else:
+            if self.model_name in ['alexnet', 'vgg']:
+                num_features = self.model.module.module.classifier[6].in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.module.classifier[6] = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.module.classifier[6] = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.module.classifier[6] = nn.Linear(num_features, self.n_classes)
+            elif 'resnet' in self.model_name:
+                num_features = self.model.module.module.fc.in_features
+                if isinstance(self.criterion, LastLevelCELoss):
+                    self.model.module.module.fc = nn.Linear(num_features, self.levels[-1])
+                elif isinstance(self.criterion, HierarchicalSoftmaxLoss):
+                    self.model.module.fc = HierarchicalSoftmax(labelmap=self.labelmap, input_size=num_features)
+                else:
+                    self.model.module.fc = nn.Linear(num_features, self.n_classes)
 
         self.n_train, self.n_val, self.n_test = torch.zeros(self.n_classes), torch.zeros(self.n_classes), \
                                                 torch.zeros(self.n_classes)
@@ -162,7 +185,6 @@ class CIFAR10(Experiment):
 
         self.samples_split = {'train': self.n_train, 'val': self.n_val, 'test': self.n_test}
 
-    def prepare_model(self):
         self.params_to_update = self.model.parameters()
 
         if self.feature_extracting:
@@ -242,8 +264,8 @@ class CIFAR10(Experiment):
             np.save(os.path.join(self.log_dir, 'predicted_scores.npy'), predicted_scores)
             np.save(os.path.join(self.log_dir, 'correct_labels.npy'), correct_labels)
 
-        metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard,
-                                     self.samples_split)
+        metrics, level_wise_metrics = self.eval.evaluate(predicted_scores, correct_labels, self.epoch, phase, save_to_tensorboard,
+                                                         self.samples_split)
         macro_f1, micro_f1, macro_p, micro_p, macro_r, micro_r = metrics['macro']['f1'], metrics['micro']['f1'], \
                                                                  metrics['macro']['precision'], \
                                                                  metrics['micro']['precision'], \
@@ -256,8 +278,12 @@ class CIFAR10(Experiment):
         epoch_acc = running_corrects / self.dataset_length[phase]
 
         if save_to_tensorboard:
+            # level wise metrics
+            for level_id, metrics_key in enumerate(level_wise_metrics):
+                metrics = level_wise_metrics[metrics_key]
+                self.writer.add_scalar('{}_{}_accuracy'.format(phase, metrics_key), metrics['accuracy_score'], self.epoch)
+
             self.writer.add_scalar('{}_loss'.format(phase), epoch_loss, self.epoch)
-            self.writer.add_scalar('{}_accuracy'.format(phase), epoch_acc, self.epoch)
             self.writer.add_scalar('{}_micro_f1'.format(phase), micro_f1, self.epoch)
             self.writer.add_scalar('{}_macro_f1'.format(phase), macro_f1, self.epoch)
             self.writer.add_scalar('{}_micro_precision'.format(phase), micro_p, self.epoch)

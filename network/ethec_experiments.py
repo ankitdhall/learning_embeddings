@@ -1,6 +1,8 @@
 from __future__ import print_function
 from __future__ import division
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
+torch.manual_seed(0)
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
@@ -12,10 +14,12 @@ from network.evaluation import MultiLabelEvaluation, Evaluation, MultiLabelEvalu
 from network.finetuner import CIFAR10
 
 from data.db import ETHECLabelMap, ETHECDB, ETHECDBMerged, ETHECLabelMapMerged, ETHECLabelMapMergedSmall, ETHECDBMergedSmall
+from data.db import Butterfly200LabelMap
 from network.loss import MultiLevelCELoss, MultiLabelSMLoss, LastLevelCELoss, MaskedCELoss, HierarchicalSoftmaxLoss
 
 from PIL import Image
 import numpy as np
+np.random.seed(0)
 
 import copy
 import argparse
@@ -208,11 +212,12 @@ class ETHECExperiment(CIFAR10):
                  load_wt=False,
                  model_name=None,
                  optimizer_method='adam',
-                 use_grayscale=False):
+                 use_grayscale=False,
+                 lr_step=[]):
 
         CIFAR10.__init__(self, data_loaders, labelmap, criterion, lr, batch_size, evaluator, experiment_name,
                          experiment_dir, n_epochs, eval_interval, feature_extracting, use_pretrained,
-                         load_wt, model_name, optimizer_method)
+                         load_wt, model_name, optimizer_method, lr_step=lr_step)
 
         if use_grayscale:
             if model_name in ['alexnet', 'vgg']:
@@ -247,17 +252,17 @@ def ETHEC_train_model(arguments):
 
     print('Config parameters for this run are:\n{}'.format(json.dumps(vars(arguments), indent=4)))
 
-    # initial_crop = 324
-    input_size = 224
-    labelmap = ETHECLabelMap()
+    initial_crop = 512
+    input_size = 448
+    labelmap = Butterfly200LabelMap()
     if arguments.merged:
-        labelmap = ETHECLabelMapMerged()
+        labelmap = Butterfly200LabelMap()
     if arguments.debug:
         labelmap = ETHECLabelMapMergedSmall()
 
     train_data_transforms = transforms.Compose([transforms.ToPILImage(),
-                                                transforms.Resize((input_size, input_size)),
-                                                # RandomCrop((input_size, input_size)),
+                                                transforms.Resize((initial_crop, initial_crop)),
+                                                transforms.RandomCrop((input_size, input_size)),
                                                 transforms.RandomHorizontalFlip(),
                                                 # ColorJitter(brightness=0.2, contrast=0.2),
                                                 transforms.ToTensor(),
@@ -265,6 +270,8 @@ def ETHEC_train_model(arguments):
                                                 #                      std=(66.7762, 59.2524, 51.5077))
                                                 ])
     val_test_data_transforms = transforms.Compose([transforms.ToPILImage(),
+                                                   # transforms.Resize((initial_crop, initial_crop)),
+                                                   # transforms.CenterCrop((input_size, input_size)),
                                                    transforms.Resize((input_size, input_size)),
                                                    transforms.ToTensor(),
                                                    # transforms.Normalize(mean=(143.2341, 162.8151, 177.2185),
@@ -284,34 +291,34 @@ def ETHEC_train_model(arguments):
                                                        ])
 
     if not arguments.merged:
-        train_set = ETHECDB(path_to_json='../database/ETHEC/train.json',
+        train_set = ETHECDB(path_to_json='../database/butterfly200/train.json',
                             path_to_images=arguments.image_dir,
                             labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDB(path_to_json='../database/ETHEC/val.json',
+        val_set = ETHECDB(path_to_json='../database/butterfly200/val.json',
                           path_to_images=arguments.image_dir,
                           labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDB(path_to_json='../database/ETHEC/test.json',
+        test_set = ETHECDB(path_to_json='../database/butterfly200/test.json',
                            path_to_images=arguments.image_dir,
                            labelmap=labelmap, transform=val_test_data_transforms)
     elif not arguments.debug:
-        train_set = ETHECDBMerged(path_to_json='../database/ETHEC/train.json',
+        train_set = ETHECDBMerged(path_to_json='../database/butterfly200/train.json',
                                   path_to_images=arguments.image_dir,
                                   labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDBMerged(path_to_json='../database/ETHEC/val.json',
+        val_set = ETHECDBMerged(path_to_json='../database/butterfly200/val.json',
                                 path_to_images=arguments.image_dir,
                                 labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDBMerged(path_to_json='../database/ETHEC/test.json',
+        test_set = ETHECDBMerged(path_to_json='../database/butterfly200/test.json',
                                  path_to_images=arguments.image_dir,
                                  labelmap=labelmap, transform=val_test_data_transforms)
     else:
         labelmap = ETHECLabelMapMergedSmall(single_level=False)
-        train_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/train.json',
+        train_set = ETHECDBMergedSmall(path_to_json='../database/butterfly200/train.json',
                                        path_to_images=arguments.image_dir,
                                        labelmap=labelmap, transform=train_data_transforms)
-        val_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/val.json',
+        val_set = ETHECDBMergedSmall(path_to_json='../database/butterfly200/val.json',
                                      path_to_images=arguments.image_dir,
                                      labelmap=labelmap, transform=val_test_data_transforms)
-        test_set = ETHECDBMergedSmall(path_to_json='../database/ETHEC/test.json',
+        test_set = ETHECDBMergedSmall(path_to_json='../database/butterfly200/test.json',
                                       path_to_images=arguments.image_dir,
                                       labelmap=labelmap, transform=val_test_data_transforms)
 
@@ -415,7 +422,8 @@ def ETHEC_train_model(arguments):
                                         load_wt=arguments.resume,
                                         model_name=arguments.model,
                                         optimizer_method=arguments.optimizer_method,
-                                        use_grayscale=arguments.use_grayscale)
+                                        use_grayscale=arguments.use_grayscale,
+                                        lr_step=arguments.lr_step)
     ETHEC_trainer.prepare_model()
     #if arguments.use_2d and arguments.resume:
     #    ETHEC_trainer.plot_label_representations()
@@ -452,6 +460,7 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("--level_weights", help='List of weights for each level', nargs=4, default=None, type=float)
     parser.add_argument("--use_2d", help='Use model with 2d features', action='store_true')
+    parser.add_argument("--lr_step", help='List of epochs to make multiple lr by 0.1', nargs='*', default=[], type=int)
     args = parser.parse_args()
 
     ETHEC_train_model(args)

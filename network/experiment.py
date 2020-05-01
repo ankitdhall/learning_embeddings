@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 class Experiment:
 
     def __init__(self, model, dataloaders, criterion, classes, experiment_name, n_epochs, eval_interval, batch_size,
-                 exp_dir, load_wt, evaluator):
+                 exp_dir, load_wt, evaluator, lr_step=[]):
         self.epoch = 0
         self.exp_dir = exp_dir
         self.load_wt = load_wt
@@ -51,6 +51,8 @@ class Experiment:
         self.make_dir_if_non_existent(self.path_to_save_model)
 
         self.writer = SummaryWriter(log_dir=os.path.join(self.log_dir, 'tensorboard'))
+
+        self.lr_step = lr_step
 
     @staticmethod
     def make_dir_if_non_existent(dir):
@@ -99,7 +101,7 @@ class Experiment:
         correct_labels = np.zeros((len(self.dataloaders[phase].dataset)))
 
         # Iterate over data.
-        for index, data_item in enumerate(self.dataloaders[phase]):
+        for index, data_item in enumerate(tqdm(self.dataloaders[phase])):
             inputs, labels = data_item
             inputs = inputs.to(self.device)
             labels = labels.float().to(self.device)
@@ -152,6 +154,7 @@ class Experiment:
 
     def run_model(self, optimizer):
         self.optimizer = optimizer
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=self.lr_step, gamma=0.1)
 
         if self.load_wt:
             self.find_existing_weights()
@@ -173,6 +176,8 @@ class Experiment:
                 self.pass_samples(phase='val')
                 self.pass_samples(phase='test')
                 self.eval.disable_plotting()
+
+            scheduler.step()
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -209,11 +214,14 @@ class Experiment:
         else:
             self.load_model(epoch_to_load=weights[-2].split('.')[0])
 
-    def load_best_model(self):
-        self.load_model(epoch_to_load='best_model')
-        self.eval.enable_plotting()
-        self.pass_samples(phase='test', save_to_tensorboard=False)
-        self.eval.disable_plotting()
+    def load_best_model(self, only_load=False):
+        if only_load:
+            self.load_model(epoch_to_load='best_model')
+        else:
+            self.load_model(epoch_to_load='best_model')
+            self.eval.enable_plotting()
+            self.pass_samples(phase='test', save_to_tensorboard=False)
+            self.eval.disable_plotting()
 
 
 class WeightedResampler(torch.utils.data.sampler.WeightedRandomSampler):
